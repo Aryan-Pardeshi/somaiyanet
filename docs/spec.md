@@ -701,3 +701,19 @@ Group roles are NOLOGIN: `grp_director`, `grp_station_operator`, `grp_analyst`, 
 - **Fonts:** Inter for text and JetBrains Mono for labels and numbers, both local woff2 (copied from `reference/landing/public/assets/fonts`). No CDN fonts.
 - Section labels follow the friend's `[ SECTION ]` mono style, but our copy is original.
 - Every data page has a collapsible **"SQL under the hood"** drawer showing the exact SQL that ran, plus Exp/CO chips.
+
+## 10. Role picker instead of a login form (user decision)
+
+There is **no username/password login screen**. `/login` is replaced by a Netflix-style **"Who's on console?"** profile picker at `/console`. It shows one large tile per DB login role, each with an avatar/icon, a name, and a one-line "can do" summary:
+
+| tile | DB role | accent |
+|---|---|---|
+| Mission Director | mission_director | Somaiya red ring |
+| Mumbai Station (GS-BOM) | station_operator_bom | blue |
+| Espoo Station (GS-HEL) | station_operator_hel | blue |
+| Student Analyst | student_analyst | muted |
+| AI Router (spacecraft) | ai_router | green |
+
+- **Picking a tile.** Clicking a tile calls `POST /api/session {role}`. The backend reads that role's password from `.env` (server side only, never sent to the browser), opens a pooled connection **as that real Postgres role**, and sets an httpOnly session cookie. Every query after that runs as that role, so permission denials and RLS still come from PostgreSQL, not from the app. This is the whole point of the demo.
+- **Switching roles.** The top bar always shows the current profile chip. Clicking it switches profile instantly (Netflix "switch profile"), which makes the denial demo fast, e.g. switch Analyst to Director to Analyst.
+- **Hover detail.** Hovering a tile shows the role's privileges, read live from `has_table_privilege` / `information_schema`.

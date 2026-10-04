@@ -37,7 +37,7 @@ DBMS/somaiyanet/            (git init)
 ├── backend/     FastAPI: main.py, db.py (per-role psycopg3 pools), routers/
 │                auth, mission, routing, ai, deploy, labs_{tx,security,index,norm,sql}, stream(SSE)
 ├── web/         Vite React TS + Tailwind v4 + shadcn + R3F + GSAP + globe.gl
-│                /  landing   /login   /ops   /routing   /brain   /deploy
+│                /  landing   /console (role picker)   /ops   /routing   /brain   /deploy
 │                /labs/{schema,normalization,transactions,security,indexing,sql}
 ├── tests/       pytest against throwaway DB somaiyanet_test
 ├── reference/   friend repo clone (gitignored, copy-from only)
@@ -161,7 +161,7 @@ DBMS/somaiyanet/            (git init)
 1. **D1 Foundation:**
    - clone the friend repo to `reference/` and scaffold the monorepo
    - write `db/01–02`, `setup_db.py` (reads `.env`; you set `PGPASSWORD` for postgres yourself), `build_constellation.py` and `compute_contacts.py`
-   - stand up the FastAPI skeleton with role login (server-side session, httponly cookie)
+   - stand up the FastAPI skeleton with a Netflix-style role picker (no password form; server-side session as the real Postgres role)
 2. **D2 SQL core:**
    - views, `cgr_routes`, triggers, security + RLS
    - `train_router.py`, `ai_decide` and the watchdog
