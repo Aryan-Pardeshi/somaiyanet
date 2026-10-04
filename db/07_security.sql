@@ -136,6 +136,8 @@ GRANT INSERT ON packet, ttc_frame, sstv_image, voice_frame TO grp_router;
 GRANT SELECT ON payload_mode TO grp_router;
 GRANT SELECT ON contact TO grp_router;
 GRANT SELECT (node_id, state) ON satellite TO grp_router;
+-- The router runs its own model: it reads the tree and its decision log.
+GRANT SELECT ON ai_model, ai_model_metric, dt_node, routing_decision TO grp_router;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO grp_router;
 
 -- ---------------------------------------------------------------- EXECUTE ---
@@ -156,22 +158,22 @@ GRANT EXECUTE ON ALL PROCEDURES IN SCHEMA public TO grp_director;
 DO $$
 BEGIN
     IF to_regprocedure('rule_action(JSONB)') IS NOT NULL THEN
-        EXECUTE 'GRANT EXECUTE ON FUNCTION rule_action(JSONB) TO grp_analyst';
+        EXECUTE 'GRANT EXECUTE ON FUNCTION rule_action(JSONB) TO grp_analyst, grp_station_operator, grp_router';
     END IF;
     IF to_regprocedure('rule_reason(JSONB)') IS NOT NULL THEN
-        EXECUTE 'GRANT EXECUTE ON FUNCTION rule_reason(JSONB) TO grp_analyst';
+        EXECUTE 'GRANT EXECUTE ON FUNCTION rule_reason(JSONB) TO grp_analyst, grp_station_operator, grp_router';
     END IF;
     IF to_regprocedure('ai_decide(JSONB, INT)') IS NOT NULL THEN
-        EXECUTE 'GRANT EXECUTE ON FUNCTION ai_decide(JSONB, INT) TO grp_analyst';
+        EXECUTE 'GRANT EXECUTE ON FUNCTION ai_decide(JSONB, INT) TO grp_analyst, grp_station_operator, grp_router';
     END IF;
     IF to_regprocedure('features_for_satellite(VARCHAR, TIMESTAMPTZ)') IS NOT NULL THEN
-        EXECUTE 'GRANT EXECUTE ON FUNCTION features_for_satellite(VARCHAR, TIMESTAMPTZ) TO grp_analyst';
+        EXECUTE 'GRANT EXECUTE ON FUNCTION features_for_satellite(VARCHAR, TIMESTAMPTZ) TO grp_analyst, grp_station_operator, grp_router';
     END IF;
     IF to_regprocedure('preview_decision(VARCHAR)') IS NOT NULL THEN
-        EXECUTE 'GRANT EXECUTE ON FUNCTION preview_decision(VARCHAR) TO grp_director, grp_station_operator, grp_analyst';
+        EXECUTE 'GRANT EXECUTE ON FUNCTION preview_decision(VARCHAR) TO grp_director, grp_station_operator, grp_analyst, grp_router';
     END IF;
     IF to_regprocedure('watchdog_violation(JSONB, router_action)') IS NOT NULL THEN
-        EXECUTE 'GRANT EXECUTE ON FUNCTION watchdog_violation(JSONB, router_action) TO grp_analyst';
+        EXECUTE 'GRANT EXECUTE ON FUNCTION watchdog_violation(JSONB, router_action) TO grp_analyst, grp_station_operator, grp_router';
     END IF;
     IF to_regprocedure('decide_for_satellite(VARCHAR, TIMESTAMPTZ)') IS NOT NULL THEN
         EXECUTE 'GRANT EXECUTE ON FUNCTION decide_for_satellite(VARCHAR, TIMESTAMPTZ) TO grp_director, grp_station_operator, grp_router';
