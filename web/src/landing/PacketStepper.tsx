@@ -2,109 +2,150 @@ import { useEffect, useRef, useState } from "react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 import { SectionLabel } from "./SectionLabel";
 
-const STEPS: Array<{
-  caption: string;
-  title: string;
-  body: string;
-  sql: string;
-  art: string;
-}> = [
+type Step = { caption: string; title: string; body: string; sql: string; art: Kind };
+type Kind = "scan" | "tree" | "hop" | "dish" | "rows";
+
+const STEPS: Step[] = [
   {
     caption: "CAPTURED",
-    title: "Captured",
-    body: "SomaiyaSat captures an SSTV frame and queues it with its mode and size. TT&C always jumps the queue; SSTV waits for power and a window.",
-    sql: "INSERT INTO packet … RETURNING packet_id",
+    title: "An image is captured",
+    body: "SomaiyaSat paints an SSTV frame of the Earth's limb and queues it. The packet row and its sstv_image subtype row are written together — one supertype, one specialisation.",
+    sql: "INSERT INTO packet (origin_sat, mode, size_bytes)\nVALUES ('SAT-A3', 'SSTV', 41216)\nRETURNING packet_id;",
     art: "scan",
   },
   {
     caption: "DECIDED",
-    title: "Decided",
-    body: "The in-database decision tree walks battery, link score, contact seconds and queue depth. The watchdog can veto the AI and fall back to the rule action.",
-    sql: "SELECT * FROM ai_decide(…)",
+    title: "The router decides",
+    body: "A decision tree stored as rows walks battery, link score, contact time and queue depth. A watchdog checks five safety rules and can overrule the model.",
+    sql: "SELECT action, path\nFROM ai_decide(\n  features_for_satellite('SAT-A3'));",
     art: "tree",
   },
   {
     caption: "RELAYED",
-    title: "Relayed",
-    body: "No station in view? Contact-graph routing hops the packet across ISL links toward the earliest downlink, each hop a row in route_hop.",
-    sql: "WITH RECURSIVE hops … CYCLE",
+    title: "It hops satellite to satellite",
+    body: "No station below. A recursive query chains time-ordered inter-satellite contacts and finds the earliest arrival at any ground station.",
+    sql: "SELECT explanation\nFROM cgr_routes('SAT-A3', now(), 41216);\n-- WITH RECURSIVE … CYCLE node",
     art: "hop",
   },
   {
     caption: "DELIVERED",
-    title: "Delivered",
-    body: "Inside the pass budget the queued frames go down to the station dish. Delivery marks the packet DELIVERED with station and timestamp.",
-    sql: "DELIVERED → route_hop",
+    title: "It reaches the ground",
+    body: "Inside the pass budget the frame goes down to the dish. Housekeeping commits first; the rest sits behind a savepoint so a failure never loses telemetry.",
+    sql: "SELECT stage, status\nFROM execute_pass('SAT-B2', 412, false);",
     art: "dish",
   },
   {
     caption: "RECORDED",
-    title: "Recorded",
-    body: "Triggers append the audit trail — state changes, decisions, telecommands — so the viva can replay every step from Postgres alone.",
-    sql: "audit_log ← trigger",
+    title: "Everything is on the record",
+    body: "Triggers write every state change, decision and telecommand to the audit log, so each step of this story can be replayed from PostgreSQL alone.",
+    sql: "SELECT op, table_name, changed_at\nFROM audit_log\nORDER BY audit_id DESC LIMIT 3;",
     art: "rows",
   },
 ];
 
-function Art({ kind, active }: { kind: string; active: boolean }) {
-  const cls = active ? "#ffffff" : "#5f6f93";
-  const blue = "var(--royal)";
-  if (kind === "scan")
-    return (
-      <svg viewBox="0 0 120 80" className="h-20 w-full">
-        <path d="M4 52 Q60 30 116 52" fill="none" stroke={cls} strokeWidth="1.5" />
-        <path d="M4 60 Q60 38 116 60" fill="none" stroke={cls} strokeWidth="1" opacity="0.5" />
-        {[14, 26, 38].map((y) => (
-          <line key={y} x1="20" y1={y} x2="100" y2={y} stroke={active ? blue : cls} strokeWidth="1" opacity={active ? 0.9 : 0.4} />
-        ))}
-      </svg>
-    );
-  if (kind === "tree")
-    return (
-      <svg viewBox="0 0 120 80" className="h-20 w-full">
-        <circle cx="60" cy="12" r="4" fill="none" stroke={cls} strokeWidth="1.5" />
-        <line x1="60" y1="16" x2="34" y2="38" stroke={cls} strokeWidth="1.5" />
-        <line x1="60" y1="16" x2="86" y2="38" stroke={active ? blue : cls} strokeWidth="1.5" />
-        <circle cx="34" cy="44" r="5" fill="none" stroke={cls} strokeWidth="1.5" />
-        <circle cx="86" cy="44" r="5" fill="none" stroke={active ? blue : cls} strokeWidth="1.5" />
-        <line x1="86" y1="49" x2="86" y2="64" stroke={active ? blue : cls} strokeWidth="1.5" />
-      </svg>
-    );
-  if (kind === "hop")
-    return (
-      <svg viewBox="0 0 120 80" className="h-20 w-full">
-        {[24, 60, 96].map((x) => (
-          <rect key={x} x={x - 8} y="22" width="16" height="14" fill="none" stroke={cls} strokeWidth="1.5" />
-        ))}
-        <line x1="32" y1="29" x2="52" y2="29" stroke={cls} strokeWidth="1" strokeDasharray="4 3" />
-        <line x1="68" y1="29" x2="88" y2="29" stroke={cls} strokeWidth="1" strokeDasharray="4 3" />
-        <line x1="96" y1="36" x2="96" y2="62" stroke={cls} strokeWidth="1" strokeDasharray="4 3" />
-        <circle cx={active ? 78 : 60} cy="29" r="4" fill="var(--somaiya)" />
-        <rect x="88" y="58" width="10" height="10" fill="none" stroke={cls} strokeWidth="1.5" />
-      </svg>
-    );
-  if (kind === "dish")
-    return (
-      <svg viewBox="0 0 120 80" className="h-20 w-full">
-        <path d="M4 60 Q60 44 116 60" fill="none" stroke={cls} strokeWidth="1.5" />
-        <path d="M78 62 A20 20 0 0 1 108 48" fill="none" stroke={cls} strokeWidth="1.5" />
-        <line x1="40" y1="20" x2="88" y2="54" stroke={active ? blue : cls} strokeWidth="1.5" strokeDasharray="4 3" />
-        <rect x="32" y="12" width="14" height="12" fill="none" stroke={cls} strokeWidth="1.5" />
-      </svg>
-    );
+/** White line art; strokes draw themselves in when the box becomes active. */
+function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" | "sm" }) {
+  const s = active ? "#ffffff" : "rgba(255,255,255,0.45)";
+  const blue = "#3d5bff";
+  const draw = active && size === "lg" ? "draw-in" : "";
+  const common = { fill: "none", strokeWidth: size === "lg" ? 1.4 : 2.2, vectorEffect: "non-scaling-stroke" as const };
   return (
-    <svg viewBox="0 0 120 80" className="h-20 w-full">
-      {[16, 34, 52].map((y, i) => (
-        <g key={y} opacity={active || i === 0 ? 1 : 0.35}>
-          <line x1="16" y1={y} x2="104" y2={y} stroke={cls} strokeWidth="1" />
-          <rect x="16" y={y - 6} width="30" height="4" fill="none" stroke={cls} strokeWidth="1" />
+    <svg viewBox="0 0 200 200" className="h-full w-full">
+      {kind === "scan" && (
+        <g>
+          <rect x="40" y="38" width="120" height="90" stroke={s} {...common} pathLength={1} className={draw} />
+          {Array.from({ length: 9 }).map((_, i) => (
+            <line key={i} x1="46" x2={46 + (i < 6 ? 108 : 108 - (i - 5) * 30)} y1={48 + i * 9} y2={48 + i * 9} stroke={i % 3 === 0 ? blue : s} {...common} opacity={0.7} pathLength={1} className={draw} style={{ animationDelay: `${i * 0.08}s` }} />
+          ))}
+          <path d="M20 168 Q100 132 180 168" stroke={s} {...common} pathLength={1} className={draw} />
+          <path d="M20 180 Q100 144 180 180" stroke={s} {...common} opacity={0.4} pathLength={1} className={draw} />
         </g>
-      ))}
+      )}
+      {kind === "tree" && (
+        <g>
+          {[
+            ["100,30", "60,80"],
+            ["100,30", "140,80"],
+            ["60,80", "36,130"],
+            ["60,80", "84,130"],
+            ["140,80", "116,130"],
+            ["140,80", "164,130"],
+            ["116,130", "116,170"],
+          ].map(([a, b], i) => {
+            const [x1, y1] = a.split(",").map(Number);
+            const [x2, y2] = b.split(",").map(Number);
+            const onPath = i === 1 || i === 4 || i === 6;
+            return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={onPath ? blue : s} {...common} pathLength={1} className={draw} style={{ animationDelay: `${i * 0.12}s` }} />;
+          })}
+          {[
+            [100, 30],
+            [60, 80],
+            [140, 80],
+            [36, 130],
+            [84, 130],
+            [116, 130],
+            [164, 130],
+          ].map(([cx, cy], i) => (
+            <circle key={i} cx={cx} cy={cy} r="7" stroke={i === 0 || i === 2 || i === 5 ? blue : s} {...common} fill="#000" />
+          ))}
+          <rect x="100" y="166" width="32" height="12" stroke={blue} {...common} />
+        </g>
+      )}
+      {kind === "hop" && (
+        <g>
+          {[40, 100, 160].map((x, i) => (
+            <g key={x} transform={`translate(${x} ${i === 1 ? 52 : 70})`}>
+              <rect x="-9" y="-14" width="18" height="28" stroke={s} {...common} />
+              <rect x="-40" y="-7" width="26" height="14" stroke={s} {...common} opacity={0.7} />
+              <rect x="14" y="-7" width="26" height="14" stroke={s} {...common} opacity={0.7} />
+            </g>
+          ))}
+          <line x1="49" y1="70" x2="91" y2="52" stroke={s} {...common} strokeDasharray="4 4" />
+          <line x1="109" y1="52" x2="151" y2="70" stroke={s} {...common} strokeDasharray="4 4" />
+          <line x1="160" y1="84" x2="150" y2="160" stroke={s} {...common} strokeDasharray="4 4" />
+          <path d="M14 170 Q100 140 186 170" stroke={s} {...common} />
+          <rect x="145" y="152" width="10" height="10" stroke={s} {...common} />
+          {active && size === "lg" && (
+            <circle r="5" fill="#ff3b4f">
+              <animateMotion dur="2.6s" repeatCount="indefinite" path="M40 70 L100 52 L160 70 L150 157" />
+            </circle>
+          )}
+          {!active && <circle cx="100" cy="52" r="4" fill="#ff3b4f" />}
+        </g>
+      )}
+      {kind === "dish" && (
+        <g>
+          <path d="M14 168 Q100 132 186 168" stroke={s} {...common} pathLength={1} className={draw} />
+          <path d="M14 182 Q100 146 186 182" stroke={s} {...common} opacity={0.4} pathLength={1} className={draw} />
+          <path d="M112 128 Q132 98 160 104" stroke={s} {...common} pathLength={1} className={draw} />
+          <line x1="136" y1="112" x2="136" y2="146" stroke={s} {...common} />
+          <rect x="44" y="30" width="22" height="30" stroke={s} {...common} />
+          {[0, 1, 2].map((k) => (
+            <line key={k} x1="58" y1="62" x2={124 + k * 10} y2={106 + k * 4} stroke={blue} {...common} strokeDasharray="5 4" pathLength={1} className={draw} style={{ animationDelay: `${0.2 + k * 0.15}s` }} />
+          ))}
+        </g>
+      )}
+      {kind === "rows" && (
+        <g>
+          <rect x="30" y="34" width="140" height="132" stroke={s} {...common} />
+          <line x1="30" y1="58" x2="170" y2="58" stroke={s} {...common} />
+          {[0, 1, 2, 3].map((r) => (
+            <g key={r} className={active && size === "lg" ? "row-in" : ""} style={{ animationDelay: `${r * 0.18}s` }}>
+              <line x1="30" x2="170" y1={84 + r * 22} y2={84 + r * 22} stroke={s} {...common} opacity={0.35} />
+              <rect x="40" y={66 + r * 22} width="38" height="10" stroke={r === 0 ? blue : s} {...common} />
+              <rect x="88" y={66 + r * 22} width="70" height="10" stroke={s} {...common} opacity={0.6} />
+            </g>
+          ))}
+        </g>
+      )}
     </svg>
   );
 }
 
-/** Bordered-box stepper, pinned: one box active at a time. */
+/**
+ * Pinned stepper: one large active box with its text beside it, and a strip
+ * of five small boxes underneath that shows where you are in the story.
+ */
 export function PacketStepper() {
   const root = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
@@ -116,12 +157,9 @@ export function PacketStepper() {
       ScrollTrigger.create({
         trigger: el,
         start: "top top",
-        end: "+=250%",
+        end: "+=300%",
         pin: true,
-        scrub: 0.4,
-        onUpdate: (self) => {
-          setActive(Math.min(4, Math.floor(self.progress * 5)));
-        },
+        onUpdate: (self) => setActive(Math.min(STEPS.length - 1, Math.floor(self.progress * STEPS.length))),
       });
     }, el);
     return () => ctx.revert();
@@ -129,40 +167,49 @@ export function PacketStepper() {
 
   const step = STEPS[active];
   return (
-    <section className="border-t border-white/10 bg-black py-24" style={{ background: "#000" }}>
-      <div ref={root} className="mx-auto max-w-[1200px] px-6">
-        <SectionLabel>LIFE OF A PACKET</SectionLabel>
-        <div className="mt-8 grid gap-8 md:grid-cols-[1fr_320px]">
-          <div className="flex flex-wrap gap-3">
-            {STEPS.map((s, i) => (
-              <div key={s.caption} className="flex flex-col items-center">
-                <div
-                  className="flex items-center justify-center border p-3 transition-all"
-                  style={{
-                    width: 150,
-                    height: 150,
-                    borderColor: i === active ? "#fff" : "rgba(255,255,255,0.2)",
-                    opacity: i === active ? 1 : 0.3,
-                    transform: i === active ? "scale(1.06)" : "none",
-                  }}
-                >
-                  <Art kind={s.art} active={i === active} />
-                </div>
-                <span className="font-mono mt-2 text-[11px] uppercase" style={{ color: "#9aa3b8", letterSpacing: "0.08em" }}>
-                  {s.caption}
-                </span>
-              </div>
-            ))}
+    <section className="border-t border-white/10" style={{ background: "#000" }}>
+      <div ref={root} className="mx-auto flex min-h-screen max-w-[1180px] flex-col justify-center px-6 py-16">
+        <div className="flex items-end justify-between">
+          <SectionLabel>LIFE OF A PACKET</SectionLabel>
+          <span className="font-mono text-[11px] tracking-[0.08em] text-[#5f6f93]">
+            {String(active + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")}
+          </span>
+        </div>
+
+        <div className="mt-10 grid items-center gap-10 md:grid-cols-[minmax(0,420px)_1fr] md:gap-16">
+          <div className="relative aspect-square w-full max-w-[420px] border border-white/80">
+            <span className="font-mono absolute left-3 top-3 text-[10px] tracking-[0.1em] text-[#5f6f93]">{step.caption}</span>
+            <div key={active} className="absolute inset-8">
+              <Art kind={step.art} active size="lg" />
+            </div>
           </div>
-          <div key={active} className="border-l border-white/10 pl-6">
-            <h3 className="text-[24px] font-light text-white">{step.title}</h3>
-            <p className="mt-3 text-[15px] leading-relaxed" style={{ color: "#9aa3b8" }}>
-              {step.body}
-            </p>
-            <p className="font-mono mt-4 border border-white/15 bg-white/5 px-3 py-2 text-[12px] text-white">
+          <div key={`t${active}`} className="fade-step max-w-[520px]">
+            <h3 className="font-light text-white" style={{ fontSize: "clamp(28px, 3vw, 40px)", lineHeight: 1.12, letterSpacing: "-0.02em" }}>
+              {step.title}
+            </h3>
+            <p className="mt-4 text-[16px] leading-relaxed text-[#9aa3b8]">{step.body}</p>
+            <pre className="font-mono mt-6 overflow-x-auto border border-white/15 bg-[#05070d] p-4 text-[12.5px] leading-relaxed text-[#dfe6f5]">
               {step.sql}
-            </p>
+            </pre>
           </div>
+        </div>
+
+        <div className="mt-12 grid grid-cols-5 gap-3 md:max-w-[620px]">
+          {STEPS.map((s, i) => (
+            <div key={s.caption} className="flex flex-col gap-2">
+              <div
+                className="aspect-square border transition-colors duration-300"
+                style={{ borderColor: i === active ? "#fff" : "rgba(255,255,255,0.18)", opacity: i <= active ? 1 : 0.5 }}
+              >
+                <div className="h-full w-full p-2">
+                  <Art kind={s.art} active={i === active} size="sm" />
+                </div>
+              </div>
+              <span className="font-mono text-[10px] tracking-[0.08em]" style={{ color: i === active ? "#fff" : "#5f6f93" }}>
+                {s.caption}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </section>

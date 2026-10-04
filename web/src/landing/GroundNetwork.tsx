@@ -4,22 +4,25 @@ import { loadLandMask } from "@/lib/landmask";
 import { useStoryStats } from "@/hooks/useStats";
 
 const STATIONS = [
-  { id: "GS-BOM", lat: 19.0728, lng: 72.8826, fallback: 29 },
-  { id: "GS-HEL", lat: 60.2055, lng: 24.6559, fallback: 59 },
-  { id: "GS-BLR", lat: 12.9716, lng: 77.5946, fallback: 33 },
-  { id: "GS-TYO", lat: 35.6762, lng: 139.6503, fallback: 36 },
-  { id: "GS-SVB", lat: 78.2232, lng: 15.6267, fallback: 141 },
-  { id: "GS-CPT", lat: -33.9249, lng: 18.4241, fallback: 34 },
+  { id: "GS-BOM", name: "KJSIT Mumbai", lat: 19.0728, lng: 72.8826, passes: 29, primary: true },
+  { id: "GS-HEL", name: "ReOrbit Espoo", lat: 60.2055, lng: 24.6559, passes: 59 },
+  { id: "GS-BLR", name: "Bengaluru", lat: 12.9716, lng: 77.5946, passes: 33, below: true },
+  { id: "GS-TYO", name: "Tokyo", lat: 35.6762, lng: 139.6503, passes: 36 },
+  { id: "GS-SVB", name: "Svalbard", lat: 78.2232, lng: 15.6267, passes: 141 },
+  { id: "GS-CPT", name: "Cape Town", lat: -33.9249, lng: 18.4241, passes: 34, below: true },
 ];
 
-function lngToX(lng: number, w: number): number {
-  return ((lng + 180) / 360) * w;
-}
-function latToY(lat: number, h: number): number {
-  return ((90 - lat) / 180) * h;
-}
+// map crop (equirectangular): drop Antarctica, like most network maps
+const LAT_TOP = 82;
+const LAT_BOTTOM = -58;
+const W = 1600;
+const H = Math.round((W * (LAT_TOP - LAT_BOTTOM)) / 360);
+const STEP = 9; // dot grid pitch in canvas px
 
-/** Dark dot-grid world map from land_mask.png + royal halftone clusters. */
+const toX = (lng: number) => ((lng + 180) / 360) * W;
+const toY = (lat: number) => ((LAT_TOP - lat) / (LAT_TOP - LAT_BOTTOM)) * H;
+
+/** Dark dot-grid world map; each station is a blue halftone bloom on the same grid. */
 export function GroundNetwork() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { stats } = useStoryStats();
@@ -27,48 +30,43 @@ export function GroundNetwork() {
   useEffect(() => {
     let alive = true;
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const W = (canvas.width = 960);
-    const H = (canvas.height = 480);
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+    canvas.width = W;
+    canvas.height = H;
     void loadLandMask().then((mask) => {
       if (!alive || !mask) return;
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, W, H);
-      const step = 6;
-      ctx.fillStyle = "#1a1a1a";
-      for (let y = 0; y < H; y += step) {
-        for (let x = 0; x < W; x += step) {
+      ctx.clearRect(0, 0, W, H);
+      const maxPasses = Math.max(...STATIONS.map((s) => s.passes));
+      const blooms = STATIONS.map((s) => ({
+        x: toX(s.lng),
+        y: toY(s.lat),
+        r: 34 + (s.passes / maxPasses) * 46, // bloom radius by pass count
+      }));
+      for (let y = STEP / 2; y < H; y += STEP) {
+        for (let x = STEP / 2; x < W; x += STEP) {
+          const lat = LAT_TOP - (y / H) * (LAT_TOP - LAT_BOTTOM);
           const mx = Math.floor((x / W) * mask.width);
-          const my = Math.floor((y / H) * mask.height);
-          if (mask.isLand(mx, my)) {
+          const my = Math.floor(((90 - lat) / 180) * mask.height);
+          const land = mask.isLand(mx, my);
+          // strongest halftone influence at this grid point
+          let k = 0;
+          for (const b of blooms) {
+            const d = Math.hypot(x - b.x, y - b.y);
+            if (d < b.r) k = Math.max(k, 1 - d / b.r);
+          }
+          if (k > 0) {
+            ctx.fillStyle = `rgba(61, 91, ${255}, ${0.35 + k * 0.65})`;
             ctx.beginPath();
-            ctx.arc(x, y, 1.4, 0, Math.PI * 2);
+            ctx.arc(x, y, 1.2 + k * 3.3, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (land) {
+            ctx.fillStyle = "#2a2e38";
+            ctx.beginPath();
+            ctx.arc(x, y, 1.5, 0, Math.PI * 2);
             ctx.fill();
           }
         }
-      }
-      // royal halftone clusters over stations, sized by downlink counts
-      const max = Math.max(...STATIONS.map((s) => s.fallback));
-      for (const s of STATIONS) {
-        const cx = lngToX(s.lng, W);
-        const cy = latToY(s.lat, H);
-        const r = 8 + (s.fallback / max) * 22;
-        ctx.fillStyle = "#2442ff";
-        for (let ring = 0; ring < 4; ring++) {
-          const rr = r * (1 - ring * 0.24);
-          const n = 10 - ring * 2;
-          for (let i = 0; i < n; i++) {
-            const a = (i / n) * Math.PI * 2 + ring * 0.5;
-            ctx.beginPath();
-            ctx.arc(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * 0.55, 3.4 - ring * 0.7, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-        ctx.fillStyle = "#9aa3b8";
-        ctx.font = "11px 'Geist Mono', monospace";
-        ctx.fillText(s.id, cx + 8, cy - 8);
       }
     });
     return () => {
@@ -77,29 +75,48 @@ export function GroundNetwork() {
   }, []);
 
   return (
-    <section className="border-t border-white/10 bg-black py-24" style={{ background: "#000" }}>
-      <div className="mx-auto max-w-[1200px] px-6">
+    <section className="border-t border-white/10" style={{ background: "#000" }}>
+      <div className="mx-auto max-w-[1180px] px-6 py-28">
         <div className="flex flex-wrap items-end justify-between gap-6">
-          <h2 className="max-w-[16ch] font-light text-white" style={{ fontSize: 40, lineHeight: 1.15 }}>
+          <h2 className="max-w-[18ch] font-light text-white" style={{ fontSize: "clamp(30px, 3.4vw, 46px)", lineHeight: 1.08, letterSpacing: "-0.02em" }}>
             Six stations. One of them is our college.
           </h2>
           <SectionLabel>GROUND NETWORK</SectionLabel>
         </div>
-        <canvas ref={canvasRef} className="mt-10 w-full border border-white/10" style={{ aspectRatio: "2 / 1" }} aria-label="World map of ground stations" />
-        <p className="mt-6 max-w-[68ch] text-[15px] leading-relaxed" style={{ color: "#9aa3b8" }}>
-          KJSIT Mumbai is the primary station; Espoo, Bengaluru, Tokyo,
-          Svalbard and Cape Town fill the gaps. Contacts stream from SGP4
-          propagation into the contact table the router reads.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-10">
+
+        <div className="relative mt-12" style={{ aspectRatio: `${W} / ${H}` }}>
+          <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-label="World map of the six ground stations" />
+          {STATIONS.map((s) => (
+            <div
+              key={s.id}
+              className="pointer-events-none absolute"
+              style={{ left: `${(toX(s.lng) / W) * 100}%`, top: `${(toY(s.lat) / H) * 100}%` }}
+            >
+              <span
+                className="absolute left-0 top-0 h-px w-8 bg-white/50"
+                style={{ transform: `translate(6px, ${"below" in s ? 10 : -10}px) rotate(${"below" in s ? 30 : -30}deg)`, transformOrigin: "left" }}
+              />
+              <span className="absolute whitespace-nowrap" style={{ left: 34, top: "below" in s ? 14 : -34 }}>
+                <span className={`block text-[13px] ${s.primary ? "text-white" : "text-[#c9d1e3]"}`}>{s.name}</span>
+                <span className="font-mono block text-[10px] tracking-[0.08em] text-[#5f6f93]">
+                  {s.id} · {s.passes} passes/day
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-14 grid gap-10 border-t border-white/10 pt-10 sm:grid-cols-3">
           {[
-            ["TELEMETRY ROWS", stats.telemetry_rows.toLocaleString()],
-            ["CONTACTS NEXT 24H", stats.contacts_next_24h.toLocaleString()],
-            ["AI DECISIONS", stats.ai_decisions.toLocaleString()],
+            ["Telemetry rows", stats.telemetry_rows.toLocaleString()],
+            ["Contacts in the next 24 h", stats.contacts_next_24h.toLocaleString()],
+            ["AI decisions logged", stats.ai_decisions.toLocaleString()],
           ].map(([k, v]) => (
             <div key={k}>
-              <p className="font-light text-white" style={{ fontSize: 44 }}>{v}</p>
-              <p className="font-mono text-[11px] uppercase" style={{ color: "#9aa3b8", letterSpacing: "0.08em" }}>{k}</p>
+              <p className="font-light text-white" style={{ fontSize: "clamp(36px, 4vw, 52px)", letterSpacing: "-0.03em" }}>
+                {v}
+              </p>
+              <p className="mt-1 text-[14px] text-[#9aa3b8]">{k}</p>
             </div>
           ))}
         </div>

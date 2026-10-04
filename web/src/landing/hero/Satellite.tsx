@@ -1,4 +1,7 @@
-import { useMemo } from "react";
+import { createContext, useContext, useMemo } from "react";
+
+/** Line colour for the line-art variant (white in the hero, blueprint blue elsewhere). */
+const LineColor = createContext("#ffffff");
 import * as THREE from "three";
 import type { ThreeElements } from "@react-three/fiber";
 
@@ -126,12 +129,13 @@ function Part({
   edgeOpacity?: number;
   threshold?: number;
 } & Omit<ThreeElements["group"], "children">) {
+  const color = useContext(LineColor);
   const edges = useMemo(() => (lineArt ? new THREE.EdgesGeometry(geometry, threshold) : null), [geometry, lineArt, threshold]);
   return (
     <group {...rest}>
       {lineArt && edges ? (
         <lineSegments geometry={edges}>
-          <lineBasicMaterial color="#ffffff" transparent opacity={edgeOpacity} />
+          <lineBasicMaterial color={color} transparent opacity={edgeOpacity} />
         </lineSegments>
       ) : (
         <mesh geometry={geometry} material={material} />
@@ -141,6 +145,7 @@ function Part({
 }
 
 function Lines({ pts, opacity }: { pts: number[]; opacity: number }) {
+  const color = useContext(LineColor);
   const geo = useMemo(() => {
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
@@ -148,7 +153,7 @@ function Lines({ pts, opacity }: { pts: number[]; opacity: number }) {
   }, [pts]);
   return (
     <lineSegments geometry={geo}>
-      <lineBasicMaterial color="#ffffff" transparent opacity={opacity} />
+      <lineBasicMaterial color={color} transparent opacity={opacity} />
     </lineSegments>
   );
 }
@@ -158,7 +163,7 @@ const PANEL_H = 0.5;
 const PANEL_GAP = 0.07;
 const BUS_R = 0.46;
 
-export function Satellite({ lineArt = false, scale = 1 }: { lineArt?: boolean; scale?: number }) {
+export function Satellite({ lineArt = false, scale = 1, lineColor = "#ffffff" }: { lineArt?: boolean; scale?: number; lineColor?: string }) {
   const tex = useTextures();
   const mat = useMemo(() => {
     const t = (o: THREE.MeshStandardMaterialParameters) => new THREE.MeshStandardMaterial({ transparent: true, ...o });
@@ -280,6 +285,7 @@ export function Satellite({ lineArt = false, scale = 1 }: { lineArt?: boolean; s
   };
 
   return (
+    <LineColor.Provider value={lineColor}>
     <group scale={scale}>
       {/* hexagonal riveted bus */}
       <Part geometry={g.bus} material={mat.riveted} lineArt={lineArt} threshold={10} rotation={[0, Math.PI / 6, 0]} />
@@ -329,5 +335,6 @@ export function Satellite({ lineArt = false, scale = 1 }: { lineArt?: boolean; s
       {wing(1)}
       {wing(-1)}
     </group>
+    </LineColor.Provider>
   );
 }

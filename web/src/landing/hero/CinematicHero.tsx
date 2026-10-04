@@ -27,7 +27,7 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 type Maps = { day: THREE.Texture; night: THREE.Texture; clouds: THREE.Texture };
 
-function useEarthMaps(): Maps | null {
+export function useEarthMaps(): Maps | null {
   const [maps, setMaps] = useState<Maps | null>(null);
   useEffect(() => {
     let alive = true;
@@ -57,7 +57,7 @@ function useEarthMaps(): Maps | null {
 }
 
 /** Day/night Earth: day map lit by the sun, city lights on the night side. */
-function Earth({ maps, opacity }: { maps: Maps; opacity: React.MutableRefObject<number> }) {
+export function Earth({ maps, opacity }: { maps: Maps; opacity: React.MutableRefObject<number> }) {
   const mat = useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -117,7 +117,7 @@ function Earth({ maps, opacity }: { maps: Maps; opacity: React.MutableRefObject<
   );
 }
 
-function Atmosphere({ opacity }: { opacity: React.MutableRefObject<number> }) {
+export function Atmosphere({ opacity }: { opacity: React.MutableRefObject<number> }) {
   const mat = useMemo(
     () =>
       new THREE.ShaderMaterial({

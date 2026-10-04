@@ -1,62 +1,64 @@
-import { Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
+import { useEffect, useRef } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import * as THREE from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { SectionLabel } from "./SectionLabel";
-import { PocketQube } from "./hero/PocketQube";
+import { Satellite } from "./hero/Satellite";
 
 const SPECS: Array<[string, string]> = [
-  ["ENVELOPE", "127.4 × 57.9 × 57.2 MM"],
-  ["DEPLOYER", "SOMAIYAPOD"],
-  ["ORBIT", "~525 KM SSO"],
-  ["PAYLOADS", "M17 · CODEC2 · SSTV · TT&C"],
-  ["ISL RANGE", "≤ 2000 KM"],
-  ["ROUTER", "DECISION TREE, 93 NODES, IN POSTGRESQL"],
+  ["Envelope", "127.4 × 57.9 × 57.2 mm"],
+  ["Deployer", "SomaiyaPod"],
+  ["Orbit", "~525 km, sun-synchronous"],
+  ["Payloads", "M17 · Codec2 · SSTV · TT&C"],
+  ["Inter-satellite range", "≤ 2000 km"],
+  ["Router", "Decision tree, 93 nodes, in PostgreSQL"],
 ];
 
-/** Blueprint block: royal-blue outline drawing + small render + mono specs. */
+/**
+ * Blueprint block: the spacecraft drawn as a blue technical outline, with the
+ * rendered model floating in front of it, and the mission specs on the right.
+ */
 export function Spacecraft() {
   return (
-    <section className="border-t border-white/10 bg-black py-24" style={{ background: "#000" }}>
-      <div className="mx-auto max-w-[1200px] px-6">
-        <SectionLabel>SOMAIYASAT</SectionLabel>
-        <div className="mt-8 grid items-start gap-10 md:grid-cols-2">
-          <div className="relative border border-white/10 p-6">
-            {/* royal-blue outline technical drawing, front + side */}
-            <svg viewBox="0 0 400 200" className="w-full" role="img" aria-label="PocketQube blueprint">
-              <g fill="none" stroke="var(--royal)" strokeWidth="1.5">
-                <rect x="30" y="60" width="170" height="80" />
-                <line x1="30" y1="100" x2="200" y2="100" opacity="0.6" />
-                <rect x="230" y="70" width="70" height="60" />
-                <line x1="230" y1="100" x2="300" y2="100" opacity="0.6" />
-                {/* dimension lines */}
-                <line x1="30" y1="160" x2="200" y2="160" strokeWidth="1" />
-                <line x1="30" y1="156" x2="30" y2="164" strokeWidth="1" />
-                <line x1="200" y1="156" x2="200" y2="164" strokeWidth="1" />
-                <line x1="14" y1="60" x2="14" y2="140" strokeWidth="1" />
-                <line x1="10" y1="60" x2="18" y2="60" strokeWidth="1" />
-                <line x1="10" y1="140" x2="18" y2="140" strokeWidth="1" />
-              </g>
-              <g fill="#9aa3b8" fontSize="10" fontFamily="Geist Mono, monospace">
-                <text x="90" y="176">127.4</text>
-                <text x="2" y="104">57.9</text>
-                <text x="238" y="146">57.2</text>
-                <text x="30" y="52">PCB 1.6 · CELL 42.25 × 22.95</text>
-              </g>
-            </svg>
-            <div className="absolute -bottom-2 -right-2 h-36 w-44 border border-white/15 bg-black">
-              <Canvas camera={{ position: [2.6, 1.4, 2.6], fov: 40 }}>
-                <Suspense fallback={null}>
-                  <ambientLight intensity={0.9} />
-                  <directionalLight position={[4, 3, 2]} intensity={1.6} />
-                  <SpinCube />
-                </Suspense>
-              </Canvas>
+    <section className="border-t border-white/10" style={{ background: "#000" }}>
+      <div className="mx-auto max-w-[1180px] px-6 py-28">
+        <div className="flex items-end justify-between">
+          <h2 className="max-w-[16ch] font-light text-white" style={{ fontSize: "clamp(30px, 3.4vw, 46px)", lineHeight: 1.08, letterSpacing: "-0.02em" }}>
+            Small enough to fit in your hand.
+          </h2>
+          <SectionLabel>SOMAIYASAT</SectionLabel>
+        </div>
+
+        <div className="mt-12 grid items-center gap-12 lg:grid-cols-[1.25fr_1fr]">
+          <div className="relative aspect-[4/3] w-full overflow-hidden border border-white/10">
+            {/* faint blueprint grid */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(61,91,255,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(61,91,255,0.12) 1px, transparent 1px)",
+                backgroundSize: "32px 32px",
+              }}
+            />
+            <Canvas
+              className="!absolute inset-0"
+              dpr={[1, 2]}
+              camera={{ position: [0, 0.25, 6.2], fov: 32 }}
+              gl={{ alpha: true, antialias: true }}
+            >
+              <Blueprint />
+            </Canvas>
+            <div className="font-mono pointer-events-none absolute bottom-3 left-3 text-[10px] tracking-[0.1em] text-[#3d5bff]">
+              DWG SN-01 · SOMAIYASAT · NOT TO SCALE
             </div>
           </div>
-          <dl className="font-mono space-y-4 text-right text-[12px] uppercase" style={{ letterSpacing: "0.08em" }}>
+
+          <dl className="divide-y divide-white/10 border-y border-white/10">
             {SPECS.map(([k, v]) => (
-              <div key={k} className="grid grid-cols-[140px_1fr] gap-4 border-b border-white/10 pb-3">
-                <dt style={{ color: "#9aa3b8" }}>{k}</dt>
-                <dd className="text-white">{v}</dd>
+              <div key={k} className="flex items-baseline justify-between gap-6 py-4">
+                <dt className="text-[14px] text-[#9aa3b8]">{k}</dt>
+                <dd className="font-mono text-right text-[13px] text-white">{v}</dd>
               </div>
             ))}
           </dl>
@@ -66,17 +68,35 @@ export function Spacecraft() {
   );
 }
 
-import { useRef } from "react";
-import { useFrame } from "@react-three/fiber";
-import * as THREE from "three";
-function SpinCube() {
-  const g = useRef<THREE.Group>(null);
-  useFrame((_, d) => {
-    if (g.current) g.current.rotation.y += d * 0.5;
+function Blueprint() {
+  const { gl, scene } = useThree();
+  const model = useRef<THREE.Group>(null);
+  useEffect(() => {
+    const pmrem = new THREE.PMREMGenerator(gl);
+    const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = env;
+    return () => {
+      scene.environment = null;
+      env.dispose();
+      pmrem.dispose();
+    };
+  }, [gl, scene]);
+  useFrame((s) => {
+    if (model.current) model.current.rotation.y = -0.55 + Math.sin(s.clock.elapsedTime * 0.25) * 0.35;
   });
   return (
-    <group ref={g}>
-      <PocketQube scale={1.2} />
-    </group>
+    <>
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[4, 3, 5]} intensity={2.4} />
+      <directionalLight position={[-4, -1, 2]} intensity={0.6} color="#8fa8ff" />
+      {/* the outline drawing behind, front view */}
+      <group position={[-0.15, 0.3, -2.4]} scale={0.95}>
+        <Satellite lineArt lineColor="#3d5bff" />
+      </group>
+      {/* the rendered spacecraft in front, three-quarter view */}
+      <group ref={model} position={[0.45, -0.35, 1.0]} rotation={[0.25, -0.55, 0.12]} scale={0.78}>
+        <Satellite />
+      </group>
+    </>
   );
 }

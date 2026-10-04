@@ -190,41 +190,33 @@ export default function Console() {
               onClick={() => void pick(p.role)}
               onMouseEnter={() => setFocus(i)}
               onFocus={() => setFocus(i)}
-              className="group flex aspect-square w-full flex-col items-center justify-center border border-[var(--line)] bg-transparent p-5 transition-colors hover:-translate-y-1 hover:border-[var(--ice)] focus-visible:-translate-y-1 focus-visible:border-[var(--ice)] focus-visible:outline-none sm:w-[168px]"
+              className="flex h-[228px] w-full flex-col items-center justify-center border bg-transparent p-5 transition-[border-color,transform] duration-200 focus-visible:outline-none sm:w-[176px]"
               style={{
+                borderColor: focus === i || zooming === p.role ? "var(--ice)" : "var(--line)",
                 transform: zooming === p.role ? "scale(1.04)" : undefined,
-                boxShadow:
-                  zooming === p.role
-                    ? "0 0 0 2px var(--ice)"
-                    : undefined,
               }}
             >
-              <span className="flex size-[88px] items-center justify-center border border-[var(--line)] bg-transparent">
+              <span className="flex size-[88px] shrink-0 items-center justify-center border border-[var(--line)]">
                 <ConsoleAvatar role={p.role} size={52} />
               </span>
-              <span className="mt-4 text-center text-[15px] font-medium leading-tight">
-                {p.title}
-              </span>
-              <span className="font-mono mt-1 text-[12px] text-[var(--text-2)]">
-                {p.role}
-              </span>
-              <span className="mt-1 text-[12px] text-[var(--text-3)]">
-                {p.subtitle}
-              </span>
-              <span className="mt-3 hidden min-h-[3.5rem] flex-col gap-1 text-center group-hover:flex group-focus-visible:flex">
-                {p.can.slice(0, 3).map((c) => (
-                  <span
-                    key={c}
-                    className="text-[12px] leading-snug text-[var(--text-2)]"
-                  >
-                    {c}
-                  </span>
-                ))}
-              </span>
+              <span className="mt-4 text-center text-[15px] font-medium leading-tight">{p.title}</span>
+              <span className="font-mono mt-1 truncate text-[11.5px] text-[var(--text-2)]">{p.role}</span>
             </button>
           ))}
         </div>
-        <p className="mt-8 text-[13px] text-[var(--text-3)]">
+        {/* Fixed-height detail panel: shows what the focused role may do, so
+            hovering never changes the page layout. */}
+        <div className="mt-6 h-[92px] w-full max-w-[640px] border-t border-[var(--line)] pt-4 text-center" aria-live="polite">
+          {profiles[focus] && (
+            <div key={profiles[focus].role} className="fade-step">
+              <p className="text-[13px] text-[var(--text)]">{profiles[focus].subtitle}</p>
+              <p className="mt-2 text-[12.5px] leading-relaxed text-[var(--text-2)]">
+                {profiles[focus].can.slice(0, 3).join("  ·  ")}
+              </p>
+            </div>
+          )}
+        </div>
+        <p className="mt-4 text-[13px] text-[var(--text-3)]">
           Every query runs as this Postgres role. Switch anytime from the
           sidebar.
         </p>
