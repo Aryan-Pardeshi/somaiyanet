@@ -1,8 +1,8 @@
 // globe logic adapted from lakshyamody/dbmsproj (app/components/globe_template.html)
 // /ops page: full-viewport globe on the left, ops rail on the right.
-// The orchestrator wires the /ops route; this file owns the layout only.
+// Rendered inside AppShell (which owns the top bar, profile guard and the
+// "SQL under the hood" drawer); this file owns the ops layout only.
 import { useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { OpsGlobe, type OpsGlobeHandle } from "@/features/ops/OpsGlobe";
 import { SideRail } from "@/features/ops/SideRail";
 import { useOpsData, type TelemetryEvent } from "@/features/ops/api";
@@ -38,31 +38,8 @@ export default function Ops() {
     [data.sats, data.telemetry],
   );
 
-  if (data.unauthorized) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-black px-6">
-        <div className="w-full max-w-md rounded-2xl border border-[#1f1f24] bg-[#0a0a0c] p-8 text-center">
-          <p className="mono-label text-[#6ea8ff]">[ console ]</p>
-          <h1 className="mt-4 text-xl font-semibold text-white">
-            Pick a console profile first
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-[#8a8a93]">
-            Mission ops runs every query as a real Postgres role. Choose who is
-            on console and the globe lights up with their permissions.
-          </p>
-          <Link
-            to="/console"
-            className="mono-label mt-6 inline-block rounded-full bg-[#6ea8ff] px-5 py-2.5 text-white"
-          >
-            who&apos;s on console? →
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex min-h-screen flex-col bg-black text-[#f5f5f7] md:h-screen md:overflow-hidden">
+    <div className="flex min-h-[calc(100vh-3.5rem)] flex-col bg-[var(--ink)] text-[var(--cream)] md:h-[calc(100vh-3.5rem)] md:overflow-hidden">
       <div className="flex flex-1 flex-col md:min-h-0 md:flex-row">
         <div className="relative h-[60vh] w-full md:h-auto md:min-h-0 md:flex-1">
           <OpsGlobe
@@ -75,35 +52,25 @@ export default function Ops() {
             histories={histories}
           />
           {data.mock && (
-            <span className="mono-label absolute left-1/2 top-16 z-30 -translate-x-1/2 rounded-full border border-dashed border-[#ffb020]/60 bg-black/70 px-3 py-1 text-[#ffb020]">
-              mock data
+            <span className="font-mono absolute left-1/2 top-4 z-30 -translate-x-1/2 rounded-full border border-dashed border-[var(--amber)]/60 bg-[var(--ink)]/80 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--amber)]">
+              mock data · backend offline
             </span>
           )}
         </div>
-        <aside className="w-full border-t border-[#1f1f24] bg-black p-4 md:max-h-full md:w-[340px] md:min-h-0 md:overflow-y-auto md:border-l md:border-t-0">
-          <SideRail
-            kpis={data.kpis}
-            alerts={data.alerts}
-            telemetry={data.telemetry}
-            decisions={data.decisions}
-          />
-          <details className="mt-4 rounded-lg border border-[#1f1f24] bg-[#0a0a0c] p-3">
-            <summary className="mono-label cursor-pointer text-[#8a8a93]">
-              [ sql under the hood ]
-            </summary>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              <span className="mono-label rounded-full bg-[#6ea8ff]/15 px-2 py-0.5 text-[#8fa8ff]">exp · ops</span>
-              <span className="mono-label rounded-full bg-white/5 px-2 py-0.5 text-[#8a8a93]">role: {data.role}</span>
-            </div>
-            {Object.entries(data.sql).map(([k, v]) => (
-              <div key={k} className="mt-2">
-                <p className="mono-label text-[#6ea8ff]">{k}</p>
-                <pre className="mt-1 overflow-x-auto whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-[#8a8a93]">
-                  {v}
-                </pre>
-              </div>
-            ))}
-          </details>
+        <aside className="w-full border-t border-[var(--rule)] bg-[var(--ink)] p-4 md:max-h-full md:w-[340px] md:min-h-0 md:overflow-y-auto md:border-l md:border-t-0">
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em]">
+            <span className="text-[var(--somaiya)]">05</span>
+            <span className="mx-2 text-[var(--mute)]">/</span>
+            <span className="text-[var(--cream-dim)]">Ops rail · {data.role}</span>
+          </p>
+          <div className="mt-3">
+            <SideRail
+              kpis={data.kpis}
+              alerts={data.alerts}
+              telemetry={data.telemetry}
+              decisions={data.decisions}
+            />
+          </div>
         </aside>
       </div>
     </div>

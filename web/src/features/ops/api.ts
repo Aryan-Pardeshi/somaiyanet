@@ -1,8 +1,10 @@
 // globe logic adapted from lakshyamody/dbmsproj (app/components/globe_template.html)
 // Typed fetchers for the /ops data contract plus the polling + SSE hook.
-// Every response is {data, sql, role}; errors are {error:{sqlstate,message}}.
+// Every response is {data, sql, role}; 401 means no console profile (AppShell
+// guards it), network errors fall back to mock data.
 
 import { useEffect, useState } from "react";
+import { apiFetch } from "@/app/api";
 import {
   mockAlerts,
   mockConstellation,
@@ -87,23 +89,18 @@ export interface DecisionEvent {
 export class MockFallback extends Error {}
 export class Unauthorized extends Error {}
 
-interface ApiOk<T> {
-  data: T;
-  sql: string;
-  role: string;
-}
-
-async function fetchApi<T>(url: string): Promise<ApiOk<T>> {
-  let res: Response;
+async function fetchApi<T>(url: string): Promise<{ data: T; role: string }> {
   try {
-    res = await fetch(url);
-  } catch {
-    throw new MockFallback(`network error for ${url}`);
+    const r = await apiFetch<T>(url);
+    return { data: r.data, role: r.role };
+  } catch (e) {
+    const err = e as { status?: number; message?: string };
+    if (err?.status === 401) throw new Unauthorized(url);
+    if (err?.status === 0 || err?.status === 404) {
+      throw new MockFallback(`network error for ${url}`);
+    }
+    throw e;
   }
-  if (res.status === 401) throw new Unauthorized(url);
-  if (res.status === 404) throw new MockFallback(`${url} -> 404`);
-  if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
-  return (await res.json()) as ApiOk<T>;
 }
 
 export interface OpsData {
@@ -114,39 +111,10 @@ export interface OpsData {
   alerts: Alert[];
   telemetry: TelemetryEvent[];
   decisions: DecisionEvent[];
-  sql: Record<string, string>;
   role: string;
   mock: boolean;
   unauthorized: boolean;
 }
-
-const FALLBACK_SQL: Record<string, string> = {
-  constellation: "-- mock fallback: GET /api/constellation unreachable",
-  stations: "-- mock fallback: GET /api/stations unreachable",
-  contacts: "-- mock fallback: GET /api/contacts unreachable",
-  kpis: "-- mock fallback: GET /api/kpis unreachable",
-  alerts: "-- mock fallback: GET /api/alerts unreachable",
-};
-
-const LIVE_SQL: Record<string, string> = {
-  constellation:
-    "SELECT node_id, display_name, plane, slot, state, battery_v,\n" +
-    "       last_seen, tle_line1, tle_line2\n" +
-    "  FROM v_constellation_status ORDER BY node_id; -- GET /api/constellation",
-  stations:
-    "SELECT node_id, display_name, city, country, latitude, longitude,\n" +
-    "       min_elevation_deg, is_primary\n" +
-    "  FROM ground_station ORDER BY node_id; -- GET /api/stations",
-  contacts:
-    "SELECT contact_id, kind, from_node, to_node, start_ts, end_ts,\n" +
-    "       link_score, min_range_km\n  FROM contact\n" +
-    " WHERE span && tstzrange(:at, :at + make_interval(mins => :window))\n" +
-    " ORDER BY start_ts; -- GET /api/contacts",
-  kpis: "SELECT * FROM mv_kpis WHERE kpi_id = 1; -- GET /api/kpis",
-  alerts:
-    "SELECT alert_id, sat_id, severity, message, raised_at, acknowledged\n" +
-    "  FROM alert ORDER BY raised_at DESC LIMIT 20; -- GET /api/alerts",
-};
 
 /** Local synthetic telemetry tick used only while on mock data. */
 function mockTick(prev: TelemetryEvent[]): TelemetryEvent {
@@ -191,7 +159,6 @@ export function useOpsData(): OpsData {
     { sat_id: "SAT-B3", final_action: "SAFE_TTC_ONLY", overridden: true },
     { sat_id: "SAT-A1", final_action: "FULL_DOWNLINK", overridden: false },
   ]);
-  const [sql, setSql] = useState<Record<string, string>>(FALLBACK_SQL);
   const [role, setRole] = useState("mock");
   const [mock, setMock] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
@@ -254,7 +221,6 @@ export function useOpsData(): OpsData {
         );
         if (cancelled) return;
         setContacts(r.data);
-        setSql((s) => ({ ...s, contacts: r.sql || LIVE_SQL.contacts }));
       } catch (e) {
         if (cancelled || e instanceof Unauthorized) return;
         setContacts(mockContacts(Date.now(), 90));
@@ -266,7 +232,6 @@ export function useOpsData(): OpsData {
         const r = await fetchApi<Kpi[]>("/api/kpis");
         if (cancelled) return;
         setKpis(r.data);
-        setSql((s) => ({ ...s, kpis: r.sql || LIVE_SQL.kpis }));
       } catch (e) {
         if (cancelled || e instanceof Unauthorized) return;
         setKpis(mockKpis(Date.now()));
@@ -278,7 +243,6 @@ export function useOpsData(): OpsData {
         const r = await fetchApi<ConstellationSat[]>("/api/constellation");
         if (cancelled) return;
         setSats(r.data);
-        setSql((s) => ({ ...s, constellation: r.sql || LIVE_SQL.constellation }));
         setRole(r.role);
         setMock(false);
         usingMock = false;
@@ -289,7 +253,6 @@ export function useOpsData(): OpsData {
           return;
         }
         setSats(mockConstellation(Date.now()));
-        setSql((s) => ({ ...s, ...FALLBACK_SQL }));
         setMock(true);
         usingMock = true;
       }
@@ -297,7 +260,6 @@ export function useOpsData(): OpsData {
         const r = await fetchApi<Station[]>("/api/stations");
         if (cancelled) return;
         setStations(r.data);
-        setSql((s) => ({ ...s, stations: r.sql || LIVE_SQL.stations }));
       } catch (e) {
         if (!cancelled && !(e instanceof Unauthorized))
           setStations(mockStations());
@@ -306,7 +268,6 @@ export function useOpsData(): OpsData {
         const r = await fetchApi<Alert[]>("/api/alerts?limit=20");
         if (cancelled) return;
         setAlerts(r.data);
-        setSql((s) => ({ ...s, alerts: r.sql || LIVE_SQL.alerts }));
       } catch (e) {
         if (!cancelled && !(e instanceof Unauthorized))
           setAlerts(mockAlerts(Date.now()));
@@ -342,7 +303,6 @@ export function useOpsData(): OpsData {
     alerts,
     telemetry,
     decisions,
-    sql,
     role,
     mock,
     unauthorized,

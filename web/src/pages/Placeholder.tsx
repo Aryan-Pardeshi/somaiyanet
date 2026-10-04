@@ -1,25 +1,12 @@
 import { Link, useParams } from "react-router-dom"
-import { Brand } from "@/components/story/Brand"
 
-/** Standby stub for console modules owned by later briefs. */
+/** Standby stub for console modules owned by later briefs.
+ *  Rendered inside AppShell, so it owns content only (no header). */
 export function Placeholder({ name }: { name: string }) {
   const { lab } = useParams()
   const label = lab ? `${name} / ${lab}` : name
   return (
-    <div className="grid-paper min-h-screen bg-[var(--ink)] text-[var(--cream)]">
-      <header className="border-b border-[var(--rule)]">
-        <div className="shell flex h-14 items-center justify-between">
-          <Link to="/" aria-label="SomaiyaNet home">
-            <Brand className="text-lg" />
-          </Link>
-          <Link
-            to="/"
-            className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--mute)] hover:text-[var(--cream)]"
-          >
-            ← back to the packet
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-[70vh]">
       <main className="shell flex min-h-[70vh] flex-col items-start justify-center py-32">
         <p className="font-mono text-[11px] uppercase tracking-[0.22em]">
           <span className="text-[var(--somaiya)]">···</span>

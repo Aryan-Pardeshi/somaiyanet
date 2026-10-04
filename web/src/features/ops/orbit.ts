@@ -132,18 +132,18 @@ export function haversineKm(
   return 2 * EARTH_R_KM * Math.asin(Math.min(1, Math.sqrt(s)));
 }
 
-/** Link-score colour: good green / fair amber / poor red. */
+/** Link-score colour: signal green good / amber fair / somaiya red poor. */
 export function scoreColor(score: number | null | undefined): string {
-  if (score === null || score === undefined) return "#8a8a93";
-  if (score >= 70) return "#3ddc97";
+  if (score === null || score === undefined) return "#7d7a73";
+  if (score >= 70) return "#4cc38a";
   if (score >= 40) return "#ffb020";
   return "#d7263d";
 }
 
-/** ISL line colour: blue gradient driven by link_score. */
+/** ISL line colour: sky gradient driven by link_score. */
 export function islColor(score: number): string {
   const a = (0.3 + (0.7 * Math.max(0, Math.min(100, score))) / 100).toFixed(2);
-  return `rgba(61,107,255,${a})`;
+  return `rgba(110,168,255,${a})`;
 }
 
 export function rgba(hex: string, a: number): string {

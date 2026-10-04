@@ -1,0 +1,104 @@
+/** Shared profile shapes for the /console picker + AppShell chip. */
+
+export interface Profile {
+  role: string;
+  title: string;
+  subtitle: string;
+  accent: string;
+  can: string[];
+}
+
+export const FALLBACK_PROFILES: Profile[] = [
+  {
+    role: "mission_director",
+    title: "Mission Director",
+    subtitle: "Full access",
+    accent: "somaiya",
+    can: ["everything", "GRANT-chain demo", "confirm deployments"],
+  },
+  {
+    role: "station_operator_bom",
+    title: "Mumbai Station",
+    subtitle: "GS-BOM · VU2KJS",
+    accent: "blue",
+    can: ["read mission tables", "telecommand via GS-BOM", "ack alerts"],
+  },
+  {
+    role: "station_operator_hel",
+    title: "Espoo Station",
+    subtitle: "GS-HEL · OH2SOM",
+    accent: "blue",
+    can: ["read mission tables", "telecommand via GS-HEL", "ack alerts"],
+  },
+  {
+    role: "student_analyst",
+    title: "Student Analyst",
+    subtitle: "Read-only",
+    accent: "muted",
+    can: ["views + telemetry", "preview decisions", "no telecommand"],
+  },
+  {
+    role: "ai_router",
+    title: "AI Router",
+    subtitle: "Spacecraft sensor",
+    accent: "green",
+    can: ["INSERT telemetry", "decide + dispatch", "write-only sensor"],
+  },
+];
+
+export function accentRing(accent: string): string {
+  if (accent === "somaiya") return "var(--somaiya)";
+  if (accent === "green") return "var(--signal)";
+  if (accent === "muted") return "var(--mute)";
+  return "var(--sky)";
+}
+
+/** Simple geometric SVG avatars in brand style — never emoji. */
+export function ProfileAvatar({ role, size = 44 }: { role: string; size?: number }) {
+  const common = {
+    width: size,
+    height: size,
+    viewBox: "0 0 48 48",
+    "aria-hidden": true,
+  } as const;
+  if (role === "mission_director") {
+    return (
+      <svg {...common}>
+        <circle cx="24" cy="24" r="15" fill="none" stroke="var(--somaiya)" strokeWidth="4" />
+        <circle cx="24" cy="24" r="5" fill="var(--somaiya)" />
+      </svg>
+    );
+  }
+  if (role === "station_operator_bom" || role === "station_operator_hel") {
+    return (
+      <svg {...common}>
+        <path d="M10 34 A18 18 0 0 1 38 34" fill="none" stroke="var(--sky)" strokeWidth="3.5" strokeLinecap="round" />
+        <circle cx="24" cy="36" r="3.5" fill="var(--sky)" />
+        <line x1="24" y1="36" x2="24" y2="42" stroke="var(--sky)" strokeWidth="3" strokeLinecap="round" />
+        <circle cx="30" cy="14" r="2.4" fill="var(--cream)" />
+      </svg>
+    );
+  }
+  if (role === "student_analyst") {
+    return (
+      <svg {...common}>
+        <ellipse cx="24" cy="24" rx="15" ry="9.5" fill="none" stroke="var(--cream-dim)" strokeWidth="3" />
+        <circle cx="24" cy="24" r="5" fill="none" stroke="var(--cream-dim)" strokeWidth="3" />
+        <circle cx="24" cy="24" r="1.8" fill="var(--cream)" />
+      </svg>
+    );
+  }
+  // ai_router: packet dot inside a hex.
+  return (
+    <svg {...common}>
+      <polygon
+        points="24,6 39,15 39,33 24,42 9,33 9,15"
+        fill="none"
+        stroke="var(--signal)"
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
+      <circle cx="24" cy="24" r="5" fill="var(--signal)" />
+    </svg>
+  );
+}

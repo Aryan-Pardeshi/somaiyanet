@@ -62,10 +62,10 @@ interface PathDatum {
   stroke: number;
 }
 
-const PLANE_A = "#6ea8ff";
-const PLANE_B = "#8fa8ff";
+const PLANE_A = "#ffb020";
+const PLANE_B = "#ffcf6b";
 const SAFE_RED = "#d7263d";
-const DOWNLINK_GREEN = "#3ddc97";
+const DOWNLINK_GREEN = "#4cc38a";
 const TRAIL_N = 70;
 const MODEL_ALT = 525 / EARTH_R_KM;
 
@@ -187,7 +187,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         .globeImageUrl(`${texBase}/earth_day.jpg`)
         .bumpImageUrl(`${texBase}/earth_topology.jpg`)
         .showAtmosphere(true)
-        .atmosphereColor("#8fb2ff")
+        .atmosphereColor("#d6c9a8")
         .atmosphereAltitude(0.25)
         .width(el.clientWidth)
         .height(el.clientHeight);
@@ -207,7 +207,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         .ringLng((d: object) => (d as { lng: number }).lng)
         .ringColor((d: object) => {
           const primary = (d as { primary: boolean }).primary;
-          const c = primary ? "120,160,255" : "235,238,245";
+          const c = primary ? "215,38,61" : "243,234,216";
           return (t: number): string => `rgba(${c},${((1 - t) * 0.95).toFixed(3)})`;
         })
         .ringMaxRadius((d: object) =>
@@ -229,8 +229,8 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         )
         .labelColor((d: object) =>
           (d as { primary: boolean }).primary
-            ? "rgba(255,255,255,1)"
-            : "rgba(226,230,238,.96)",
+            ? "rgba(243,234,216,1)"
+            : "rgba(185,176,158,.96)",
         )
         .labelResolution(2)
         .labelAltitude(0.006);
@@ -671,18 +671,19 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
     };
 
     return (
-      <div className="relative h-full w-full overflow-hidden bg-black">
+      <div className="relative h-full w-full overflow-hidden bg-[var(--ink)]">
         <style>{`
           .ops-sat{position:relative;width:46px;height:46px;margin:-23px 0 0 -23px;cursor:pointer;pointer-events:auto;user-select:none}
           .ops-sat .ops-halo{position:absolute;inset:7px;border-radius:50%;border:1px solid currentColor;opacity:.34;animation:ops-sonar 2.6s ease-out infinite}
           @keyframes ops-sonar{0%{transform:scale(.55);opacity:.55}100%{transform:scale(1.5);opacity:0}}
           .ops-sat .ops-body{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:3px;background:currentColor;box-shadow:0 0 10px currentColor}
-          .ops-sat .ops-tag{position:absolute;left:28px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.1em;white-space:nowrap;color:#fff;background:rgba(0,0,0,.55);border:1px solid #1f1f24;border-radius:6px;padding:1px 5px}
+          .ops-sat.ops-selected .ops-body{box-shadow:0 0 0 3px var(--somaiya),0 0 14px var(--somaiya)}
+          .ops-sat .ops-tag{position:absolute;left:28px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.1em;white-space:nowrap;color:var(--cream);background:rgba(11,16,32,.8);border:1px solid var(--rule);border-radius:6px;padding:1px 5px}
           .ops-sat:hover .ops-tag,.ops-sat.ops-selected .ops-tag{border-color:currentColor}
           .ops-sat.ops-safe .ops-body{animation:ops-blink 1.1s ease-in-out infinite}
           @keyframes ops-blink{0%,100%{opacity:1}50%{opacity:.35}}
           .ops-flash{animation:ops-flash .8s ease-out}
-          @keyframes ops-flash{0%{background:rgba(61,107,255,.35)}100%{background:transparent}}
+          @keyframes ops-flash{0%{background:rgba(215,38,61,.3)}100%{background:transparent}}
         `}</style>
         <div ref={containerRef} className="absolute inset-0" />
         <div
@@ -694,32 +695,32 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         {/* top bar with UTC clock */}
         <div
           className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex h-14 items-center gap-3 px-4"
-          style={{ background: "linear-gradient(to bottom,rgba(0,0,0,.85),rgba(0,0,0,0))" }}
+          style={{ background: "linear-gradient(to bottom,rgba(11,16,32,.9),rgba(11,16,32,0))" }}
         >
-          <span className="text-[17px] font-semibold tracking-[-0.02em] text-white">
-            SomaiyaSat <span className="font-mono text-[11px] font-normal tracking-[0.16em] text-[#8a8a93]">OPS</span>
+          <span className="text-[17px] font-semibold tracking-[-0.02em] text-[var(--cream)]">
+            SomaiyaSat <span className="font-mono text-[11px] font-normal tracking-[0.16em] text-[var(--cream-dim)]">OPS</span>
           </span>
           {playing && (
-            <span className="mono-label rounded-full border border-white/20 bg-white/5 px-2 py-1 text-[#ffb020]">
+            <span className="mono-label rounded-full border border-[var(--amber)]/40 bg-[var(--ink-2)] px-2 py-1 text-[var(--amber)]">
               playing route
             </span>
           )}
           <div className="flex-1" />
-          <div className="font-mono text-[13px] tracking-[0.06em] text-white">
+          <div className="font-mono text-[13px] tracking-[0.06em] text-[var(--cream)]">
             {`${two(clock.getUTCHours())}:${two(clock.getUTCMinutes())}:${two(clock.getUTCSeconds())} `}
-            <span className="text-[#8a8a93]">UTC</span>
+            <span className="text-[var(--cream-dim)]">UTC</span>
           </div>
         </div>
 
         {/* selected-sat side panel */}
         {selected && (
-          <aside className="absolute left-4 top-16 z-30 w-[300px] max-w-[calc(100%-2rem)] rounded-xl border border-white/10 bg-[#0a0a0c]/90 p-4 backdrop-blur-xl">
+          <aside className="absolute left-4 top-16 z-30 w-[300px] max-w-[calc(100%-2rem)] rounded-xl border border-[var(--rule)] bg-[var(--ink-2)]/90 p-4 backdrop-blur-xl">
             <div className="flex items-start gap-2">
               <div>
-                <p className="font-mono text-[15px] tracking-[0.04em] text-white">{selected.node_id}</p>
+                <p className="font-mono text-[15px] tracking-[0.04em] text-[var(--cream)]">{selected.node_id}</p>
                 <span
                   className="mt-1 inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em]"
-                  style={{ color: selected.state === "SAFE" ? SAFE_RED : "#3ddc97", borderColor: "currentColor" }}
+                  style={{ color: selected.state === "SAFE" ? SAFE_RED : "#4cc38a", borderColor: "currentColor" }}
                 >
                   {selected.state}
                 </span>
@@ -727,54 +728,54 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
               <button
                 onClick={() => props.onSelect(null)}
                 aria-label="Close panel"
-                className="ml-auto rounded-md border border-white/10 px-2 py-0.5 text-[#8a8a93] hover:border-[#6ea8ff]/60 hover:text-white"
+                className="ml-auto rounded-md border border-[var(--rule)] px-2 py-0.5 text-[var(--cream-dim)] hover:border-[var(--somaiya)]/60 hover:text-[var(--cream)]"
               >
                 ×
               </button>
             </div>
             {selected.state === "STOWED" ? (
-              <p className="mt-3 font-mono text-xs leading-relaxed text-[#8a8a93]">
+              <p className="mt-3 font-mono text-xs leading-relaxed text-[var(--cream-dim)]">
                 in SomaiyaPod — awaiting deployment. No orbit track yet.
               </p>
             ) : (
               <>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
-                    <p className="mono-label text-[#8a8a93]">battery</p>
-                    <p className="mt-1 font-mono text-[15px] text-white">
+                  <div className="rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-2">
+                    <p className="mono-label text-[var(--cream-dim)]">battery</p>
+                    <p className="mt-1 font-mono text-[15px] text-[var(--amber)]">
                       {selected.battery_v === null || selected.battery_v === undefined ? "—" : `${selected.battery_v.toFixed(2)} V`}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
-                    <p className="mono-label text-[#8a8a93]">plane / slot</p>
-                    <p className="mt-1 font-mono text-[15px] text-white">{selected.plane} / {selected.slot}</p>
+                  <div className="rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-2">
+                    <p className="mono-label text-[var(--cream-dim)]">plane / slot</p>
+                    <p className="mt-1 font-mono text-[15px] text-[var(--cream)]">{selected.plane} / {selected.slot}</p>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
-                    <p className="mono-label text-[#8a8a93]">queued</p>
-                    <p className="mt-1 font-mono text-[15px] text-white">
+                  <div className="rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-2">
+                    <p className="mono-label text-[var(--cream-dim)]">queued</p>
+                    <p className="mt-1 font-mono text-[15px] text-[var(--cream)]">
                       {selected.queued_bytes === undefined ? "—" : `${(selected.queued_bytes / 1024).toFixed(1)} KB`}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
-                    <p className="mono-label text-[#8a8a93]">next downlink</p>
-                    <p className="mt-1 font-mono text-[15px] text-white">{selected.next_downlink_station ?? "—"}</p>
+                  <div className="rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-2">
+                    <p className="mono-label text-[var(--cream-dim)]">next downlink</p>
+                    <p className="mt-1 font-mono text-[15px] text-[var(--cream)]">{selected.next_downlink_station ?? "—"}</p>
                   </div>
                 </div>
-                <p className="mt-2 font-mono text-xs text-white">
+                <p className="mt-2 font-mono text-xs text-[var(--cream)]">
                   {countdownText(selected.next_downlink_start, clock.getTime())}
                 </p>
                 <div className="mt-2">
-                  <p className="mono-label text-[#8a8a93]">[ battery · live spark ]</p>
+                  <p className="mono-label text-[var(--cream-dim)]">01 / battery · live spark</p>
                   {spark ? (
                     <div dangerouslySetInnerHTML={{ __html: spark }} />
                   ) : (
-                    <p className="mt-1 font-mono text-xs text-[#8a8a93]">awaiting telemetry…</p>
+                    <p className="mt-1 font-mono text-xs text-[var(--mute)]">awaiting telemetry…</p>
                   )}
                 </div>
               </>
             )}
             {stowed.length > 0 && (
-              <p className="mt-3 border-t border-white/10 pt-2 font-mono text-[11px] text-[#8a8a93]">
+              <p className="mt-3 border-t border-[var(--rule)] pt-2 font-mono text-[11px] text-[var(--cream-dim)]">
                 in SomaiyaPod: {stowed.map((s) => s.node_id).join(", ")}
               </p>
             )}
@@ -782,40 +783,40 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         )}
 
         {/* speed control */}
-        <div className="absolute bottom-[132px] left-4 z-30 flex items-center gap-1.5 rounded-xl border border-white/10 bg-[#0a0a0c]/80 px-2 py-1.5 backdrop-blur-xl">
-          <span className="mono-label px-1 text-[#8a8a93]">speed</span>
+        <div className="absolute bottom-[132px] left-4 z-30 flex items-center gap-1.5 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)]/80 px-2 py-1.5 backdrop-blur-xl">
+          <span className="mono-label px-1 text-[var(--cream-dim)]">speed</span>
           {[1, 10, 60].map((v) => (
             <button
               key={v}
               onClick={() => setSpeedBoth(v)}
               className={`mono-label rounded-full border px-2 py-1 transition-colors ${
                 speed === v
-                  ? "border-[#6ea8ff]/80 bg-[#6ea8ff]/20 text-white"
-                  : "border-white/10 text-[#8a8a93] hover:text-white"
+                  ? "border-[var(--somaiya)] bg-[var(--somaiya-soft)] text-[var(--cream)]"
+                  : "border-[var(--rule)] text-[var(--cream-dim)] hover:text-[var(--cream)]"
               }`}
             >
               {v === 1 ? "live" : `${v}×`}
             </button>
           ))}
           {speed !== 1 && (
-            <span className="mono-label pl-1 text-[#ffb020]">fast-forward ×{speed}</span>
+            <span className="mono-label pl-1 text-[var(--amber)]">fast-forward ×{speed}</span>
           )}
         </div>
 
         {/* legend */}
-        <div className="absolute bottom-4 left-4 z-30 flex flex-col gap-1.5 rounded-xl border border-white/10 bg-[#0a0a0c]/80 px-3 py-2.5 backdrop-blur-xl">
-          <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[#8a8a93]">
+        <div className="absolute bottom-4 left-4 z-30 flex flex-col gap-1.5 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)]/80 px-3 py-2.5 backdrop-blur-xl">
+          <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[var(--cream-dim)]">
             <span className="h-[3px] w-4 rounded" style={{ background: DOWNLINK_GREEN }} /> downlink beam
           </div>
-          <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[#8a8a93]">
+          <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[var(--cream-dim)]">
             <span className="h-[3px] w-4 rounded" style={{ background: "#6ea8ff" }} /> ISL · score→alpha
           </div>
-          <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[#8a8a93]">
+          <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[var(--cream-dim)]">
             <span className="h-2 w-2 rounded-[2px]" style={{ background: PLANE_A }} /> plane A
             <span className="ml-2 h-2 w-2 rounded-[2px]" style={{ background: PLANE_B }} /> plane B
             <span className="ml-2 h-2 w-2 rounded-[2px]" style={{ background: SAFE_RED }} /> safe
           </div>
-          <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[#8a8a93]">
+          <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[var(--cream-dim)]">
             <span className="font-mono" style={{ color: scoreColor(80) }}>link ≥ 70 good</span>
             <span style={{ color: scoreColor(55) }}>40–69 fair</span>
             <span style={{ color: scoreColor(10) }}>&lt; 40 poor</span>
@@ -825,15 +826,15 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         {import.meta.env.DEV && (
           <button
             onClick={demoRoute}
-            className="mono-label absolute bottom-4 right-4 z-30 rounded-full border border-dashed border-white/20 bg-black/60 px-3 py-1.5 text-[#8a8a93] hover:border-[#6ea8ff]/60 hover:text-white"
+            className="mono-label absolute bottom-4 right-4 z-30 rounded-full border border-dashed border-[var(--rule)] bg-[var(--ink)]/60 px-3 py-1.5 text-[var(--cream-dim)] hover:border-[var(--somaiya)]/60 hover:text-[var(--cream)]"
           >
             ▶ demo 3-hop route
           </button>
         )}
 
         {!booted && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-black">
-            <p className="mono-label animate-pulse text-[#8a8a93]">acquiring orbit…</p>
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--ink)]">
+            <p className="mono-label animate-pulse text-[var(--cream-dim)]">acquiring orbit…</p>
           </div>
         )}
       </div>
