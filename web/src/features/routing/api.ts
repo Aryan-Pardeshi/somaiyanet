@@ -63,7 +63,7 @@ interface ConstellationRow {
   queued_bytes?: number;
 }
 
-interface StationRow extends Station {
+interface StationRow extends Omit<Station, "latitude" | "longitude"> {
   latitude: number | string;
   longitude: number | string;
 }
