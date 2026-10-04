@@ -1,0 +1,14 @@
+# secrets
+.env
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# node
+node_modules/
+web/dist/
+# friend's repo, copy-from reference only
+reference/
+# local scratch
+*.log
