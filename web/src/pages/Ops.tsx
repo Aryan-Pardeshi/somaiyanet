@@ -1,6 +1,7 @@
 // /ops page: Mission Operations Command Center (SpaceX-inspired console)
 // Dark, cinematic mission console on pure black built around glowing night-lights Earth.
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRole } from "@/app/access";
 import { OpsGlobe, type OpsGlobeHandle } from "@/features/ops/OpsGlobe";
 import { useOpsData, type TelemetryEvent } from "@/features/ops/api";
 import { TopBar } from "@/features/ops/cc/TopBar";
@@ -30,12 +31,26 @@ function seedHistories(
 }
 
 export default function Ops() {
+  const { access } = useRole();
   const data = useOpsData();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<OpsTab>("overview");
   const [filter, setFilter] = useState<FleetFilter>("ALL");
-  const [currentView, setCurrentView] = useState<GlobeView>("globe");
+
+  // Station operators (access.station): default camera = their station (Mumbai for GS-BOM, Espoo for GS-HEL)
+  const defaultView: GlobeView = useMemo(() => {
+    if (access?.station === "GS-HEL") return "espoo";
+    if (access?.station === "GS-BOM") return "mumbai";
+    return "globe";
+  }, [access?.station]);
+
+  const [currentView, setCurrentView] = useState<GlobeView>(defaultView);
   const globeRef = useRef<OpsGlobeHandle>(null);
+
+  useEffect(() => {
+    setCurrentView(defaultView);
+    globeRef.current?.flyTo(defaultView);
+  }, [defaultView]);
 
   const histories = useMemo(
     () => seedHistories(data.sats, data.telemetry),
@@ -131,41 +146,55 @@ export default function Ops() {
           onSelect={setSelectedId}
           histories={histories}
           highlightIds={highlightIds}
+          defaultView={defaultView}
+          myStation={access?.station}
         />
       </div>
 
       {/* 3. Left Rail:
              Constellation bar, 2x2 chips filter, and fleet cards list.
              Overlays globe on desktop, stacks below globe on mobile. */}
-      <aside className="p-4 lg:p-0 lg:absolute lg:left-4 lg:top-14 lg:bottom-16 lg:w-[300px] lg:z-20 lg:overflow-y-auto lg:scrollbar-none pointer-events-auto">
-        <LeftRail
-          sats={data.sats}
-          contacts={data.contacts}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          filter={filter}
-          onFilterChange={setFilter}
-        />
+      <aside className="p-4 lg:p-0 lg:absolute lg:left-4 lg:top-14 lg:bottom-20 lg:w-[300px] lg:z-20 pointer-events-auto flex flex-col">
+        <div className="relative flex-1 min-h-0 flex flex-col">
+          <div className="h-full overflow-y-auto pr-1 pb-8 scrollbar-none [mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent_100%)]">
+            <LeftRail
+              sats={data.sats}
+              contacts={data.contacts}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              filter={filter}
+              onFilterChange={setFilter}
+            />
+          </div>
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-black to-transparent" />
+        </div>
       </aside>
 
       {/* 4. Right Rail:
-             Swaps by tab (Overview / Fleet / Contacts / Telemetry).
-             Overlays globe on desktop, stacks below left rail on mobile. */}
-      <aside className="p-4 lg:p-0 lg:absolute lg:right-4 lg:top-14 lg:bottom-16 lg:w-[340px] lg:z-20 lg:overflow-y-auto lg:scrollbar-none pointer-events-auto">
-        <RightRail
-          activeTab={activeTab}
-          selectedSat={activeSat}
-          histories={histories}
-          telemetry={data.telemetry}
-          alerts={data.alerts}
-          kpis={data.kpis}
-          contacts={data.contacts}
-          decisions={data.decisions}
-        />
+             Swaps by tab (Overview / Satellites / Upcoming passes / Live data).
+             Overlays globe on desktop, stacks below left rail on mobile.
+             Scrolls inside its own area with a soft fade at the bottom and dock clearance. */}
+      <aside className="p-4 lg:p-0 lg:absolute lg:right-4 lg:top-14 lg:bottom-20 lg:w-[340px] lg:z-20 pointer-events-auto flex flex-col">
+        <div className="relative flex-1 min-h-0 flex flex-col">
+          <div className="h-full overflow-y-auto pr-1 pb-8 scrollbar-none [mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent_100%)]">
+            <RightRail
+              activeTab={activeTab}
+              selectedSat={activeSat}
+              histories={histories}
+              telemetry={data.telemetry}
+              alerts={data.alerts}
+              kpis={data.kpis}
+              contacts={data.contacts}
+              decisions={data.decisions}
+              onRefetchAlerts={data.refetchAlerts}
+            />
+          </div>
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-black to-transparent" />
+        </div>
       </aside>
 
       {/* 5. Bottom Dock:
-             View toggles (Globe / Mumbai / Fleet), Live / Mock pill, UTC clock, Demo route button. */}
+             View toggles (Whole Earth / Mumbai / Espoo / Selected satellite), Live pill, UTC clock, Demo route button. */}
       <div className="mt-auto lg:mt-0 lg:absolute lg:bottom-0 lg:left-0 lg:right-0 lg:z-20">
         <BottomDock
           currentView={currentView}

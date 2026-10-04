@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/app/api";
+import { useRole } from "@/app/access";
 import { DataGrid, OfflineOrEmpty, Panel, PlanTree, SqlBlock, StatusBadge } from "./common";
 import type { ConsolePreset, ConsoleResult } from "./types";
 
 const ROLES = [
   "mission_director",
   "station_operator_bom",
+  "station_operator_hel",
   "student_analyst",
   "ai_router",
 ];
@@ -15,14 +17,21 @@ function shortRole(r: string): string {
 }
 
 export function SqlLab({ presetName }: { presetName?: string }) {
+  const { role: currentRole } = useRole();
   const [presets, setPresets] = useState<ConsolePreset[]>([]);
   const [bootError, setBootError] = useState<unknown>(null);
   const [query, setQuery] = useState("SELECT * FROM v_constellation_status;");
   const [explain, setExplain] = useState(false);
   const [result, setResult] = useState<ConsoleResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; sqlstate?: string } | null>(null);
   const [running, setRunning] = useState(false);
-  const [role, setRole] = useState("mission_director");
+  const [role, setRole] = useState(currentRole ?? "mission_director");
+
+  useEffect(() => {
+    if (currentRole) {
+      setRole(currentRole);
+    }
+  }, [currentRole]);
 
   const loadPresets = useCallback(async () => {
     try {
@@ -57,7 +66,10 @@ export function SqlLab({ presetName }: { presetName?: string }) {
       } catch (e) {
         const err = e as { message?: string; sqlstate?: string };
         setResult(null);
-        setError(`${err.sqlstate ? `${err.sqlstate}: ` : ""}${err.message ?? "failed"}`);
+        setError({
+          message: err.message ?? "Query execution failed",
+          sqlstate: err.sqlstate,
+        });
       } finally {
         setRunning(false);
       }
@@ -92,7 +104,7 @@ export function SqlLab({ presetName }: { presetName?: string }) {
               Presets catalog
             </span>
             <span className="font-mono text-[10px] text-[#5f6f93]">
-              EXP 4–9
+              Exp 4–9
             </span>
           </div>
 
@@ -151,7 +163,7 @@ export function SqlLab({ presetName }: { presetName?: string }) {
               {/* Role selector as chips */}
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#5f6f93] mr-1">
-                  ROLE:
+                  Role:
                 </span>
                 {ROLES.map((r) => {
                   const activeRole = (role || "mission_director") === r;
@@ -183,7 +195,7 @@ export function SqlLab({ presetName }: { presetName?: string }) {
                   onChange={(e) => setExplain(e.target.checked)}
                   className="accent-[#3d5bff]"
                 />
-                EXPLAIN PLAN
+                Explain plan
               </label>
             </div>
 
@@ -216,10 +228,10 @@ export function SqlLab({ presetName }: { presetName?: string }) {
                 disabled={running || query.trim() === ""}
                 className="font-mono text-[11px] uppercase tracking-[0.1em] px-4 py-2 bg-[#3d5bff] hover:bg-[#324dd8] text-white rounded-[2px] font-semibold transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] disabled:opacity-40 cursor-pointer"
               >
-                {running ? "EXECUTING…" : "RUN STATEMENT"}
+                {running ? "Executing…" : "Run query"}
               </button>
               <span className="font-mono text-[10px] text-[#5f6f93]">
-                DISPATCH VIA /api/console
+                Read-only transaction (5s timeout)
               </span>
             </div>
           </div>
@@ -235,7 +247,7 @@ export function SqlLab({ presetName }: { presetName?: string }) {
               {result && (
                 <StatusBadge
                   status="nominal"
-                  label={`${result.rowcount} ROWS`}
+                  label={`${result.rowcount} rows`}
                 />
               )}
             </div>
@@ -249,10 +261,12 @@ export function SqlLab({ presetName }: { presetName?: string }) {
               >
                 <div role="alert" className="p-3 flex flex-col gap-1">
                   <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#ff3b4f] font-semibold">
-                    PostgreSQL execution refused
+                    {error.sqlstate === "42501" || error.message.includes("42501")
+                      ? "Permission denied by PostgreSQL (42501)"
+                      : "PostgreSQL execution refused"}
                   </span>
                   <p className="font-mono text-[12px] text-[#dfe6f5] whitespace-pre-wrap">
-                    {error}
+                    {error.message}
                   </p>
                 </div>
               </Panel>
@@ -280,7 +294,7 @@ export function SqlLab({ presetName }: { presetName?: string }) {
 
             {!result && !error && (
               <p className="font-mono text-[11px] text-[#5f6f93] p-4 text-center border border-dashed border-white/5">
-                Ready for statement dispatch.
+                Select a preset or enter a query to run.
               </p>
             )}
           </div>

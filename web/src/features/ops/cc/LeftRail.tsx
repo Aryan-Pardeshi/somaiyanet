@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { RoleHeader } from "@/app/access";
 import type { ConstellationSat, Contact } from "../api";
 import { Panel } from "./Panel";
 import { SatIcon } from "./SatIcon";
+import { HelpHint } from "./HelpHint";
 import type { FleetFilter } from "./types";
 
 interface LeftRailProps {
@@ -29,14 +31,32 @@ function stateColor(state: string): string {
   }
 }
 
+function formatSatState(state: string): string {
+  switch (state) {
+    case "NOMINAL":
+      return "Healthy";
+    case "SAFE":
+      return "Safe mode";
+    case "STOWED":
+      return "Not deployed";
+    case "DEPLOYED":
+    case "COMMISSIONING":
+      return "Starting up";
+    case "CRITICAL":
+      return "Critical";
+    default:
+      return state;
+  }
+}
+
 function two(n: number): string {
   return String(n).padStart(2, "0");
 }
 
 function formatCountdown(iso: string | null | undefined, nowMs: number): string {
-  if (!iso) return "no pass";
+  if (!iso) return "None scheduled";
   const diff = Math.floor((new Date(iso).getTime() - nowMs) / 1000);
-  if (diff <= 0) return "window open";
+  if (diff <= 0) return "Happening now";
   const hh = Math.floor(diff / 3600);
   const mm = Math.floor((diff % 3600) / 60);
   const ss = diff % 60;
@@ -127,15 +147,15 @@ export function LeftRail({
 
   return (
     <div className="w-full flex flex-col gap-3">
+      {/* 0. Compact Role Header at the top of the left column */}
+      <RoleHeader note="Live constellation operations and ground pass scheduling." />
+
       {/* 1. Constellation Title Panel */}
       <Panel cut={8} className="w-full">
         <div className="p-3.5 flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-              Constellation
-            </span>
-            <span className="font-mono text-[10px] tracking-wider text-[#dfe6f5]">
-              {sats.length} ASSETS
+            <span className="font-mono text-[11px] font-semibold tracking-wider text-[#dfe6f5]">
+              Satellites ({sats.length})
             </span>
           </div>
 
@@ -144,7 +164,7 @@ export function LeftRail({
             {sats.map((sat) => (
               <div
                 key={sat.node_id}
-                title={`${sat.node_id} (${sat.state})`}
+                title={`${sat.display_name || sat.node_id} (${formatSatState(sat.state)})`}
                 className="flex-1 h-full rounded-[1px] transition-all"
                 style={{ backgroundColor: stateColor(sat.state) }}
               />
@@ -152,13 +172,16 @@ export function LeftRail({
           </div>
 
           {/* Count line */}
-          <div className="font-mono text-[11px] text-[#8b96b0] flex flex-wrap gap-x-2">
-            <span className="text-[#7ee2b8]">{nominalCount} nominal</span>
+          <div className="font-mono text-[11px] text-[#8b96b0] flex flex-wrap items-center gap-x-2">
+            <span className="text-[#7ee2b8]">{nominalCount} healthy</span>
             {safeCount > 0 && (
-              <span className="text-[#f5a524]">, {safeCount} safe</span>
+              <span className="text-[#f5a524] inline-flex items-center">
+                , {safeCount} in safe mode
+                <HelpHint text="A low-power survival state where the satellite turns off payload systems and only listens for ground commands." />
+              </span>
             )}
             {stowedCount > 0 && (
-              <span className="text-[#8b96b0]">, {stowedCount} stowed</span>
+              <span className="text-[#8b96b0]">, {stowedCount} not yet deployed</span>
             )}
           </div>
         </div>
@@ -168,15 +191,20 @@ export function LeftRail({
       <Panel cut={8} className="w-full">
         <div className="p-3 flex flex-col gap-2">
           <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-            Mission filter
+            Show
           </span>
           <div className="grid grid-cols-2 gap-1.5">
             {(
               [
                 { id: "ALL", label: "All", count: sats.length },
-                { id: "NOMINAL", label: "Nominal", count: nominalCount },
-                { id: "SAFE", label: "Safe", count: safeCount },
-                { id: "STOWED", label: "Stowed", count: stowedCount },
+                { id: "NOMINAL", label: "Healthy", count: nominalCount },
+                {
+                  id: "SAFE",
+                  label: "Safe mode",
+                  count: safeCount,
+                  hint: "A low-power survival state where the satellite turns off payload systems and only listens for ground commands.",
+                },
+                { id: "STOWED", label: "Not deployed", count: stowedCount },
               ] as const
             ).map((item) => {
               const active = filter === item.id;
@@ -190,7 +218,10 @@ export function LeftRail({
                       : "bg-white/[0.03] text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/[0.06] border border-white/5"
                   }`}
                 >
-                  <span>{item.label}</span>
+                  <span className="inline-flex items-center">
+                    {item.label}
+                    {"hint" in item && item.hint && <HelpHint text={item.hint} />}
+                  </span>
                   <span
                     className={`text-[10px] px-1 rounded ${
                       active ? "bg-white/20 text-white" : "text-[#8b96b0]"
@@ -243,28 +274,33 @@ export function LeftRail({
                       {sat.display_name || sat.node_id}
                     </span>
                     <span
-                      className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-sm border shrink-0"
+                      className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-sm border shrink-0 inline-flex items-center"
                       style={{
                         color: statusCol,
                         borderColor: `color-mix(in srgb, ${statusCol} 30%, transparent)`,
                         backgroundColor: `color-mix(in srgb, ${statusCol} 10%, transparent)`,
                       }}
                     >
-                      {sat.state}
+                      {formatSatState(sat.state)}
+                      {sat.state === "SAFE" && (
+                        <HelpHint text="A low-power survival state where the satellite turns off payload systems and only listens for ground commands." />
+                      )}
                     </span>
                   </div>
 
-                  {/* Subline: Plane & slot, Altitude */}
+                  {/* Subline: Orbit & position, Altitude */}
                   <div className="font-mono text-[10px] text-[#8b96b0] flex items-center justify-between">
                     <span>
-                      Plane {sat.plane}, slot {sat.slot}
+                      Orbit {sat.plane}, position {sat.slot}
                     </span>
-                    <span>Alt 525 km</span>
+                    <span>525 km up</span>
                   </div>
 
-                  {/* Next Downlink countdown */}
+                  {/* Next ground pass countdown */}
                   <div className="flex items-center justify-between font-mono text-[10px] bg-black/30 px-2 py-0.5 rounded border border-white/5">
-                    <span className="text-[#8b96b0]">Pass:</span>
+                    <span className="text-[#8b96b0]">
+                      {sat.next_downlink_start ? "Next ground pass in" : "Ground pass"}
+                    </span>
                     <span
                       className={`tabular-nums ${
                         sat.next_downlink_start
@@ -276,12 +312,15 @@ export function LeftRail({
                     </span>
                   </div>
 
-                  {/* Two dashed progress bars: Signal & Battery */}
+                  {/* Two dashed progress bars: Link quality & Battery */}
                   <div className="flex flex-col gap-1 pt-0.5">
-                    {/* Signal */}
+                    {/* Link quality */}
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center justify-between font-mono text-[9px]">
-                        <span className="text-[#8b96b0]">Signal</span>
+                        <span className="text-[#8b96b0] inline-flex items-center">
+                          Link quality
+                          <HelpHint text="Expected radio signal strength and packet success rate for this link." />
+                        </span>
                         <span className="text-[#dfe6f5] tabular-nums">
                           {score}%
                         </span>
@@ -298,7 +337,7 @@ export function LeftRail({
                       <div className="flex items-center justify-between font-mono text-[9px]">
                         <span className="text-[#8b96b0]">Battery</span>
                         <span className="text-[#dfe6f5] tabular-nums">
-                          {batPct}% ({batV.toFixed(2)}V)
+                          {batPct}% ({batV.toFixed(2)} V)
                         </span>
                       </div>
                       <DashedBar

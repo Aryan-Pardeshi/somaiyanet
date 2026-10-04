@@ -20,6 +20,7 @@ import { Panel } from "@/components/cc/Panel";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { apiFetch } from "./api";
 import { SqlButton, SqlDrawer, SqlProvider } from "./SqlDrawer";
+import { RoleProvider, accessFor, canVisit, homeFor } from "./access";
 import { FALLBACK_PROFILES, ProfileAvatar, accentRing } from "./profiles";
 import type { Profile } from "./profiles";
 
@@ -81,6 +82,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const [offline, setOffline] = useState(false);
   const [chipOpen, setChipOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [redirected, setRedirected] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  // Home path we just redirected to, so the notice survives that navigation.
+  const redirectTarget = useRef<string | null>(null);
   const chipRef = useRef<HTMLDivElement>(null);
 
   // Profile guard: 401 -> /console?next=<path>. Network failure stays put
@@ -94,6 +99,15 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         setProfile(r.data);
         setOffline(false);
         setChecking(false);
+        if (!canVisit(r.data.role, location.pathname)) {
+          redirectTarget.current = homeFor(r.data.role);
+          setRedirected(true);
+          setDismissed(false);
+          navigate(homeFor(r.data.role), { replace: true });
+        } else if (location.pathname !== redirectTarget.current) {
+          redirectTarget.current = null;
+          setRedirected(false);
+        }
       })
       .catch((e: { status?: number }) => {
         if (cancelled) return;
@@ -148,12 +162,20 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       setProfile(r.data);
       setChipOpen(false);
       setSheetOpen(false);
+      if (!canVisit(r.data.role, location.pathname)) {
+        navigate(homeFor(r.data.role), { replace: true });
+      }
       // Re-fetch the current page's data with the new role's permissions.
       window.location.reload();
     } catch {
       // Drawer surfaces the error card; keep the popover open.
     }
   };
+
+  const role = profile?.role ?? null;
+  const who = role ? accessFor(role)?.who : null;
+  const missionNav = MISSION_NAV.filter((m) => canVisit(role, m.to));
+  const labsNav = LABS_NAV.filter((l) => canVisit(role, l.to));
 
   const switcher = (
     <div className="relative" ref={chipRef}>
@@ -175,6 +197,11 @@ function ShellInner({ children }: { children: React.ReactNode }) {
                 <span className="block truncate font-mono text-[10px] text-[#8b96b0] uppercase tracking-wider">
                   {profile.role}
                 </span>
+                {who && (
+                  <span className="block truncate text-[11px] text-[#5f6f93]">
+                    {who}
+                  </span>
+                )}
               </div>
               <ChevronDown
                 size={13}
@@ -256,7 +283,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         MISSION
       </p>
       <nav className="mt-0.5 flex flex-col gap-0.5" aria-label="Mission">
-        {MISSION_NAV.map(({ to, label, Icon }) => (
+        {missionNav.map(({ to, label, Icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -307,7 +334,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         DATABASE LABS
       </p>
       <nav className="mt-0.5 flex flex-col gap-0.5" aria-label="Database labs">
-        {LABS_NAV.map(({ to, label, Icon }) => (
+        {labsNav.map(({ to, label, Icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -423,7 +450,23 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         </header>
 
         <main className="mx-auto w-full max-w-[1440px] flex-1 p-6">
-          {children}
+          {redirected && !dismissed && profile !== null && (
+            <div className="mb-4 flex items-start justify-between gap-3 border border-[#f5a524]/40 bg-[#f5a524]/10 px-3 py-2 text-[12.5px] text-[#dfe6f5]">
+              <span>
+                That page is not available to {profile.title ?? titleFor(profile.role)}, so you
+                were sent to your home page.
+              </span>
+              <button
+                type="button"
+                onClick={() => setDismissed(true)}
+                aria-label="Dismiss redirect notice"
+                className="shrink-0 font-mono text-[11px] uppercase tracking-wider text-[#8b96b0] hover:text-white"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+          <RoleProvider role={role}>{children}</RoleProvider>
         </main>
       </div>
 

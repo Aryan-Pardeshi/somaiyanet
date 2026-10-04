@@ -243,7 +243,7 @@ export function SchemaLab({ initialTab = "diagram" }: { initialTab?: Tab }) {
                   Relational EER model ({tables.length} tables · click a table node)
                 </h2>
               </div>
-              <StatusBadge status="info" label="INTERACTIVE DIAGRAM" />
+              <StatusBadge status="info" label="Interactive diagram" />
             </div>
 
             <div className="h-[620px] overflow-hidden border border-white/10 bg-[#000] relative">
@@ -276,7 +276,7 @@ export function SchemaLab({ initialTab = "diagram" }: { initialTab?: Tab }) {
                       {sel.name}
                     </span>
                     <span className="font-mono text-[10px] text-[#7fb2ff]">
-                      {sel.columns.length} COLUMNS
+                      {sel.columns.length} columns
                     </span>
                   </div>
                   {sel.comment && (

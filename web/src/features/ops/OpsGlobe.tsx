@@ -11,6 +11,7 @@ import {
 import Globe from "globe.gl";
 import * as satellite from "satellite.js";
 import type { ConstellationSat, Contact, Station } from "./api";
+import type { GlobeView } from "./cc/types";
 import {
   EARTH_R_KM,
   islColor,
@@ -31,7 +32,7 @@ export interface RouteHop {
 
 export interface OpsGlobeHandle {
   playRoute: (hops: RouteHop[]) => void;
-  flyTo: (view: "globe" | "mumbai" | "fleet") => void;
+  flyTo: (view: GlobeView) => void;
 }
 
 interface OpsGlobeProps {
@@ -42,6 +43,8 @@ interface OpsGlobeProps {
   onSelect: (id: string | null) => void;
   histories: Record<string, number[]>;
   highlightIds?: string[];
+  defaultView?: GlobeView;
+  myStation?: "GS-BOM" | "GS-HEL";
 }
 
 type World = InstanceType<typeof Globe>;
@@ -135,7 +138,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
       };
     };
 
-    const flyToView = (view: "globe" | "mumbai" | "fleet"): void => {
+    const flyToView = (view: GlobeView): void => {
       const world = worldRef.current;
       if (!world) return;
       if (view === "globe") {
@@ -144,6 +147,11 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         const bom = liveRef.current.stations.find((s) => s.node_id === "GS-BOM");
         const lat = bom ? bom.latitude : 19.076;
         const lng = bom ? bom.longitude : 72.877;
+        world.pointOfView({ lat, lng, altitude: 1.45 }, 1200);
+      } else if (view === "espoo") {
+        const hel = liveRef.current.stations.find((s) => s.node_id === "GS-HEL");
+        const lat = hel ? hel.latitude : 60.2055;
+        const lng = hel ? hel.longitude : 24.6559;
         world.pointOfView({ lat, lng, altitude: 1.45 }, 1200);
       } else if (view === "fleet") {
         const selId = liveRef.current.selectedId;
@@ -189,7 +197,13 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
       world.controls().enableZoom = true;
       world.controls().minDistance = 160;
       world.controls().maxDistance = 700;
-      world.pointOfView({ lat: 19.07, lng: 72.9, altitude: 2.45 }, 0);
+      if (liveRef.current.defaultView === "espoo") {
+        world.pointOfView({ lat: 60.2055, lng: 24.6559, altitude: 1.45 }, 0);
+      } else if (liveRef.current.defaultView === "mumbai") {
+        world.pointOfView({ lat: 19.076, lng: 72.877, altitude: 1.45 }, 0);
+      } else {
+        world.pointOfView({ lat: 19.07, lng: 72.9, altitude: 2.45 }, 0);
+      }
       world.onGlobeClick(() => liveRef.current.onSelect(null));
 
       // Rings: pulsing ground stations
@@ -198,17 +212,27 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         .ringLat((d: object) => (d as { lat: number }).lat)
         .ringLng((d: object) => (d as { lng: number }).lng)
         .ringColor((d: object) => {
-          const primary = (d as { primary: boolean }).primary;
+          const item = d as { primary: boolean; isMine?: boolean };
+          if (item.isMine) {
+            return (t: number): string => `rgba(245,165,36,${((1 - t) * 0.98).toFixed(3)})`;
+          }
+          const primary = item.primary;
           const c = primary ? "127,178,255" : "207,216,255";
           return (t: number): string => `rgba(${c},${((1 - t) * 0.95).toFixed(3)})`;
         })
-        .ringMaxRadius((d: object) =>
-          (d as { primary: boolean }).primary ? 4.4 : 3.0,
+        .ringMaxRadius((d: object) => {
+          const item = d as { primary: boolean; isMine?: boolean };
+          if (item.isMine) return 5.8;
+          return item.primary ? 4.4 : 3.0;
+        })
+        .ringPropagationSpeed((d: object) =>
+          (d as { isMine?: boolean }).isMine ? 2.0 : 1.5,
         )
-        .ringPropagationSpeed(1.5)
-        .ringRepeatPeriod((d: object) =>
-          (d as { primary: boolean }).primary ? 1100 : 1700,
-        )
+        .ringRepeatPeriod((d: object) => {
+          const item = d as { primary: boolean; isMine?: boolean };
+          if (item.isMine) return 900;
+          return item.primary ? 1100 : 1700;
+        })
         .ringAltitude(0.004);
 
       // Station labels
@@ -217,15 +241,23 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         .labelLat((d: object) => (d as { lat: number }).lat)
         .labelLng((d: object) => (d as { lng: number }).lng)
         .labelText((d: object) => (d as { name: string }).name)
-        .labelSize((d: object) => ((d as { primary: boolean }).primary ? 0.75 : 0.6))
-        .labelDotRadius((d: object) =>
-          (d as { primary: boolean }).primary ? 0.3 : 0.22,
-        )
-        .labelColor((d: object) =>
-          (d as { primary: boolean }).primary
+        .labelSize((d: object) => {
+          const item = d as { primary: boolean; isMine?: boolean };
+          if (item.isMine) return 0.95;
+          return item.primary ? 0.75 : 0.6;
+        })
+        .labelDotRadius((d: object) => {
+          const item = d as { primary: boolean; isMine?: boolean };
+          if (item.isMine) return 0.45;
+          return item.primary ? 0.3 : 0.22;
+        })
+        .labelColor((d: object) => {
+          const item = d as { primary: boolean; isMine?: boolean };
+          if (item.isMine) return "rgba(245,165,36,1)";
+          return item.primary
             ? "rgba(223,230,245,1)"
-            : "rgba(139,150,176,0.9)",
-        )
+            : "rgba(139,150,176,0.9)";
+        })
         .labelResolution(2)
         .labelAltitude(0.006);
 
@@ -465,6 +497,41 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
           lastLayer = real;
           const visible = satsRef.current.filter((s) => s.ok);
           world.htmlElementsData(visible as unknown as object[]);
+
+          // Check screen distance to avoid label overlap when satellites bunch up:
+          // For markers closer than about 28px on screen, hide the label of the non-selected ones
+          // and show it on hover; the selected satellite always shows its label.
+          const selId = liveRef.current.selectedId;
+          const coords: Array<{ sat: SatDatum; x: number; y: number }> = [];
+          for (const s of visible) {
+            try {
+              const xy = world.getScreenCoords(s.lat, s.lng, s.alt) as
+                | { x: number; y: number }
+                | undefined;
+              if (xy && Number.isFinite(xy.x) && Number.isFinite(xy.y)) {
+                coords.push({ sat: s, x: xy.x, y: xy.y });
+              }
+            } catch {
+              // ignore
+            }
+          }
+
+          for (let i = 0; i < coords.length; i++) {
+            const a = coords[i];
+            let isClustered = false;
+            for (let j = 0; j < coords.length; j++) {
+              if (i === j) continue;
+              const b = coords[j];
+              const dx = a.x - b.x;
+              const dy = a.y - b.y;
+              if (dx * dx + dy * dy < 28 * 28) {
+                isClustered = true;
+                break;
+              }
+            }
+            const shouldHide = isClustered && a.sat.uid !== selId;
+            a.sat.el.classList.toggle("ops-hide-tag", shouldHide);
+          }
         }
 
         if (real - lastPath > 600) {
@@ -664,16 +731,21 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         lat: st.latitude,
         lng: st.longitude,
         primary: st.is_primary,
+        isMine: st.node_id === props.myStation,
       }));
       const labels = props.stations.map((st) => ({
         lat: st.latitude,
         lng: st.longitude,
         primary: st.is_primary,
-        name: st.node_id,
+        name:
+          st.node_id === props.myStation
+            ? `${st.node_id} (Your station)`
+            : st.node_id,
+        isMine: st.node_id === props.myStation,
       }));
       world.ringsData(rings as unknown as object[]);
       world.labelsData(labels as unknown as object[]);
-    }, [props.sats, props.stations, props.selectedId, props.highlightIds]);
+    }, [props.sats, props.stations, props.selectedId, props.highlightIds, props.myStation]);
 
     return (
       <div className="relative h-full w-full overflow-hidden bg-black select-none">
@@ -727,6 +799,16 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
             padding: 1px 5px;
             backdrop-filter: blur(8px);
             pointer-events: none;
+            transition: opacity 0.2s ease, border-color 0.2s ease;
+          }
+          .ops-marker.ops-hide-tag:not(.ops-selected) .ops-marker-tag {
+            opacity: 0;
+            pointer-events: none;
+          }
+          .ops-marker.ops-hide-tag:not(.ops-selected):hover .ops-marker-tag,
+          .ops-marker:hover .ops-marker-tag {
+            opacity: 1;
+            pointer-events: auto;
           }
           .ops-marker:hover .ops-marker-ring {
             transform: scale(1.2);

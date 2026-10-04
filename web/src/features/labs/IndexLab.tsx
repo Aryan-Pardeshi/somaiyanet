@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { apiFetch } from "@/app/api";
-import { Card, DataGrid, OfflineOrEmpty, Panel, PlanTree, SqlBlock, StatusBadge } from "./common";
+import { apiFetch, ApiError } from "@/app/api";
+import { Locked } from "@/app/access";
+import { Card, DataGrid, OfflineOrEmpty, Panel, PlanTree, RefusalCard, SqlBlock, StatusBadge } from "./common";
 import type { IndexCatalogEntry, IndexQuery, IndexRunResult } from "./types";
 
 interface CatalogResp {
@@ -40,6 +41,7 @@ export function IndexLab() {
   const [queryKey, setQueryKey] = useState("");
   const [indexKey, setIndexKey] = useState("");
   const [result, setResult] = useState<IndexRunResult | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
   const [running, setRunning] = useState(false);
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
 
@@ -63,36 +65,41 @@ export function IndexLab() {
     void load();
   }, [load]);
 
-  const run = async () => {
-    if (!queryKey || !indexKey) return;
+  const run = async (overrideIndexKey?: string) => {
+    const ik = overrideIndexKey || indexKey;
+    if (!queryKey || !ik) return;
     setRunning(true);
     setResult(null);
+    setError(null);
     try {
       const r = await apiFetch<IndexRunResult>("/api/labs/index/run", {
         method: "POST",
-        body: JSON.stringify({ query_key: queryKey, index_key: indexKey }),
+        body: JSON.stringify({ query_key: queryKey, index_key: ik }),
       });
       setResult(r.data);
       await load();
-    } catch {
+    } catch (e) {
       setResult(null);
+      setError(e as ApiError);
     } finally {
       setRunning(false);
     }
   };
 
   const bulk = async () => {
-    setBulkMsg("loading…");
+    setBulkMsg("Loading…");
+    setError(null);
     try {
       const r = await apiFetch<{ inserted?: number; rows?: number }>("/api/labs/index/bulk", {
         method: "POST",
         body: JSON.stringify({ rows: 50000 }),
       });
-      setBulkMsg(`inserted ${r.data.inserted ?? r.data.rows ?? 50000} rows (director only)`);
+      setBulkMsg(`Inserted ${r.data.inserted ?? r.data.rows ?? 50000} rows.`);
       await load();
     } catch (e) {
-      const err = e as { message?: string; sqlstate?: string };
-      setBulkMsg(`refused ${err.sqlstate ?? ""}: ${err.message ?? "denied"}`);
+      const err = e as ApiError;
+      setError(err);
+      setBulkMsg(null);
     }
   };
 
@@ -133,7 +140,7 @@ export function IndexLab() {
             </h2>
           </div>
           <span className="font-mono text-[10px] text-[#5f6f93]">
-            {shownCatalog.length} INDEX ARCHITECTURES
+            {shownCatalog.length} index types
           </span>
         </div>
 
@@ -148,9 +155,6 @@ export function IndexLab() {
                       status={c.kind.includes("brin") ? "nominal" : "info"}
                       label={c.kind.toUpperCase()}
                     />
-                    <span className="font-mono text-[10px] text-[#5f6f93]">
-                      POSTGRES 16
-                    </span>
                   </div>
 
                   <div className="flex items-baseline justify-between gap-2">
@@ -175,6 +179,27 @@ export function IndexLab() {
                   </div>
 
                   <SqlBlock sql={c.ddl} />
+
+                  <div className="pt-1 flex items-center justify-between">
+                    <Locked
+                      action="bench_index"
+                      onTry={() => {
+                        setIndexKey(c.key);
+                        void run(c.key);
+                      }}
+                    >
+                      <button
+                        onClick={() => {
+                          setIndexKey(c.key);
+                          void run(c.key);
+                        }}
+                        disabled={running}
+                        className="font-mono text-[10px] uppercase tracking-[0.1em] px-2.5 py-1 border border-[#3d5bff]/40 text-[#7fb2ff] hover:bg-[#3d5bff]/10 rounded-[2px] transition-colors cursor-pointer"
+                      >
+                        Benchmark index
+                      </button>
+                    </Locked>
+                  </div>
                 </div>
               </Panel>
             );
@@ -204,19 +229,27 @@ export function IndexLab() {
                 Live benchmark runner
               </h2>
             </div>
-            <button
-              onClick={() => void bulk()}
-              title="Director only: bench_bulk_telemetry(50000)"
-              className="font-mono text-[10px] uppercase tracking-[0.1em] px-3 py-1 border border-[#f5a524]/40 text-[#f5a524] hover:bg-[#f5a524]/10 rounded-[2px] transition-colors cursor-pointer"
-            >
-              BULK LOAD 50K ROWS
-            </button>
+            <Locked action="bench_index" onTry={() => void bulk()}>
+              <button
+                onClick={() => void bulk()}
+                title="Director only: bench_bulk_telemetry(50000)"
+                className="font-mono text-[10px] uppercase tracking-[0.1em] px-3 py-1 border border-[#f5a524]/40 text-[#f5a524] hover:bg-[#f5a524]/10 rounded-[2px] transition-colors cursor-pointer"
+              >
+                Bulk load 50,000 rows
+              </button>
+            </Locked>
           </div>
 
           {bulkMsg !== null && (
             <p className="font-mono text-[11px] text-[#f5a524] bg-[#f5a524]/10 border border-[#f5a524]/30 px-3 py-1.5 rounded-[2px]">
               {bulkMsg}
             </p>
+          )}
+
+          {error !== null && (
+            <div className="mt-1">
+              <RefusalCard error={error} />
+            </div>
           )}
 
           <div className="flex flex-wrap items-center gap-3">
@@ -266,13 +299,26 @@ export function IndexLab() {
               </select>
             </div>
 
-            <button
-              onClick={() => void run()}
-              disabled={running}
-              className="font-mono text-[11px] uppercase tracking-[0.1em] px-4 py-1.5 bg-[#3d5bff] hover:bg-[#324dd8] text-white rounded-[2px] font-semibold transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] disabled:opacity-40 cursor-pointer ml-auto"
-            >
-              {running ? "BENCHMARKING…" : "RUN BENCHMARK"}
-            </button>
+            <div className="flex items-center gap-2 ml-auto">
+              <Locked action="bench_index" onTry={() => void run()}>
+                <button
+                  onClick={() => void run()}
+                  disabled={running}
+                  className="font-mono text-[10px] uppercase tracking-[0.1em] px-3 py-1.5 border border-white/15 text-[#dfe6f5] hover:border-white/40 hover:bg-white/5 rounded-[2px] transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] cursor-pointer"
+                >
+                  Reset indexes
+                </button>
+              </Locked>
+              <Locked action="bench_index" onTry={() => void run()}>
+                <button
+                  onClick={() => void run()}
+                  disabled={running}
+                  className="font-mono text-[11px] uppercase tracking-[0.1em] px-4 py-1.5 bg-[#3d5bff] hover:bg-[#324dd8] text-white rounded-[2px] font-semibold transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] disabled:opacity-40 cursor-pointer"
+                >
+                  {running ? "Benchmarking…" : "Run benchmark"}
+                </button>
+              </Locked>
+            </div>
           </div>
 
           {activeQuery !== undefined && (
@@ -292,7 +338,7 @@ export function IndexLab() {
                   {speedup && (
                     <StatusBadge
                       status="ok"
-                      label={`${speedup}x FASTER WITH ${indexKey}`}
+                      label={`${speedup}x faster with ${indexKey}`}
                     />
                   )}
                 </div>
@@ -301,7 +347,7 @@ export function IndexLab() {
                   {/* Before: Muted bar */}
                   <div className="border border-white/5 bg-black/40 p-3 rounded-[2px] flex flex-col gap-2">
                     <div className="flex items-center justify-between font-mono text-[11px]">
-                      <span className="text-[#8b96b0]">BEFORE (NO INDEX)</span>
+                      <span className="text-[#8b96b0]">Before (no index)</span>
                       <span className="text-[#f5a524] uppercase font-semibold">
                         {before ?? "SEQ SCAN"}
                       </span>
@@ -329,7 +375,7 @@ export function IndexLab() {
                   <div className="border border-[#3d5bff]/30 bg-[#3d5bff]/5 p-3 rounded-[2px] flex flex-col gap-2 shadow-[0_0_12px_rgba(61,91,255,0.15)]">
                     <div className="flex items-center justify-between font-mono text-[11px]">
                       <span className="text-[#7fb2ff] font-semibold">
-                        AFTER (USING {indexKey})
+                        After (using {indexKey})
                       </span>
                       <span className="text-[#7ee2b8] uppercase font-semibold">
                         {after ?? "INDEX SCAN"}
@@ -394,8 +440,8 @@ export function IndexLab() {
         </div>
       </Card>
 
-      {/* 4. Lesson / Viva Notes Panel */}
-      <Card title="Examiner viva summary" kicker="Index selection strategy">
+      {/* 4. Lesson / What to look for */}
+      <Card title="What to look for" kicker="Index selection strategy">
         <ul className="flex flex-col gap-2 text-[13px] leading-relaxed text-[#dfe6f5]">
           <li className="flex items-start gap-2">
             <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#3d5bff]" />

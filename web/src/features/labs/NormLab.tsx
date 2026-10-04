@@ -104,7 +104,7 @@ export function NormLab() {
               Active stage functional dependencies ({cur.stage})
             </span>
             <span className="font-mono text-[10px] text-[#5f6f93]">
-              {cur.fds.length} DEPENDENCIES
+              {cur.fds.length} dependencies
             </span>
           </div>
 
@@ -129,13 +129,13 @@ export function NormLab() {
                     {hasViolation && (
                       <StatusBadge
                         status="warn"
-                        label={`VIOLATES ${f.violates.toUpperCase()}`}
+                        label={`Violates ${f.violates}`}
                       />
                     )}
                   </div>
                   {f.fix && (
                     <span className="text-[#8b96b0] text-[11px]">
-                      ACTION: {f.fix}
+                      Action: {f.fix}
                     </span>
                   )}
                 </div>
@@ -154,7 +154,7 @@ export function NormLab() {
               <div className="flex items-center justify-between font-mono text-[11px]">
                 <span className="text-white font-semibold">{t.name}</span>
                 <span className="text-[#5f6f93] text-[10.5px]">
-                  COLUMNS: {t.columns.join(", ")}
+                  Columns: {t.columns.join(", ")}
                 </span>
               </div>
               <HighlightGrid rows={t.rows} highlight={dupColumns(t.rows)} />
@@ -199,7 +199,7 @@ export function NormLab() {
               <div className="flex items-center gap-2">
                 <StatusBadge
                   status="warn"
-                  label={`${anomalyKind.toUpperCase()} ANOMALY IDENTIFIED`}
+                  label={`${anomalyKind.charAt(0).toUpperCase() + anomalyKind.slice(1)} anomaly identified`}
                 />
                 <span className="font-mono text-[11px] text-[#8b96b0]">
                   {anomaly.stage}
@@ -223,7 +223,7 @@ export function NormLab() {
                     <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#f5a524]">
                       Anomaly occurrence
                     </span>
-                    <StatusBadge status="warn" label="MUTATION INCONSISTENCY" />
+                    <StatusBadge status="warn" label="Inconsistent data" />
                   </div>
                   <p className="font-mono text-[12px] text-[#f5a524] font-semibold leading-relaxed">
                     {anomaly.after}
@@ -291,9 +291,9 @@ export function NormLab() {
                       <td className="px-3 py-2">
                         {/* Lossless check result as ok badge */}
                         {ok ? (
-                          <StatusBadge status="ok" label="LOSSLESS ✓" />
+                          <StatusBadge status="ok" label="Lossless ✓" />
                         ) : (
-                          <StatusBadge status="critical" label="LOSS ✗" />
+                          <StatusBadge status="critical" label="Lossy ✗" />
                         )}
                       </td>
                     </tr>
@@ -400,7 +400,7 @@ function HighlightGrid({
                   }`}
                 >
                   {c}
-                  {isDup ? " [REDUNDANT]" : ""}
+                  {isDup ? " [duplicate]" : ""}
                 </th>
               );
             })}

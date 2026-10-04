@@ -3,6 +3,7 @@ import "@fontsource/geist-sans/latin-300.css";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Brand } from "@/components/story/Brand";
 import { apiFetch } from "@/app/api";
+import { ROLE_ACCESS, canVisit, homeFor } from "@/app/access";
 import { FALLBACK_PROFILES } from "@/app/profiles";
 import type { Profile } from "@/app/profiles";
 
@@ -65,10 +66,16 @@ function ConsoleAvatar({ role, size = 52 }: { role: string; size?: number }) {
  * clicking a tile POSTs {role} and the backend opens a pooled connection as
  * that real Postgres role behind an httpOnly session cookie.
  */
+function homeLabel(home: string): string {
+  if (home === "/ops") return "Command center";
+  if (home === "/labs/sql") return "SQL console";
+  if (home === "/brain") return "AI router";
+  return home;
+}
 export default function Console() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const next = params.get("next") ?? "/ops";
+  const next = params.get("next");
   const [profiles, setProfiles] = useState<Profile[]>(FALLBACK_PROFILES);
   const [offline, setOffline] = useState(false);
   const [focus, setFocus] = useState(0);
@@ -103,7 +110,10 @@ export default function Console() {
         // Offline: still move on so the demo flow stays clickable; the
         // destination page shows the calm offline card / mock data.
       }
-      window.setTimeout(() => navigate(next), 220);
+      window.setTimeout(
+        () => navigate(next && canVisit(role, next) ? next : homeFor(role)),
+        220,
+      );
     },
     [navigate, next],
   );
@@ -206,15 +216,25 @@ export default function Console() {
         </div>
         {/* Fixed-height detail panel: shows what the focused role may do, so
             hovering never changes the page layout. */}
-        <div className="mt-6 h-[92px] w-full max-w-[640px] border-t border-[var(--line)] pt-4 text-center" aria-live="polite">
-          {profiles[focus] && (
-            <div key={profiles[focus].role} className="fade-step">
-              <p className="text-[13px] text-[var(--text)]">{profiles[focus].subtitle}</p>
-              <p className="mt-2 text-[12.5px] leading-relaxed text-[var(--text-2)]">
-                {profiles[focus].can.slice(0, 3).join("  ·  ")}
-              </p>
-            </div>
-          )}
+        <div className="mt-6 h-[92px] w-full max-w-[640px] overflow-hidden border-t border-[var(--line)] pt-4 text-center" aria-live="polite">
+          {profiles[focus] &&
+            (() => {
+              const role = profiles[focus].role;
+              const access = (ROLE_ACCESS as Record<string, { can: string[]; home: string }>)[role];
+              const can = access?.can ?? profiles[focus].can.slice(0, 3);
+              const home = access?.home ?? "/ops";
+              return (
+                <div key={role} className="fade-step">
+                  <p className="text-[13px] text-[var(--text)]">{profiles[focus].subtitle}</p>
+                  <p className="mt-2 truncate text-[12.5px] leading-relaxed text-[var(--text-2)]">
+                    {can.slice(0, 3).join("  ·  ")}
+                  </p>
+                  <p className="mt-1 font-mono text-[11px] text-[var(--text-3)]">
+                    Opens: {homeLabel(home)}
+                  </p>
+                </div>
+              );
+            })()}
         </div>
         <p className="mt-4 text-[13px] text-[var(--text-3)]">
           Every query runs as this Postgres role. Switch anytime from the

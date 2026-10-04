@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError } from "@/app/api";
+import { Locked, RoleHeader } from "@/app/access";
 import { BackendOffline } from "@/app/SqlDrawer";
 import { Panel } from "@/components/cc/Panel";
 import {
@@ -37,7 +38,7 @@ function RefusedCard({ err, context }: { err: ApiError; context?: string }) {
       <div className="p-3.5 flex flex-col gap-1.5">
         <div className="flex items-center gap-2">
           <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 border border-[#ff3b4f]/40 bg-[#ff3b4f]/10 text-[#ff3b4f]">
-            CRITICAL REFUSAL
+            {err.sqlstate === "42501" ? "Permission denied by PostgreSQL (42501)" : "Critical refusal"}
           </span>
           <span className="font-mono text-[11px] text-[#ff3b4f]">
             {err.sqlstate ?? err.status}
@@ -46,7 +47,7 @@ function RefusedCard({ err, context }: { err: ApiError; context?: string }) {
             <span className="font-mono text-[10px] text-[#8b96b0]">· {context}</span>
           )}
         </div>
-        <p className="font-sans text-[13px] text-[#dfe6f5]">{err.message}</p>
+        <p className="font-mono text-[12.5px] text-[#dfe6f5]">{err.message}</p>
         {err.detail && (
           <p className="font-mono text-[11px] text-[#8b96b0]">{err.detail}</p>
         )}
@@ -242,11 +243,12 @@ export default function Brain() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-col">
             <h1 className="font-sans text-[28px] sm:text-[34px] font-light tracking-tight text-white leading-tight">
-              The AI router
+              AI router: what the satellite sends next
             </h1>
             <p className="text-[13px] text-[#8b96b0] leading-snug">
-              A decision tree stored as rows in dt_node, walked by SQL. The watchdog always has the last word.
+              A decision tree stored as rows in dt_node, walked by SQL. The safety check always has the last word.
             </p>
+            <RoleHeader note="Preview is open to every role; recording a decision writes to routing_decision." />
           </div>
           <div className="flex items-center gap-2">
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 border border-white/15 bg-white/5 text-[#8b96b0]">
@@ -277,7 +279,7 @@ export default function Brain() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-3">
             <div className="flex flex-col">
               <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-                Active model benchmark // {active?.name ?? "Model"} v{active?.version ?? 1}
+                Active model and test score: {active?.name ?? "Model"} v{active?.version ?? 1}
               </span>
               <span className="text-[12px] text-[#8b96b0]">
                 {active?.algorithm} · max_depth {active?.max_depth ?? "?"} · {active?.train_rows ?? "?"} train rows
@@ -306,9 +308,9 @@ export default function Brain() {
                   <th className="py-2 pr-3 font-normal">Version</th>
                   <th className="py-2 pr-3 font-normal">Status</th>
                   <th className="py-2 pr-3 font-normal">Algorithm</th>
-                  <th className="py-2 pr-3 font-normal">Max Depth</th>
-                  <th className="py-2 pr-3 text-right font-normal">Train Rows</th>
-                  <th className="py-2 text-right font-normal">Test Accuracy</th>
+                  <th className="py-2 pr-3 font-normal">Max depth</th>
+                  <th className="py-2 pr-3 text-right font-normal">Train rows</th>
+                  <th className="py-2 text-right font-normal">Test accuracy</th>
                 </tr>
               </thead>
               <tbody>
@@ -359,7 +361,7 @@ export default function Brain() {
           {active && active.metrics && active.metrics.length > 0 && (
             <div className="pt-2 flex flex-col gap-2">
               <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-                Per-class performance metrics // {active.name} v{active.version}
+                Score by action: {active.name} v{active.version}
               </span>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse font-mono text-[11px]">
@@ -427,7 +429,7 @@ export default function Brain() {
       {/* AI vs Rule vs Final Decision as Three Panels Side-by-Side */}
       <div className="flex flex-col gap-2">
         <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-          Arbitration decision matrix // AI vs Safety Rules vs Final
+          What the AI, the safety rules, and the final choice say
         </span>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Panel 1: AI Decision */}
@@ -487,7 +489,7 @@ export default function Brain() {
                 </span>
                 {isOverride && (
                   <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 border border-[#f5a524]/60 bg-[#f5a524]/10 text-[#f5a524]">
-                    WATCHDOG OVERRIDE
+                    Safety override
                   </span>
                 )}
               </div>
@@ -516,16 +518,16 @@ export default function Brain() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-2.5">
             <div className="flex flex-col">
               <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-                Feature inputs // Telemetry vectors
+                Inputs used for this decision
               </span>
               <span className="text-[12px] text-[#8b96b0]">
-                Live values fed into SQL decision tree evaluator
+                Live values fed into the decision tree in SQL (dt_node)
               </span>
             </div>
 
             <div className="flex items-center gap-2">
               <span className="font-mono text-[10px] uppercase text-[#8b96b0]">
-                Telemetry source:
+                Satellite:
               </span>
               <select
                 value={sat}
@@ -573,14 +575,16 @@ export default function Brain() {
           {/* Record Decision Action Row */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/5">
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => void onRecord()}
-                className="px-4 py-2 bg-[#3d5bff] hover:bg-[#4f6bff] text-white font-mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors cursor-pointer"
-              >
-                RECORD DECISION
-              </button>
+              <Locked action="decide" onTry={() => void onRecord()}>
+                <button
+                  onClick={() => void onRecord()}
+                  className="px-4 py-2 bg-[#3d5bff] hover:bg-[#4f6bff] text-white font-mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors cursor-pointer"
+                >
+                  Decide now
+                </button>
+              </Locked>
               <span className="font-mono text-[10px] text-[#8b96b0]">
-                POST /api/ai/decide/{sat} (directors/operators only)
+                POST /api/ai/decide/{sat} (writes to routing_decision)
               </span>
             </div>
 
@@ -603,17 +607,17 @@ export default function Brain() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-2.5">
             <div className="flex flex-col">
               <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-                What-if scenario modeling // POST /api/ai/whatif
+                Try what-if values (POST /api/ai/whatif)
               </span>
               <span className="text-[12px] text-[#8b96b0]">
-                Adjust live variables to test watchdog intervention rules (250ms debounce)
+                Adjust live values to test when the safety check steps in (250 ms wait)
               </span>
             </div>
             <button
               onClick={forceOverride}
               className="font-mono px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] border border-[#f5a524]/60 bg-[#f5a524]/10 text-[#f5a524] hover:bg-[#f5a524]/20 transition-colors cursor-pointer"
             >
-              FORCE WATCHDOG OVERRIDE
+              Force a safety override
             </button>
           </div>
 
@@ -691,10 +695,10 @@ export default function Brain() {
         <div className="p-4 flex flex-col gap-3">
           <div className="flex items-center justify-between border-b border-white/5 pb-2">
             <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-              Decision audit log // Live SSE stream (/api/stream)
+              Past decisions (live from /api/stream, table routing_decision)
             </span>
             <span className="font-mono text-[10px] text-[#8b96b0]">
-              {decisions.length} RECORDED EVENTS
+              {decisions.length} recorded
             </span>
           </div>
 
@@ -703,10 +707,10 @@ export default function Brain() {
               <thead>
                 <tr className="border-b border-white/[0.06] text-left text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
                   <th className="py-2 pr-3 font-normal">Time</th>
-                  <th className="py-2 pr-3 font-normal">Sat ID</th>
-                  <th className="py-2 pr-3 font-normal">AI Action</th>
-                  <th className="py-2 pr-3 font-normal">Rule Action</th>
-                  <th className="py-2 pr-3 font-normal">Final Action</th>
+                  <th className="py-2 pr-3 font-normal">Satellite</th>
+                  <th className="py-2 pr-3 font-normal">AI choice</th>
+                  <th className="py-2 pr-3 font-normal">Rule choice</th>
+                  <th className="py-2 pr-3 font-normal">Final choice</th>
                   <th className="py-2 pr-3 font-normal">Override</th>
                   <th className="py-2 text-right font-normal">Source</th>
                 </tr>
@@ -738,7 +742,7 @@ export default function Brain() {
                     <td className="py-2 pr-3">
                       {d.overridden ? (
                         <span className="px-1 py-0.5 border border-[#f5a524]/40 bg-[#f5a524]/20 text-[#f5a524] text-[9px] uppercase">
-                          OVR
+                          Overridden
                         </span>
                       ) : (
                         <span className="text-[#5f6f93]">—</span>

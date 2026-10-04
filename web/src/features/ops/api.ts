@@ -114,6 +114,14 @@ export interface OpsData {
   role: string;
   mock: boolean;
   unauthorized: boolean;
+  refetchAlerts: () => Promise<void>;
+  reload: () => Promise<void>;
+}
+
+export async function ackAlertApi(alertId: number): Promise<void> {
+  await apiFetch(`/api/alerts/${alertId}/ack`, {
+    method: "POST",
+  });
 }
 
 /** Local synthetic telemetry tick used only while on mock data. */
@@ -239,6 +247,17 @@ export function useOpsData(): OpsData {
       }
     };
 
+    const loadAlerts = async (): Promise<void> => {
+      try {
+        const r = await fetchApi<Alert[]>("/api/alerts?limit=20");
+        if (cancelled) return;
+        setAlerts(r.data);
+      } catch (e) {
+        if (!cancelled && !(e instanceof Unauthorized))
+          setAlerts(mockAlerts(Date.now()));
+      }
+    };
+
     const boot = async (): Promise<void> => {
       try {
         const r = await fetchApi<(ConstellationSat & { sat_id?: string })[]>("/api/constellation");
@@ -266,14 +285,7 @@ export function useOpsData(): OpsData {
         if (!cancelled && !(e instanceof Unauthorized))
           setStations(mockStations());
       }
-      try {
-        const r = await fetchApi<Alert[]>("/api/alerts?limit=20");
-        if (cancelled) return;
-        setAlerts(r.data);
-      } catch (e) {
-        if (!cancelled && !(e instanceof Unauthorized))
-          setAlerts(mockAlerts(Date.now()));
-      }
+      await loadAlerts();
       await loadContacts();
       await loadKpis();
       if (cancelled) return;
@@ -297,6 +309,21 @@ export function useOpsData(): OpsData {
     };
   }, []);
 
+  const refetchAlerts = async (): Promise<void> => {
+    try {
+      const r = await fetchApi<Alert[]>("/api/alerts?limit=20");
+      setAlerts(r.data);
+    } catch (e) {
+      if (!(e instanceof Unauthorized)) {
+        // keep current alerts
+      }
+    }
+  };
+
+  const reload = async (): Promise<void> => {
+    await refetchAlerts();
+  };
+
   return {
     sats,
     stations,
@@ -308,5 +335,7 @@ export function useOpsData(): OpsData {
     role,
     mock,
     unauthorized,
+    refetchAlerts,
+    reload,
   };
 }

@@ -6,16 +6,18 @@ import { IndexLab } from "@/features/labs/IndexLab";
 import { NormLab } from "@/features/labs/NormLab";
 import { SchemaLab } from "@/features/labs/SchemaLab";
 import { SqlLab } from "@/features/labs/SqlLab";
+import { canVisit, homeFor, useRole } from "@/app/access";
 
 const META: Record<
   string,
-  { title: string; description: string; chips: string[]; notice: string[] }
+  { title: string; description: string; chips: string[]; notice: string[]; roleNote: string }
 > = {
   transactions: {
     title: "Transactions",
     description:
       "Two-session concurrency workbench — row lock contention, SERIALIZABLE write-skew (40001), deadlock aborts (40P01), and MVCC tuple versions.",
-    chips: ["EXP 9", "CO1", "CO4"],
+    chips: ["Exp 9", "CO1", "CO4"],
+    roleNote: "Sessions A and B connect to PostgreSQL as the role you picked; resets run as the database owner.",
     notice: [
       "Session B waits on Session A's row lock — the lock table and wait-for arrows prove it.",
       "SERIALIZABLE write-skew ends in 40001; the deadlock script ends in 40P01 with one victim.",
@@ -26,7 +28,8 @@ const META: Record<
     title: "Security",
     description:
       "Role privilege matrix, column-level secrets, station-isolated row-level security (RLS), and Postgres 42501 audit verification.",
-    chips: ["EXP 7", "CO2"],
+    chips: ["Exp 7", "CO2"],
+    roleNote: "Every check below runs as the role you picked, against real GRANTs.",
     notice: [
       "The heatmap's denied cells are real has_*_privilege answers, not hard-coded.",
       "RLS: each station operator's downlink count covers only their own to_node.",
@@ -37,7 +40,8 @@ const META: Record<
     title: "Indexing",
     description:
       "B-Tree, BRIN, GIN, Partial and Covering index benchmarks with live EXPLAIN scan node comparisons.",
-    chips: ["EXP 8", "CO3"],
+    chips: ["Exp 8", "CO3"],
+    roleNote: "Catalog reads run as the role you picked; index creation, drops, and benchmarks run as the database owner (mission_director).",
     notice: [
       "Before/after bars show the scan node flip: Seq Scan → Bitmap/Index Scan.",
       "BRIN stays tiny on append-only ts; the partial index only covers QUEUED.",
@@ -49,6 +53,7 @@ const META: Record<
     description:
       "Lossless join decomposition from UNF to BCNF, functional dependencies, and anomaly isolation.",
     chips: ["CO3", "UNF → BCNF"],
+    roleNote: "All normalization queries and anomaly demonstrations run as the role you picked.",
     notice: [
       "Highlighted columns are the duplicated facts that each normal form removes.",
       "FD arrows name the exact form they violate and the fix applied next.",
@@ -59,7 +64,8 @@ const META: Record<
     title: "Schema",
     description:
       "Relational EER model with table inheritance hierarchies, foreign keys, partition sets, and check constraints.",
-    chips: ["EXP 1–3", "CO1", "CO2"],
+    chips: ["Exp 1–3", "CO1", "CO2"],
+    roleNote: "Catalog queries for tables, columns, and constraints run as the role you picked.",
     notice: [
       "Ice d-circles are the disjoint EER splits: node and packet hierarchies.",
       "Double borders are weak entities; ▤ is the RANGE-partitioned telemetry.",
@@ -70,7 +76,8 @@ const META: Record<
     title: "SQL console",
     description:
       "Read-only interactive SQL command console with transaction safeguards, query plan inspection, and catalog presets.",
-    chips: ["EXP 4–6", "CO1"],
+    chips: ["Exp 4–6", "CO1"],
+    roleNote: "Your query runs as the picked role inside a read-only transaction.",
     notice: [
       "Presets cover DML, aggregates, set ops, CGR, views and LIKE in one sidebar.",
       "EXPLAIN toggle renders the shared plan-tree visualizer used by indexing.",
@@ -81,6 +88,9 @@ const META: Record<
 
 export default function Lab() {
   const { lab = "" } = useParams();
+  const { role } = useRole();
+
+  const visibleLabs = LABS.filter((item) => canVisit(role, `/labs/${item.slug}`));
 
   // Landing aliases: eer/mapping/ddl → schema, dml/aggregates → sql, routing → /routing.
   if (lab === "routing") return <Navigate to="/routing" replace />;
@@ -92,22 +102,36 @@ export default function Lab() {
     return <Navigate to={`/labs/sql?preset=${lab}`} replace />;
   }
 
+  // Ensure role has access to current lab; if not, redirect to first allowed lab or role home.
+  if (lab && !canVisit(role, `/labs/${lab}`)) {
+    const fallback = visibleLabs[0]?.slug;
+    return <Navigate to={fallback ? `/labs/${fallback}` : homeFor(role)} replace />;
+  }
+
   const meta = META[lab];
-  if (!meta) return <Navigate to="/labs/transactions" replace />;
+  if (!meta) {
+    const fallback = visibleLabs[0]?.slug ?? "transactions";
+    return <Navigate to={`/labs/${fallback}`} replace />;
+  }
 
   const search = new URLSearchParams(window.location.search);
   const schemaTab = search.get("tab");
   const preset = search.get("preset") ?? undefined;
   const initialTab = schemaTab === "mapping" || schemaTab === "constraints" ? schemaTab : "diagram";
 
+  const dynamicRoleNote =
+    lab === "sql"
+      ? `Your query runs as ${role ?? "your role"} inside a read-only transaction.`
+      : meta.roleNote;
+
   return (
     <div className="w-full flex flex-col gap-4">
-      {/* Top Console Lab Navigation Bar */}
+      {/* Top Console Lab Navigation Bar (filtered to tabs the role can visit) */}
       <nav
         aria-label="Database labs"
         className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none"
       >
-        {LABS.map((item) => {
+        {visibleLabs.map((item) => {
           const active = lab === item.slug;
           return (
             <Link
@@ -137,6 +161,7 @@ export default function Lab() {
         description={meta.description}
         chips={meta.chips}
         notice={meta.notice}
+        roleNote={dynamicRoleNote}
       >
         {lab === "transactions" && <TxLab />}
         {lab === "security" && <SecurityLab />}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRole } from "@/app/access";
 import type { GlobeView } from "./types";
 
 interface BottomDockProps {
@@ -14,6 +15,7 @@ export function BottomDock({
   mock,
   onDemoRoute,
 }: BottomDockProps) {
+  const { access } = useRole();
   const [clock, setClock] = useState(() => new Date());
 
   useEffect(() => {
@@ -22,6 +24,13 @@ export function BottomDock({
   }, []);
 
   const p = (n: number): string => String(n).padStart(2, "0");
+
+  const views: Array<{ id: GlobeView; label: string }> = [
+    { id: "globe", label: "Whole Earth" },
+    { id: "mumbai", label: "Mumbai" },
+    ...(access?.station === "GS-HEL" ? [{ id: "espoo" as const, label: "Espoo" }] : []),
+    { id: "fleet", label: "Selected satellite" },
+  ];
 
   return (
     <div className="relative w-full pb-3 px-4 flex justify-center items-center pointer-events-none z-20">
@@ -32,21 +41,15 @@ export function BottomDock({
             "polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)",
         }}
       >
-        {/* View toggles: Globe / Mumbai / Fleet */}
+        {/* View toggles: Whole Earth / Mumbai / Espoo / Selected satellite */}
         <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-md border border-white/5">
-          {(
-            [
-              { id: "globe", label: "Globe" },
-              { id: "mumbai", label: "Mumbai" },
-              { id: "fleet", label: "Fleet" },
-            ] as const
-          ).map((v) => {
+          {views.map((v) => {
             const active = currentView === v.id;
             return (
               <button
                 key={v.id}
                 onClick={() => onViewChange(v.id)}
-                className={`px-3 py-1 text-[11px] font-mono uppercase tracking-[0.12em] transition-all cursor-pointer rounded ${
+                className={`px-3 py-1 text-[11px] font-mono tracking-wider transition-all cursor-pointer rounded ${
                   active
                     ? "bg-[#3d5bff] text-white font-semibold shadow-[0_0_8px_rgba(61,91,255,0.5)]"
                     : "text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/5"
@@ -62,7 +65,7 @@ export function BottomDock({
         {mock ? (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#f5a524]/60 bg-[#f5a524]/10 text-[#f5a524] text-[11px] font-mono tracking-wider">
             <span className="size-1.5 rounded-full bg-[#f5a524]" />
-            <span>MOCK DATA</span>
+            <span>Mock data</span>
           </div>
         ) : (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#ff3b4f]/60 bg-[#ff3b4f]/10 text-[#ff3b4f] text-[11px] font-mono tracking-wider">
@@ -70,7 +73,7 @@ export function BottomDock({
               <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ff3b4f] opacity-75" />
               <span className="relative inline-flex size-2 rounded-full bg-[#ff3b4f]" />
             </span>
-            <span>LIVE</span>
+            <span>Live from PostgreSQL</span>
           </div>
         )}
 
@@ -83,10 +86,10 @@ export function BottomDock({
         {/* Demo route button */}
         <button
           onClick={onDemoRoute}
-          className="flex items-center gap-1.5 px-3 py-1 rounded border border-[#3d5bff]/40 bg-[#3d5bff]/15 text-[#dfe6f5] hover:bg-[#3d5bff]/30 hover:border-[#3d5bff] text-[11px] font-mono uppercase tracking-wider transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1 rounded border border-[#3d5bff]/40 bg-[#3d5bff]/15 text-[#dfe6f5] hover:bg-[#3d5bff]/30 hover:border-[#3d5bff] text-[11px] font-mono tracking-wider transition-colors cursor-pointer"
         >
           <span className="text-[#3d5bff]">▶</span>
-          <span>Demo route</span>
+          <span>Show a sample route</span>
         </button>
       </div>
     </div>

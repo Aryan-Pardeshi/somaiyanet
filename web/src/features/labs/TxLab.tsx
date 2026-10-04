@@ -360,7 +360,7 @@ export function TxLab() {
                 Scenario picker
               </span>
               <span className="font-mono text-[10px] text-[#5f6f93]">
-                {scenarios.length} SCRIPTS
+                {scenarios.length} scenarios
               </span>
             </div>
             {usingFallback && (
@@ -416,13 +416,13 @@ export function TxLab() {
                   onClick={() => void reset()}
                   className="font-mono text-[11px] uppercase tracking-[0.1em] px-3 py-1 border border-white/15 text-[#dfe6f5] hover:border-white/40 hover:bg-white/5 rounded-[2px] transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] cursor-pointer"
                 >
-                  RESET
+                  Reset
                 </button>
                 <button
                   onClick={() => void newSession()}
                   className="font-mono text-[11px] uppercase tracking-[0.1em] px-3 py-1 border border-white/15 text-[#dfe6f5] hover:border-white/40 hover:bg-white/5 rounded-[2px] transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] cursor-pointer"
                 >
-                  NEW SESSION
+                  New session
                 </button>
               </div>
             </div>
@@ -446,21 +446,21 @@ export function TxLab() {
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-[11px] text-white font-semibold">
-                          STEP {i + 1}
+                          Step {i + 1}
                         </span>
                         <StatusBadge
                           status={s.session === "A" ? "info" : "nominal"}
-                          label={`SESSION ${s.session}`}
+                          label={`Session ${s.session}`}
                         />
                         <span className="font-mono text-[10px] text-[#5f6f93]">
-                          EXPECT: {s.expect}
+                          Expect: {s.expect}
                         </span>
                       </div>
                       {ok === true && (
-                        <StatusBadge status="ok" label="PASSED ✓" />
+                        <StatusBadge status="ok" label="Passed" />
                       )}
                       {ok === false && (
-                        <StatusBadge status="critical" label="VERDICT ✗" />
+                        <StatusBadge status="critical" label="Failed" />
                       )}
                     </div>
                     <pre className="font-mono overflow-x-auto whitespace-pre-wrap text-[12px] text-[#dfe6f5] bg-black/60 p-2 border border-white/5">
@@ -481,10 +481,10 @@ export function TxLab() {
                 className="font-mono text-[11px] uppercase tracking-[0.1em] px-4 py-2 bg-[#3d5bff] hover:bg-[#324dd8] text-white rounded-[2px] font-semibold transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
               >
                 {doneSteps
-                  ? "SCRIPT COMPLETE"
+                  ? "Scenario complete"
                   : busy
-                    ? "RUNNING…"
-                    : `NEXT STEP (${stepIdx + 1}/${scenario.steps.length})`}
+                    ? "Running…"
+                    : `Next step (${stepIdx + 1}/${scenario.steps.length})`}
               </button>
             </div>
           </div>
@@ -510,7 +510,7 @@ export function TxLab() {
                     </span>
                     <span className="text-[#5f6f93] text-[10px]">·</span>
                     <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b96b0] font-bold">
-                      SESSION {s}
+                      Session {s}
                     </h2>
                   </div>
                   <StatusBadge
@@ -554,7 +554,7 @@ export function TxLab() {
                       disabled={busy || labId === null || inputs[s].trim() === ""}
                       className="font-mono text-[11px] uppercase tracking-[0.1em] px-3.5 py-1.5 border border-white/15 text-[#dfe6f5] hover:border-white/40 hover:bg-white/5 rounded-[2px] transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
                     >
-                      EXECUTE
+                      Run SQL
                     </button>
                   </div>
 
@@ -576,7 +576,7 @@ export function TxLab() {
                             className="border border-white/10 bg-[#05070d] p-2.5 rounded-[2px] flex flex-col gap-1"
                           >
                             <div className="flex items-center justify-between font-mono text-[10px]">
-                              <span className="text-[#5f6f93]">STATEMENT #{l.n}</span>
+                              <span className="text-[#5f6f93]">Statement #{l.n}</span>
                               <StatusBadge
                                 status={isErr ? "critical" : isWait ? "warn" : "ok"}
                                 label={l.status.toUpperCase()}
@@ -754,7 +754,7 @@ function WaitGraph({
         )}
         {cycle && (
           <text x="180" y="20" textAnchor="middle" fill="#ff3b4f" fontWeight="bold">
-            DEADLOCK CYCLE DETECTED
+            Deadlock cycle detected
           </text>
         )}
       </g>
@@ -779,7 +779,7 @@ function OutcomeCallouts({ scenarioKey, logs }: { scenarioKey: string; logs: Log
             <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#ff3b4f] font-semibold">
               Serialization failure · 40001
             </span>
-            <StatusBadge status="critical" label="CRITICAL · RETRY" />
+            <StatusBadge status="critical" label="Retry transaction" />
           </div>
           <p className="text-[13px] text-[#dfe6f5] leading-relaxed">
             SERIALIZABLE transaction saw a concurrent read/write dependency cycle between Session A and Session B.
@@ -803,7 +803,7 @@ function OutcomeCallouts({ scenarioKey, logs }: { scenarioKey: string; logs: Log
             <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#ff3b4f] font-semibold">
               Deadlock detected · 40P01
             </span>
-            <StatusBadge status="critical" label="DEADLOCK VICTIM ABORTED" />
+            <StatusBadge status="critical" label="Transaction aborted" />
           </div>
           <p className="text-[13px] text-[#dfe6f5] leading-relaxed">
             Mutual wait cycle: Session A waiting on row held by Session B, and Session B waiting on row held by Session A.
@@ -822,12 +822,12 @@ function OutcomeCallouts({ scenarioKey, logs }: { scenarioKey: string; logs: Log
       const disjoint = overlap.length === 0;
       return (
         <Card
-          title="SKIP LOCKED Dispatch Isolation"
-          kicker={disjoint ? "DISJOINT QUEUES" : "QUEUE OVERLAP"}
+          title="Row dispatch isolation (SKIP LOCKED)"
+          kicker={disjoint ? "Disjoint queues" : "Queue overlap"}
           aside={
             <StatusBadge
               status={disjoint ? "ok" : "critical"}
-              label={disjoint ? "DISJOINT ✓" : `OVERLAP ✗ (${overlap.length})`}
+              label={disjoint ? "Disjoint" : `Overlap (${overlap.length})`}
             />
           }
         >
@@ -872,14 +872,14 @@ function OutcomeCallouts({ scenarioKey, logs }: { scenarioKey: string; logs: Log
               </thead>
               <tbody>
                 <tr className="border-b border-white/[0.06]">
-                  <td className="px-3 py-2 text-[#7fb2ff]">SESSION A</td>
+                  <td className="px-3 py-2 text-[#7fb2ff]">Session A</td>
                   <td className="px-3 py-2 text-[#dfe6f5]">(0, 2)</td>
                   <td className="px-3 py-2 text-right tabular-nums text-[#7ee2b8]">txid_current()</td>
                   <td className="px-3 py-2 text-right tabular-nums text-[#5f6f93]">0 (active)</td>
                   <td className="px-3 py-2 text-[#7ee2b8]">New uncommitted version</td>
                 </tr>
                 <tr className="border-b border-white/[0.06]">
-                  <td className="px-3 py-2 text-[#7ee2b8]">SESSION B</td>
+                  <td className="px-3 py-2 text-[#7ee2b8]">Session B</td>
                   <td className="px-3 py-2 text-[#dfe6f5]">(0, 1)</td>
                   <td className="px-3 py-2 text-right tabular-nums text-[#dfe6f5]">initial_xid</td>
                   <td className="px-3 py-2 text-right tabular-nums text-[#f5a524]">txid_A (uncommitted)</td>

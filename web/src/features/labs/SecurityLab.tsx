@@ -157,13 +157,13 @@ export function SecurityLab() {
         aside={
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1 font-mono text-[10px] text-[#7ee2b8]">
-              <span className="font-bold">✓</span> GRANTED
+              <span className="font-bold">✓</span> Granted
             </span>
             <span className="flex items-center gap-1 font-mono text-[10px] text-[#ff3b4f]">
-              <span className="font-bold">✕</span> DENIED
+              <span className="font-bold">✕</span> Denied
             </span>
             <span className="font-mono text-[9px] uppercase tracking-wider text-[#7fb2ff] border border-[#3d5bff]/40 px-1 py-0.2 rounded-[1px]">
-              [COL] COLUMN-LEVEL
+              Column-level
             </span>
           </div>
         }
@@ -220,7 +220,7 @@ export function SecurityLab() {
                       >
                         {isAllDenied ? (
                           <span className="inline-flex items-center gap-1 font-mono text-[10px] text-[#ff3b4f] bg-[#ff3b4f]/10 border border-[#ff3b4f]/30 px-1.5 py-0.5 rounded-[2px]">
-                            <span className="font-bold">✕</span> DENIED
+                            <span className="font-bold">✕</span> Denied
                           </span>
                         ) : (
                           <div className="flex items-center gap-1.5">
@@ -294,7 +294,7 @@ export function SecurityLab() {
             }}
             className="font-mono text-[11px] uppercase tracking-[0.1em] px-3.5 py-1.5 bg-[#3d5bff] hover:bg-[#324dd8] text-white rounded-[2px] font-semibold transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] cursor-pointer"
           >
-            COMPARE 3 ROLES
+            Compare 3 roles
           </button>
         </div>
 
@@ -305,12 +305,12 @@ export function SecurityLab() {
             <div className="p-3.5 sm:p-4 flex flex-col gap-2.5">
               <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
                 <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-                  STATION BOM · POLICY RULES & FILTERS
+                  Mumbai station (GS-BOM) · Policy rules
                 </span>
                 <StatusBadge status="info" label="GS-BOM" />
               </div>
               <p className="font-mono text-[11px] text-[#7fb2ff]">
-                ROLE: station_operator_bom
+                Role: station_operator_bom
               </p>
               <div className="border border-white/10 bg-[#05070d] p-2.5">
                 <p className="font-mono text-[10px] text-[#8b96b0] uppercase tracking-wider mb-1">
@@ -331,11 +331,11 @@ export function SecurityLab() {
             <div className="p-3.5 sm:p-4 flex flex-col gap-2.5">
               <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
                 <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-                  STATION BOM · VISIBLE DOWNLINK ROWS
+                  Mumbai station (GS-BOM) · Visible downlinks
                 </span>
                 <StatusBadge
                   status={downlinks["station_operator_bom"] ? "ok" : "warn"}
-                  label={downlinks["station_operator_bom"] ? "ISOLATED ✓" : "PENDING RUN"}
+                  label={downlinks["station_operator_bom"] ? "Isolated" : "Pending run"}
                 />
               </div>
               {downlinks["station_operator_bom"] ? (
@@ -348,7 +348,7 @@ export function SecurityLab() {
                           <span className={isOwn ? "text-[#7ee2b8] font-semibold" : "text-[#5f6f93]"}>
                             {st} {isOwn ? "(Local ground station)" : "(Foreign ground station)"}
                           </span>
-                          <span className="tabular-nums font-bold text-white">{n} LEGS</span>
+                          <span className="tabular-nums font-bold text-white">{n} legs</span>
                         </div>
                         <div className="h-1.5 w-full bg-white/[0.08] rounded-[1px] overflow-hidden">
                           <div
@@ -365,7 +365,7 @@ export function SecurityLab() {
                 </div>
               ) : (
                 <div className="p-4 border border-dashed border-white/10 text-center font-mono text-[11px] text-[#5f6f93]">
-                  Click "COMPARE 3 ROLES" above to execute downlinks query under station_operator_bom.
+                  Click "Compare 3 roles" above to execute downlinks query under station_operator_bom.
                 </div>
               )}
             </div>
@@ -379,12 +379,12 @@ export function SecurityLab() {
             <div className="p-3.5 sm:p-4 flex flex-col gap-2.5">
               <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
                 <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-                  STATION HEL · POLICY RULES & FILTERS
+                  Espoo station (GS-HEL) · Policy rules
                 </span>
                 <StatusBadge status="info" label="GS-HEL" />
               </div>
               <p className="font-mono text-[11px] text-[#7fb2ff]">
-                ROLE: station_operator_hel
+                Role: station_operator_hel
               </p>
               <div className="border border-white/10 bg-[#05070d] p-2.5">
                 <p className="font-mono text-[10px] text-[#8b96b0] uppercase tracking-wider mb-1">
@@ -405,11 +405,11 @@ export function SecurityLab() {
             <div className="p-3.5 sm:p-4 flex flex-col gap-2.5">
               <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
                 <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-                  STATION HEL · VISIBLE DOWNLINK ROWS
+                  Espoo station (GS-HEL) · Visible downlinks
                 </span>
                 <StatusBadge
                   status={downlinks["station_operator_hel"] ? "ok" : "warn"}
-                  label={downlinks["station_operator_hel"] ? "ISOLATED ✓" : "PENDING RUN"}
+                  label={downlinks["station_operator_hel"] ? "Isolated" : "Pending run"}
                 />
               </div>
               {downlinks["station_operator_hel"] ? (
@@ -422,7 +422,7 @@ export function SecurityLab() {
                           <span className={isOwn ? "text-[#7ee2b8] font-semibold" : "text-[#5f6f93]"}>
                             {st} {isOwn ? "(Local ground station)" : "(Foreign ground station)"}
                           </span>
-                          <span className="tabular-nums font-bold text-white">{n} LEGS</span>
+                          <span className="tabular-nums font-bold text-white">{n} legs</span>
                         </div>
                         <div className="h-1.5 w-full bg-white/[0.08] rounded-[1px] overflow-hidden">
                           <div
@@ -439,7 +439,7 @@ export function SecurityLab() {
                 </div>
               ) : (
                 <div className="p-4 border border-dashed border-white/10 text-center font-mono text-[11px] text-[#5f6f93]">
-                  Click "COMPARE 3 ROLES" above to execute downlinks query under station_operator_hel.
+                  Click "Compare 3 roles" above to execute downlinks query under station_operator_hel.
                 </div>
               )}
             </div>
@@ -451,9 +451,9 @@ export function SecurityLab() {
           <div className="p-3.5 sm:p-4 flex flex-col gap-2.5">
             <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
               <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-                DIRECTOR (SUPERVISOR) · GLOBAL ROW-LEVEL OVERVIEW
+                Mission director · Global overview
               </span>
-              <StatusBadge status="nominal" label="GRP_DIRECTOR BYPASS" />
+              <StatusBadge status="nominal" label="Director access" />
             </div>
             {downlinks["mission_director"] ? (
               <div className="grid gap-3 sm:grid-cols-2">
@@ -461,7 +461,7 @@ export function SecurityLab() {
                   <div key={st} className="border border-white/10 bg-[#05070d] p-3 rounded-[2px]">
                     <div className="flex items-center justify-between font-mono text-[11px]">
                       <span className="text-[#dfe6f5] font-semibold">{st}</span>
-                      <span className="text-[#7ee2b8] font-bold">{n} LEGS VISIBLE</span>
+                      <span className="text-[#7ee2b8] font-bold">{n} legs visible</span>
                     </div>
                   </div>
                 ))}
@@ -514,7 +514,7 @@ export function SecurityLab() {
                             disabled={running !== null}
                             className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 border border-white/15 text-[#dfe6f5] hover:border-white/40 hover:bg-white/5 rounded-[2px] transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] disabled:opacity-40 cursor-pointer"
                           >
-                            {running === k ? "…" : "TEST"}
+                            {running === k ? "…" : "Test"}
                           </button>
                           {res !== undefined && (
                             <span
@@ -525,7 +525,7 @@ export function SecurityLab() {
                               }`}
                               title={res.sqlstate ? `SQLSTATE ${res.sqlstate}: ${res.message}` : res.message}
                             >
-                              {res.ok ? "✓ ALLOWED" : `✕ REFUSED ${res.sqlstate ?? "42501"}`}
+                              {res.ok ? "✓ Allowed" : `✕ Denied (${res.sqlstate ?? "42501"})`}
                             </span>
                           )}
                         </div>
@@ -538,7 +538,7 @@ export function SecurityLab() {
           </table>
         </div>
         <p className="font-mono mt-2 text-[10.5px] text-[#8b96b0]">
-          Permission denials return genuine SQLSTATE 42501 exceptions from the PostgreSQL engine.
+          Permission denials return genuine SQLSTATE 42501 exceptions from PostgreSQL.
         </p>
       </Card>
 

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
+import { Locked, useRole } from "@/app/access";
+import { apiFetch, ApiError } from "@/app/api";
 import type {
   Alert,
   ConstellationSat,
@@ -10,6 +12,7 @@ import type {
   TelemetryEvent,
 } from "../api";
 import { Panel } from "./Panel";
+import { HelpHint } from "./HelpHint";
 import type { OpsTab } from "./types";
 
 interface RightRailProps {
@@ -21,6 +24,7 @@ interface RightRailProps {
   kpis: Kpi[];
   contacts: Contact[];
   decisions: DecisionEvent[];
+  onRefetchAlerts?: () => Promise<void>;
 }
 
 function stateColor(state: string): string {
@@ -36,16 +40,34 @@ function stateColor(state: string): string {
   }
 }
 
+function formatSatState(state: string): string {
+  switch (state) {
+    case "NOMINAL":
+      return "Healthy";
+    case "SAFE":
+      return "Safe mode";
+    case "STOWED":
+      return "Not deployed";
+    case "DEPLOYED":
+    case "COMMISSIONING":
+      return "Starting up";
+    case "CRITICAL":
+      return "Critical";
+    default:
+      return state;
+  }
+}
+
 function two(n: number): string {
   return String(n).padStart(2, "0");
 }
 
-function formatCountdown(iso: string, nowMs: number): string {
+function formatContactCountdown(iso: string, nowMs: number): string {
   const diff = Math.floor((new Date(iso).getTime() - nowMs) / 1000);
-  if (diff <= 0) return "IN PASS";
+  if (diff <= 0) return "Happening now";
   const mm = Math.floor(diff / 60);
   const ss = diff % 60;
-  return `T- ${two(mm)}:${two(ss)}`;
+  return `In ${two(mm)}:${two(ss)}`;
 }
 
 // Sparkline SVG component
@@ -189,11 +211,15 @@ export function RightRail({
   kpis,
   contacts,
   decisions,
+  onRefetchAlerts,
 }: RightRailProps) {
+  const { access } = useRole();
   const navigate = useNavigate();
-  const [dismissedAlertIds, setDismissedAlertIds] = useState<Set<number>>(
-    () => new Set(),
-  );
+  const [acking, setAcking] = useState(false);
+  const [ackError, setAckError] = useState<{
+    sqlstate?: string;
+    message: string;
+  } | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -222,7 +248,7 @@ export function RightRail({
 
   // Highest priority unacknowledged alert
   const unackAlerts = alerts
-    .filter((a) => !a.acknowledged && !dismissedAlertIds.has(a.alert_id))
+    .filter((a) => !a.acknowledged)
     .sort((a, b) => {
       if (a.severity === "CRITICAL" && b.severity !== "CRITICAL") return -1;
       if (b.severity === "CRITICAL" && a.severity !== "CRITICAL") return 1;
@@ -233,10 +259,53 @@ export function RightRail({
   const isCritical = activeAlert?.severity === "CRITICAL";
   const alertColor = isCritical ? "#ff3b4f" : "#f5a524";
 
+  const handleAckAlert = async () => {
+    if (!activeAlert) return;
+    setAcking(true);
+    setAckError(null);
+    try {
+      await apiFetch(`/api/alerts/${activeAlert.alert_id}/ack`, {
+        method: "POST",
+      });
+      await onRefetchAlerts?.();
+    } catch (e: unknown) {
+      if (e instanceof ApiError) {
+        setAckError({
+          sqlstate: e.sqlstate,
+          message: e.message,
+        });
+      } else if (e instanceof Error) {
+        setAckError({
+          message: e.message,
+        });
+      }
+    } finally {
+      setAcking(false);
+    }
+  };
+
+  const warningMetrics = [
+    {
+      label: "Battery reserve",
+      explanation: "Battery above safe-mode limit (6.8 V)",
+      value: 72,
+    },
+    {
+      label: "Link quality reserve",
+      explanation: "Signal headroom above minimum ground contact threshold",
+      value: 58,
+    },
+    {
+      label: "Storage buffer space",
+      explanation: "Memory available for queued packets before overflow",
+      value: 44,
+    },
+  ];
+
   // KPIs
   const kpi = kpis[0];
 
-  // If Contacts tab
+  // If Upcoming passes tab (contacts)
   if (activeTab === "contacts") {
     const sortedContacts = [...contacts].sort(
       (a, b) => new Date(a.start_ts).getTime() - new Date(b.start_ts).getTime(),
@@ -248,12 +317,18 @@ export function RightRail({
           <div className="p-3.5 flex flex-col gap-3">
             <div className="flex items-center justify-between border-b border-white/5 pb-2">
               <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#dfe6f5]">
-                Upcoming Contacts
+                Upcoming passes
               </span>
               <span className="font-mono text-[10px] text-[#8b96b0]">
                 {sortedContacts.length} scheduled
               </span>
             </div>
+
+            {access?.station && (
+              <div className="p-2 rounded bg-white/[0.03] border border-white/10 text-[11px] text-[#dfe6f5] leading-relaxed">
+                Only passes involving your station are listed: row-level security on contact
+              </div>
+            )}
 
             <div className="flex flex-col gap-2 max-h-[calc(100vh-14rem)] overflow-y-auto pr-1">
               {sortedContacts.map((c) => {
@@ -263,33 +338,38 @@ export function RightRail({
                     key={c.contact_id}
                     className="p-2.5 rounded bg-black/40 border border-white/5 flex flex-col gap-1.5"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-[12px] font-semibold text-[#dfe6f5]">
-                        {c.from_node} → {c.to_node}
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="font-mono text-[11.5px] font-semibold text-[#dfe6f5]">
+                        {isIsl
+                          ? `${c.from_node} to ${c.to_node} (satellite-to-satellite link)`
+                          : `${c.from_node} to ${c.to_node} (to ground)`}
                       </span>
                       <span
-                        className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                        className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
                           isIsl
                             ? "text-[#7fb2ff] border-[#7fb2ff]/30 bg-[#7fb2ff]/10"
                             : "text-[#7ee2b8] border-[#7ee2b8]/30 bg-[#7ee2b8]/10"
                         }`}
                       >
-                        {c.kind}
+                        {isIsl ? "ISL" : "Ground"}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between font-mono text-[10px]">
                       <span className="text-[#8b96b0]">Countdown</span>
                       <span className="text-[#7ee2b8] tabular-nums">
-                        {formatCountdown(c.start_ts, now)}
+                        {formatContactCountdown(c.start_ts, now)}
                       </span>
                     </div>
 
-                    {/* Link score bar */}
+                    {/* Link quality bar */}
                     <div className="flex flex-col gap-0.5">
-                      <div className="flex justify-between font-mono text-[9px] text-[#8b96b0]">
-                        <span>Link score</span>
-                        <span className="text-[#dfe6f5]">{c.link_score}%</span>
+                      <div className="flex justify-between items-center font-mono text-[9px] text-[#8b96b0]">
+                        <span className="inline-flex items-center">
+                          Link quality
+                          <HelpHint text="Expected radio signal strength and packet success rate for this link." />
+                        </span>
+                        <span className="text-[#dfe6f5] tabular-nums">{c.link_score}%</span>
                       </div>
                       <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                         <div
@@ -311,7 +391,7 @@ export function RightRail({
               })}
               {sortedContacts.length === 0 && (
                 <div className="p-4 text-center font-mono text-xs text-[#8b96b0]">
-                  No upcoming contacts scheduled.
+                  No upcoming passes scheduled.
                 </div>
               )}
             </div>
@@ -321,16 +401,16 @@ export function RightRail({
     );
   }
 
-  // If Telemetry tab
+  // If Live data tab (telemetry)
   if (activeTab === "telemetry") {
     return (
       <div className="w-full flex flex-col gap-3">
-        {/* Live Telemetry Ticker */}
+        {/* Live Data Ticker */}
         <Panel cut={8}>
           <div className="p-3.5 flex flex-col gap-2.5">
             <div className="flex items-center justify-between border-b border-white/5 pb-2">
               <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#dfe6f5]">
-                Live Telemetry
+                Live data
               </span>
               <span className="font-mono text-[10px] text-[#7ee2b8] flex items-center gap-1">
                 <span className="size-1.5 rounded-full bg-[#7ee2b8] animate-pulse" />
@@ -367,19 +447,19 @@ export function RightRail({
               ))}
               {telemetry.length === 0 && (
                 <div className="p-4 text-center font-mono text-xs text-[#8b96b0]">
-                  Awaiting telemetry frames…
+                  Awaiting live data frames…
                 </div>
               )}
             </div>
           </div>
         </Panel>
 
-        {/* AI Decision Feed */}
+        {/* AI Router Decision Feed */}
         <Panel cut={8}>
           <div className="p-3.5 flex flex-col gap-2.5">
             <div className="flex items-center justify-between border-b border-white/5 pb-2">
               <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#dfe6f5]">
-                AI Router Decisions
+                AI router decisions
               </span>
               <span className="font-mono text-[10px] text-[#8b96b0]">
                 {decisions.length} EVENTS
@@ -396,7 +476,7 @@ export function RightRail({
                     <span className="text-[#dfe6f5] font-semibold">{d.sat_id}</span>
                     {d.overridden && (
                       <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-[#f5a524]/40 bg-[#f5a524]/10 text-[#f5a524]">
-                        WATCHDOG OVERRIDE
+                        Safety check overruled the AI
                       </span>
                     )}
                   </div>
@@ -417,33 +497,36 @@ export function RightRail({
     );
   }
 
-  // Overview and Fleet Tabs:
+  // Overview and Satellites (Fleet) Tabs:
   return (
     <div className="w-full flex flex-col gap-3">
-      {/* 1. Active Asset Panel */}
+      {/* 1. Selected Satellite Panel */}
       {sat && (
         <Panel cut={8} className="w-full">
           <div className="p-4 flex flex-col gap-1">
             <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-              Active asset
+              Selected satellite
             </span>
             <div className="flex items-baseline justify-between mt-1">
               <h1 className="font-sans whitespace-nowrap text-[34px] font-light leading-none tracking-tight text-white">
                 {sat.display_name || sat.node_id}
               </h1>
               <span
-                className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-sm border shrink-0"
+                className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-sm border shrink-0 inline-flex items-center"
                 style={{
                   color: stateColor(sat.state),
                   borderColor: `color-mix(in srgb, ${stateColor(sat.state)} 30%, transparent)`,
                   backgroundColor: `color-mix(in srgb, ${stateColor(sat.state)} 10%, transparent)`,
                 }}
               >
-                {sat.state}
+                {formatSatState(sat.state)}
+                {sat.state === "SAFE" && (
+                  <HelpHint text="A low-power survival state where the satellite turns off payload systems and only listens for ground commands." />
+                )}
               </span>
             </div>
-            <p className="font-mono text-[11px] text-[#8b96b0] uppercase tracking-wider mt-1">
-              {sat.node_id} / 525 KM SSO / PLANE {sat.plane}
+            <p className="font-mono text-[11px] text-[#8b96b0] tracking-wider mt-1">
+              {sat.node_id}, sun-synchronous orbit {sat.plane}, 525 km
             </p>
           </div>
         </Panel>
@@ -454,15 +537,15 @@ export function RightRail({
         <div className="p-4 flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-              Battery voltage
+              Battery
             </span>
             <span
               className={`font-mono text-[10px] ${
                 batDelta >= 0 ? "text-[#7ee2b8]" : "text-[#f5a524]"
               }`}
             >
-              {batDelta >= 0 ? "+" : ""}
-              {batDelta.toFixed(2)} V in 10m
+              change over 10 min: {batDelta >= 0 ? "+" : ""}
+              {batDelta.toFixed(2)} V
             </span>
           </div>
 
@@ -475,35 +558,35 @@ export function RightRail({
         </div>
       </Panel>
 
-      {/* If Fleet tab: only asset card + battery chart */}
+      {/* If Satellites (Fleet) tab: only asset card + battery chart */}
       {activeTab === "fleet" ? null : (
         <>
-          {/* 3. Payload Diagnostics */}
+          {/* 3. Health Panel */}
           <Panel cut={8} className="w-full">
             <div className="p-3.5 flex flex-col gap-2.5">
               <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-                Payload Diagnostics
+                Health
               </span>
               <div className="flex gap-2">
                 <Sparkline
                   points={tempValues}
                   color="#7ee2b8"
                   unit="°C"
-                  label="Payload temp"
+                  label="Temperature"
                   currentValue={curTemp}
                 />
                 <Sparkline
                   points={rssiValues}
                   color="#3d5bff"
                   unit="dBm"
-                  label="Tx power"
+                  label="Signal received at ground (RSSI)"
                   currentValue={curRssi}
                 />
               </div>
             </div>
           </Panel>
 
-          {/* 4. Anomaly Panel */}
+          {/* 4. Warning Panel */}
           {activeAlert && (
             <Panel
               cut={8}
@@ -518,7 +601,7 @@ export function RightRail({
                     className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em]"
                     style={{ color: alertColor }}
                   >
-                    Anomaly Detected
+                    Warning
                   </span>
                   <span className="ml-auto font-mono text-[10px] text-[#8b96b0]">
                     {activeAlert.sat_id ?? "SAT-01"}
@@ -530,20 +613,19 @@ export function RightRail({
                 </p>
 
                 {/* Three progress rows */}
-                <div className="flex flex-col gap-1.5 pt-1">
-                  {[
-                    { label: "Battery margin", value: 72 },
-                    { label: "Link margin", value: 58 },
-                    { label: "Queue load", value: 44 },
-                  ].map((row) => (
+                <div className="flex flex-col gap-2 pt-1">
+                  {warningMetrics.map((row) => (
                     <div key={row.label} className="flex flex-col gap-0.5">
-                      <div className="flex justify-between font-mono text-[9px] text-[#8b96b0]">
-                        <span>{row.label}</span>
+                      <div className="flex justify-between items-baseline font-mono text-[10px]">
+                        <span className="text-[#dfe6f5] font-semibold">{row.label}</span>
                         <span style={{ color: alertColor }}>{row.value}%</span>
                       </div>
-                      <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                      <div className="text-[10px] text-[#8b96b0]">
+                        {row.explanation}
+                      </div>
+                      <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden mt-0.5">
                         <div
-                          className="h-full rounded-full"
+                          className="h-full rounded-full transition-all"
                           style={{
                             width: `${row.value}%`,
                             backgroundColor: alertColor,
@@ -554,25 +636,40 @@ export function RightRail({
                   ))}
                 </div>
 
-                {/* Buttons: Dismiss & Open AI router */}
-                <div className="flex items-center gap-2 pt-1.5">
-                  <button
-                    onClick={() =>
-                      setDismissedAlertIds(
-                        (prev) => new Set([...prev, activeAlert.alert_id]),
-                      )
-                    }
-                    className="flex-1 py-1.5 rounded border border-white/10 bg-white/5 text-[11px] font-mono uppercase tracking-wider text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/10 transition-colors cursor-pointer"
-                  >
-                    Dismiss
-                  </button>
-                  <button
-                    onClick={() => navigate("/brain")}
-                    className="flex-1 py-1.5 rounded font-mono text-[11px] uppercase tracking-wider text-black font-semibold transition-transform hover:scale-[1.02] cursor-pointer"
-                    style={{ backgroundColor: alertColor }}
-                  >
-                    Open AI router
-                  </button>
+                {/* Buttons: Acknowledge & Open AI router */}
+                <div className="flex flex-col gap-2 pt-1.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Locked
+                      action="ack_alert"
+                      reason="Read-only role"
+                      onTry={handleAckAlert}
+                    >
+                      <button
+                        onClick={handleAckAlert}
+                        disabled={acking}
+                        className="px-3 py-1.5 rounded border border-white/10 bg-white/5 text-[11px] font-mono uppercase tracking-wider text-[#dfe6f5] hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        {acking ? "Acknowledging..." : "Acknowledge"}
+                      </button>
+                    </Locked>
+                    <button
+                      onClick={() => navigate("/brain")}
+                      className="px-3 py-1.5 rounded font-mono text-[11px] uppercase tracking-wider text-black font-semibold transition-transform hover:scale-[1.02] cursor-pointer ml-auto"
+                      style={{ backgroundColor: alertColor }}
+                    >
+                      Open AI router
+                    </button>
+                  </div>
+                  {ackError && (
+                    <div className="p-2 rounded border border-[#ff3b4f]/40 bg-[#ff3b4f]/10 text-xs text-[#ff3b4f] flex flex-col gap-1">
+                      <div className="font-semibold">
+                        Permission denied by PostgreSQL ({ackError.sqlstate ?? "42501"})
+                      </div>
+                      <div className="font-mono text-[11px] text-[#dfe6f5] break-words">
+                        {ackError.message}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </Panel>
@@ -582,12 +679,12 @@ export function RightRail({
           <Panel cut={8} className="w-full">
             <div className="p-3.5 flex flex-col gap-2.5">
               <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-                Constellation Metrics
+                Today
               </span>
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-2.5 rounded bg-black/40 border border-white/5 flex flex-col gap-0.5">
                   <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
-                    Sats Operational
+                    Working satellites
                   </span>
                   <span className="font-sans text-[22px] font-light text-white leading-tight">
                     {kpi ? `${kpi.sats_operational}/${kpi.sats_total}` : "—"}
@@ -596,7 +693,7 @@ export function RightRail({
 
                 <div className="p-2.5 rounded bg-black/40 border border-white/5 flex flex-col gap-0.5">
                   <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
-                    Packets Queued
+                    Packets waiting to send
                   </span>
                   <span className="font-sans text-[22px] font-light text-white leading-tight">
                     {kpi ? kpi.packets_queued : "—"}
@@ -605,7 +702,7 @@ export function RightRail({
 
                 <div className="p-2.5 rounded bg-black/40 border border-white/5 flex flex-col gap-0.5">
                   <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
-                    Delivered 24 h
+                    Delivered in last 24 h
                   </span>
                   <span className="font-sans text-[22px] font-light text-white leading-tight">
                     {kpi ? kpi.packets_delivered_24h : "—"}
@@ -614,7 +711,7 @@ export function RightRail({
 
                 <div className="p-2.5 rounded bg-black/40 border border-white/5 flex flex-col gap-0.5">
                   <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
-                    AI Overrides 24 h
+                    Times the safety check overruled the AI
                   </span>
                   <span className="font-sans text-[22px] font-light text-white leading-tight">
                     {kpi ? kpi.ai_overrides_24h : "—"}

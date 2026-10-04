@@ -12,9 +12,9 @@ interface TopBarProps {
 
 const TABS: Array<{ id: OpsTab; label: string }> = [
   { id: "overview", label: "Overview" },
-  { id: "fleet", label: "Fleet" },
-  { id: "contacts", label: "Contacts" },
-  { id: "telemetry", label: "Telemetry" },
+  { id: "fleet", label: "Satellites" },
+  { id: "contacts", label: "Upcoming passes" },
+  { id: "telemetry", label: "Live data" },
 ];
 
 function formatUtc(d: Date): string {
@@ -42,7 +42,7 @@ export function TopBar({
     return () => window.clearInterval(t);
   }, []);
 
-  // Compute coverage: share of sats with a downlink contact in the next 90 min
+  // Compute satellites with a ground pass in the next 90 min
   const nowMs = now.getTime();
   const horizonMs = nowMs + 90 * 60 * 1000;
   const downlinkSatIds = new Set<string>();
@@ -55,10 +55,6 @@ export function TopBar({
     }
   }
   const totalSats = Math.max(1, sats.filter((s) => s.state !== "STOWED").length);
-  const coveragePercent = Math.min(
-    100,
-    Math.round((downlinkSatIds.size / totalSats) * 1000) / 10,
-  );
 
   return (
     <div className="relative w-full px-4 pt-3 pb-2 z-20 pointer-events-none">
@@ -66,15 +62,15 @@ export function TopBar({
       <div className="flex flex-col md:flex-row items-center justify-between gap-3">
         {/* HUD top-left floating text */}
         <div className="hidden lg:flex flex-col gap-0.5 text-left font-mono pointer-events-auto">
-          <div className="flex items-center gap-2 text-[10px] tracking-[0.14em] text-[#8b96b0] uppercase">
+          <div className="flex items-center gap-1.5 text-[10.5px] text-[#8b96b0]">
             <span className="inline-block size-1.5 rounded-full bg-[#7ee2b8] animate-pulse" />
-            <span>ROUTER:</span>
-            <span className="text-[#dfe6f5] font-semibold">AI DECISION TREE</span>
+            <span>Routing decided by:</span>
+            <span className="text-[#dfe6f5] font-semibold">AI decision tree (in PostgreSQL)</span>
           </div>
-          <div className="text-[10px] tracking-[0.14em] text-[#8b96b0] uppercase">
-            <span>SELECTED: </span>
+          <div className="text-[10.5px] text-[#8b96b0]">
+            <span>Selected: </span>
             <span className="text-[#3d5bff] font-semibold">
-              {selectedSat ? selectedSat.node_id : "AURORA-1"}
+              {selectedSat ? (selectedSat.display_name || selectedSat.node_id) : "SomaiyaSat-A1"}
             </span>
           </div>
         </div>
@@ -94,7 +90,7 @@ export function TopBar({
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
-                className={`relative px-4 py-1.5 text-[11px] font-mono uppercase tracking-[0.12em] transition-all duration-200 cursor-pointer ${
+                className={`relative px-4 py-1.5 text-[11px] font-mono tracking-wider transition-all duration-200 cursor-pointer ${
                   active
                     ? "bg-[#3d5bff] text-white font-semibold shadow-[0_0_12px_rgba(61,91,255,0.4)]"
                     : "text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/5"
@@ -112,16 +108,16 @@ export function TopBar({
 
         {/* HUD top-right floating text */}
         <div className="hidden lg:flex flex-col gap-0.5 text-right font-mono pointer-events-auto">
-          <div className="text-[10px] tracking-[0.14em] text-[#8b96b0] uppercase">
+          <div className="text-[10.5px] text-[#8b96b0]">
             <span>UTC </span>
             <span className="text-[#dfe6f5] font-semibold tabular-nums">
               {formatUtc(now)}
             </span>
           </div>
-          <div className="text-[10px] tracking-[0.14em] text-[#8b96b0] uppercase">
-            <span>COVERAGE </span>
+          <div className="text-[10.5px] text-[#8b96b0]">
+            <span>Satellites with a ground pass in the next 90 min: </span>
             <span className="text-[#7ee2b8] font-semibold tabular-nums">
-              {coveragePercent.toFixed(1)}%
+              {downlinkSatIds.size} of {totalSats}
             </span>
           </div>
         </div>

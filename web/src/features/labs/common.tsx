@@ -3,6 +3,7 @@ import { highlightSql } from "@/app/sql";
 import { BackendOffline } from "@/app/SqlDrawer";
 import { ApiError } from "@/app/api";
 import { Panel } from "@/components/cc/Panel";
+import { RoleHeader } from "@/app/access";
 
 export { Panel };
 
@@ -56,12 +57,14 @@ export function LabShell({
   description,
   chips,
   notice,
+  roleNote,
   children,
 }: {
   title: string;
   description?: string;
   chips: string[];
   notice: string[];
+  roleNote?: string;
   children: ReactNode;
 }) {
   return (
@@ -90,6 +93,7 @@ export function LabShell({
             {description}
           </p>
         )}
+        <RoleHeader note={roleNote} />
       </div>
 
       {/* Examiner Verification / Notice Panel */}
@@ -98,7 +102,7 @@ export function LabShell({
           <div className="p-3.5 sm:p-4 flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-                Examiner verification · What to notice
+                What to look for
               </span>
               <StatusBadge status="nominal" label="Criteria" />
             </div>
@@ -245,7 +249,12 @@ export function DataGrid({
   );
 }
 
-export function RefusalCard({ error }: { error: ApiError }) {
+export function RefusalCard({
+  error,
+}: {
+  error: ApiError | { message?: string; sqlstate?: string; status?: number };
+}) {
+  const is42501 = error.sqlstate === "42501" || String(error.message ?? "").includes("42501");
   return (
     <Panel
       cut={8}
@@ -256,14 +265,14 @@ export function RefusalCard({ error }: { error: ApiError }) {
       <div role="alert" className="p-4 flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#ff3b4f] font-semibold">
-            PostgreSQL refused
+            {is42501 ? "Permission denied by PostgreSQL (42501)" : "PostgreSQL refused"}
           </span>
           <StatusBadge
             status="critical"
             label={String(error.sqlstate ?? error.status ?? "42501")}
           />
         </div>
-        <p className="text-[13px] text-[#dfe6f5] leading-relaxed">
+        <p className="font-mono text-[12.5px] text-[#dfe6f5] leading-relaxed whitespace-pre-wrap">
           {error.message}
         </p>
       </div>
@@ -286,14 +295,14 @@ export function OfflineOrEmpty({
     <Panel cut={8} className="w-full">
       <div className="border border-dashed border-white/15 p-6 text-center flex flex-col items-center gap-2">
         <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-          Lab backend pending
+          Database lab pending
         </span>
         <p className="font-mono text-[11px] text-[#5f6f93] max-w-lg">{hint}</p>
         <button
           onClick={onRetry}
           className="font-mono mt-2 text-[11px] uppercase tracking-[0.1em] px-3.5 py-1.5 border border-white/15 text-[#dfe6f5] hover:border-white/40 hover:bg-white/5 rounded-[2px] transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] cursor-pointer"
         >
-          RETRY CONNECTION
+          Retry connection
         </button>
       </div>
     </Panel>

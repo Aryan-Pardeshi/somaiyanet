@@ -1,4 +1,5 @@
 /** Shared profile shapes for the /console picker + AppShell chip. */
+import { ROLE_ACCESS } from "./access";
 
 export interface Profile {
   role: string;
@@ -14,35 +15,35 @@ export const FALLBACK_PROFILES: Profile[] = [
     title: "Mission Director",
     subtitle: "Full access",
     accent: "somaiya",
-    can: ["everything", "GRANT-chain demo", "confirm deployments"],
+    can: [...ROLE_ACCESS.mission_director.can],
   },
   {
     role: "station_operator_bom",
     title: "Mumbai Station",
     subtitle: "GS-BOM, VU2KJS",
     accent: "blue",
-    can: ["read mission tables", "telecommand via GS-BOM", "ack alerts"],
+    can: [...ROLE_ACCESS.station_operator_bom.can],
   },
   {
     role: "station_operator_hel",
     title: "Espoo Station",
     subtitle: "GS-HEL, OH2SOM",
     accent: "blue",
-    can: ["read mission tables", "telecommand via GS-HEL", "ack alerts"],
+    can: [...ROLE_ACCESS.station_operator_hel.can],
   },
   {
     role: "student_analyst",
     title: "Student Analyst",
     subtitle: "Read-only",
     accent: "muted",
-    can: ["views + telemetry", "preview decisions", "no telecommand"],
+    can: [...ROLE_ACCESS.student_analyst.can],
   },
   {
     role: "ai_router",
     title: "AI Router",
     subtitle: "Spacecraft sensor",
     accent: "green",
-    can: ["INSERT telemetry", "decide + dispatch", "write-only sensor"],
+    can: [...ROLE_ACCESS.ai_router.can],
   },
 ];
 

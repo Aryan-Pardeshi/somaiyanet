@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, apiFetch } from "@/app/api";
+import { Locked, RoleHeader } from "@/app/access";
 import { BackendOffline } from "@/app/SqlDrawer";
 import { Panel } from "@/components/cc/Panel";
 import {
@@ -33,7 +34,7 @@ function RefusedCard({ err, context }: { err: ApiError; context?: string }) {
       <div className="p-3.5 flex flex-col gap-1.5">
         <div className="flex items-center gap-2">
           <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 border border-[#ff3b4f]/40 bg-[#ff3b4f]/10 text-[#ff3b4f]">
-            CRITICAL REFUSAL
+            {err.sqlstate === "42501" ? "Permission denied by PostgreSQL (42501)" : "Critical refusal"}
           </span>
           <span className="font-mono text-[11px] text-[#ff3b4f]">
             {err.sqlstate ?? err.status}
@@ -42,7 +43,7 @@ function RefusedCard({ err, context }: { err: ApiError; context?: string }) {
             <span className="font-mono text-[10px] text-[#8b96b0]">· {context}</span>
           )}
         </div>
-        <p className="font-sans text-[13px] text-[#dfe6f5]">{err.message}</p>
+        <p className="font-mono text-[12.5px] text-[#dfe6f5]">{err.message}</p>
         {err.detail && (
           <p className="font-mono text-[11px] text-[#8b96b0]">{err.detail}</p>
         )}
@@ -166,7 +167,7 @@ function PodSvg({ status, ejected }: { status: string; ejected: boolean }) {
         fontSize={9.5}
         fontFamily="Geist Mono, monospace"
       >
-        SOMAIYAPOD // 127.4 × 57.9 × 57.2 MM // STATUS: {status}
+        SOMAIYAPOD, 127.4 × 57.9 × 57.2 mm, status: {status}
       </text>
     </svg>
   );
@@ -384,11 +385,13 @@ export default function Deploy() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-col">
             <h1 className="font-sans text-[28px] sm:text-[34px] font-light tracking-tight text-white leading-tight">
-              Deployment &amp; transactions
+              Releasing a satellite from its deployer
             </h1>
             <p className="text-[13px] text-[#8b96b0] leading-snug">
-              Two signals agree, the pod fires, the sat wakes. Every step is a transaction you can roll back on purpose.
+              Two signals agree, the pod opens, the satellite wakes. Every step runs in a
+              transaction you can roll back on purpose (confirm_deployment).
             </p>
+            <RoleHeader />
           </div>
           <div className="flex items-center gap-2">
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 border border-white/15 bg-white/5 text-[#8b96b0]">
@@ -417,10 +420,10 @@ export default function Deploy() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between border-b border-white/5 pb-2">
           <span className="font-mono text-[11px] font-semibold tracking-[0.16em] uppercase text-[#dfe6f5]">
-            SomaiyaPod deployment sequence // Vertical console timeline
+            Release steps
           </span>
           <span className="font-mono text-[10px] text-[#8b96b0]">
-            POD {pod}
+            Pod {pod}
           </span>
         </div>
 
@@ -430,10 +433,10 @@ export default function Deploy() {
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
               <div className="flex items-center gap-2.5">
                 <span className="font-mono text-[11px] font-semibold text-[#7fb2ff] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10">
-                  STEP 01
+                  Step 1
                 </span>
                 <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white">
-                  Pod tube inspection &amp; PocketQube status
+                  Check the pod and its satellite
                 </span>
               </div>
 
@@ -452,7 +455,7 @@ export default function Deploy() {
 
                 {/* Transaction Outcome Badge */}
                 <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-white/15 bg-white/5 text-[#8b96b0]">
-                  PRE-TRANSACTION
+                  Before release
                 </span>
               </div>
             </div>
@@ -460,7 +463,7 @@ export default function Deploy() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
               <div className="lg:col-span-4 flex flex-col gap-2">
                 <label className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-                  Select deployer pod:
+                  Pick a pod:
                 </label>
                 <select
                   value={pod}
@@ -485,7 +488,7 @@ export default function Deploy() {
                       <span className="text-[#dfe6f5]">{bundle.pod.release_mechanism}</span>
                     </div>
                     <div className="flex justify-between text-[#8b96b0]">
-                      <span>Release TS:</span>
+                      <span>Release time:</span>
                       <span className="text-[#dfe6f5]">
                         {bundle.pod.release_ts ? `${bundle.pod.release_ts.slice(11, 19)}Z` : "NULL"}
                       </span>
@@ -513,10 +516,10 @@ export default function Deploy() {
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
               <div className="flex items-center gap-2.5">
                 <span className="font-mono text-[11px] font-semibold text-[#7fb2ff] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10">
-                  STEP 02
+                  Step 2
                 </span>
                 <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white">
-                  Telemetry sensor voting // 2-of-3 consensus required
+                  Sensor agreement (2 of 3 must agree)
                 </span>
               </div>
 
@@ -535,7 +538,7 @@ export default function Deploy() {
 
                 {/* Outcome Badge */}
                 <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-white/15 bg-white/5 text-[#8b96b0]">
-                  SIGNAL VALIDATION
+                  Checking signals
                 </span>
               </div>
             </div>
@@ -572,15 +575,17 @@ export default function Deploy() {
                         onClick={() => setOkState((p) => ({ ...p, [s]: !(p[s] ?? true) }))}
                         className="font-mono text-[10px] uppercase tracking-[0.08em] px-2 py-1 border border-white/10 bg-transparent text-[#dfe6f5] hover:border-white/20 cursor-pointer"
                       >
-                        OK: {okState[s] ? "TRUE" : "FALSE"}
+                        Signal ok: {okState[s] ? "true" : "false"}
                       </button>
 
+                      <Locked action="deploy_signal" onTry={() => void onSignal(s)}>
                       <button
                         onClick={() => void onSignal(s)}
                         className="font-mono text-[10px] uppercase tracking-[0.1em] px-3 py-1 bg-[#3d5bff] hover:bg-[#4f6bff] text-white font-semibold transition-colors cursor-pointer"
                       >
-                        SEND
+                        Send signal
                       </button>
+                      </Locked>
                     </div>
                   </div>
                 );
@@ -595,10 +600,10 @@ export default function Deploy() {
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
               <div className="flex items-center gap-2.5">
                 <span className="font-mono text-[11px] font-semibold text-[#7fb2ff] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10">
-                  STEP 03
+                  Step 3
                 </span>
                 <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white">
-                  Atomic deployment transaction // Commit vs Rollback
+                  Release step (all or nothing)
                 </span>
               </div>
 
@@ -618,50 +623,68 @@ export default function Deploy() {
                 {/* Transaction Outcome Badge */}
                 {rolledBack ? (
                   <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#f5a524]/60 bg-[#f5a524]/10 text-[#f5a524]">
-                    ROLLBACK
+                    Rolled back
                   </span>
                 ) : after ? (
                   <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#7ee2b8]/60 bg-[#7ee2b8]/10 text-[#7ee2b8]">
-                    COMMIT OK
+                    Released
                   </span>
                 ) : (
                   <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-white/15 bg-white/5 text-[#8b96b0]">
-                    TX READY
+                    Ready
                   </span>
                 )}
               </div>
             </div>
 
             <p className="font-sans text-[13px] leading-relaxed text-[#dfe6f5] max-w-[85ch]">
-              When deployment is confirmed, PostgreSQL opens a transaction that updates the pod to RELEASED,
-              advances the satellite from STOWED to DEPLOYED via state trigger, and records an audit log row.
+              When a release is confirmed, PostgreSQL opens a transaction that updates the pod to RELEASED,
+              moves the satellite from STOWED to DEPLOYED, and records a row in deployment_log.
               If any step fails or is simulated as faulty, the transaction rolls back cleanly.
             </p>
 
             <div className="flex flex-wrap items-center gap-2.5 pt-1">
-              <button
-                onClick={() => void onConfirm(false)}
-                disabled={busy !== null}
-                className="py-2 px-4 bg-[#3d5bff] hover:bg-[#4f6bff] text-white font-mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
+              <Locked
+                action="deploy_confirm"
+                reason="Only the mission director may release a satellite (EXECUTE on procedure confirm_deployment)."
+                onTry={() => void onConfirm(false)}
               >
-                {busy === "confirm" ? "CONFIRMING…" : "CONFIRM DEPLOYMENT"}
-              </button>
+                <button
+                  onClick={() => void onConfirm(false)}
+                  disabled={busy !== null}
+                  className="py-2 px-4 bg-[#3d5bff] hover:bg-[#4f6bff] text-white font-mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {busy === "confirm" ? "Confirming…" : "Confirm release"}
+                </button>
+              </Locked>
 
-              <button
-                onClick={() => void onConfirm(true)}
-                disabled={busy !== null}
-                className="py-2 px-4 border border-[#f5a524]/60 bg-transparent hover:bg-[#f5a524]/10 text-[#f5a524] font-mono text-[11px] uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
+              <Locked
+                action="deploy_confirm"
+                reason="Only the mission director may release a satellite (EXECUTE on procedure confirm_deployment)."
+                onTry={() => void onConfirm(true)}
               >
-                {busy === "fail" ? "SIMULATING…" : "SIMULATE FAILURE (ROLLBACK)"}
-              </button>
+                <button
+                  onClick={() => void onConfirm(true)}
+                  disabled={busy !== null}
+                  className="py-2 px-4 border border-[#f5a524]/60 bg-transparent hover:bg-[#f5a524]/10 text-[#f5a524] font-mono text-[11px] uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {busy === "fail" ? "Simulating…" : "Simulate a failure"}
+                </button>
+              </Locked>
 
-              <button
-                onClick={() => void onReset()}
-                disabled={busy !== null}
-                className="py-2 px-4 border border-white/15 bg-transparent hover:border-white/30 text-[#dfe6f5] font-mono text-[11px] uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
+              <Locked
+                action="deploy_confirm"
+                reason="Only the mission director may release a satellite (EXECUTE on procedure confirm_deployment)."
+                onTry={() => void onReset()}
               >
-                {busy === "reset" ? "RESETTING…" : "RESET DEMO"}
-              </button>
+                <button
+                  onClick={() => void onReset()}
+                  disabled={busy !== null}
+                  className="py-2 px-4 border border-white/15 bg-transparent hover:border-white/30 text-[#dfe6f5] font-mono text-[11px] uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {busy === "reset" ? "Resetting…" : "Reset demo"}
+                </button>
+              </Locked>
             </div>
           </div>
         </Panel>
@@ -673,10 +696,10 @@ export default function Deploy() {
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
                 <div className="flex items-center gap-2.5">
                   <span className="font-mono text-[11px] font-semibold text-[#7fb2ff] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10">
-                    STEP 04
+                    Step 4
                   </span>
                   <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white">
-                    Audit verification // State machine before vs after diff
+                    What changed
                   </span>
                 </div>
 
@@ -684,11 +707,11 @@ export default function Deploy() {
                   {/* Transaction Outcome Badge */}
                   {rolledBack ? (
                     <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#f5a524]/60 bg-[#f5a524]/10 text-[#f5a524]">
-                      TRANSACTION ROLLED BACK
+                      Rolled back, nothing changed
                     </span>
                   ) : (
                     <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#7ee2b8]/60 bg-[#7ee2b8]/10 text-[#7ee2b8]">
-                      TRANSACTION COMMITTED
+                      Saved
                     </span>
                   )}
                 </div>
@@ -696,8 +719,8 @@ export default function Deploy() {
 
               <p className="font-sans text-[13px] text-[#8b96b0]">
                 {rolledBack
-                  ? "Identical rows: the transaction rolled back and no database state changed. The deployment_log row was written in an autonomous transaction audit trail."
-                  : "Changed fields are highlighted in royal blue. The COMMITTED log row confirms the atomic state transition."}
+                  ? "Matching rows: the transaction rolled back and no database state changed. The deployment_log row was written as a separate audit trail."
+                  : "Changed fields are highlighted in royal blue. The saved log row confirms the release."}
               </p>
 
               {/* Diff Cards Restyled as Panels */}
@@ -723,7 +746,7 @@ export default function Deploy() {
                 <div className="p-3 bg-[#05070d] border border-white/10 flex flex-col gap-1.5 font-mono text-[11px]">
                   <div className="flex items-center justify-between border-b border-white/5 pb-1">
                     <span className="text-[#8b96b0] uppercase">
-                      AUDIT LOG // #{effectiveLog.log_id}
+                      Release log #{effectiveLog.log_id}
                     </span>
                     <span
                       className="px-1.5 py-0.2 border text-[9px] uppercase tracking-wider"
@@ -740,15 +763,15 @@ export default function Deploy() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[#dfe6f5]">
                     <div>
-                      <span className="text-[#8b96b0]">ACTION: </span>
+                      <span className="text-[#8b96b0]">Action: </span>
                       {effectiveLog.action}
                     </div>
                     <div>
-                      <span className="text-[#8b96b0]">LOGGED AT: </span>
+                      <span className="text-[#8b96b0]">Logged at: </span>
                       {effectiveLog.logged_at}
                     </div>
                     <div className="sm:col-span-2">
-                      <span className="text-[#8b96b0]">DETAIL: </span>
+                      <span className="text-[#8b96b0]">Detail: </span>
                       {effectiveLog.detail ?? "—"}
                     </div>
                   </div>
@@ -764,10 +787,10 @@ export default function Deploy() {
         <div className="p-4 flex flex-col gap-3">
           <div className="flex items-center justify-between border-b border-white/5 pb-2">
             <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-              Satellite state machine // trg_satellite_state trigger
+              Allowed satellite states (trigger trg_satellite_state)
             </span>
             <span className="font-mono text-[10px] text-[#8b96b0]">
-              CONSTRAINT ENFORCEMENT
+              State rules
             </span>
           </div>
 
@@ -778,7 +801,7 @@ export default function Deploy() {
               onClick={() => void onIllegal()}
               className="py-1.5 px-3 border border-[#ff3b4f]/40 bg-transparent hover:border-[#ff3b4f] text-[#ff3b4f] font-mono text-[11px] uppercase tracking-[0.1em] transition-colors cursor-pointer"
             >
-              TRY ILLEGAL JUMP (STOWED → NOMINAL)
+              Try a disallowed change (STOWED to NOMINAL)
             </button>
             <Link
               to="/labs/transactions"
@@ -799,7 +822,7 @@ export default function Deploy() {
               <div className="p-3.5 flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#ff3b4f]/40 bg-[#ff3b4f]/10 text-[#ff3b4f]">
-                    CRITICAL REJECTION
+                    Change refused
                   </span>
                   <span className="font-mono text-[11px] text-[#ff3b4f]">
                     SQLSTATE {illegalError.sqlstate ?? illegalError.status}
@@ -833,17 +856,17 @@ export default function Deploy() {
         <div className="p-4 flex flex-col gap-3.5">
           <div className="flex items-center justify-between border-b border-white/5 pb-2">
             <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-              Pass execution // SAVEPOINT demo // execute_pass()
+              Downlink pass (savepoint demo, execute_pass())
             </span>
             <span className="font-mono text-[10px] text-[#8b96b0]">
-              SUB-TRANSACTION ROLLBACK
+              Partial rollback
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="flex flex-col gap-1.5">
               <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-                Select sat
+                Pick a satellite
               </span>
               <select
                 value={passSat}
@@ -860,7 +883,7 @@ export default function Deploy() {
 
             <div className="flex flex-col gap-1.5 sm:col-span-2">
               <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-                Downlink contact
+                Pick a ground contact
               </span>
               <select
                 value={passContactId ?? ""}
@@ -883,14 +906,14 @@ export default function Deploy() {
               disabled={busy !== null || passContactId === null}
               className="py-2 px-4 bg-[#3d5bff] hover:bg-[#4f6bff] text-white font-mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
             >
-              {busy === "pass" ? "EXECUTING…" : "EXECUTE PASS"}
+              {busy === "pass" ? "Running…" : "Run pass"}
             </button>
             <button
               onClick={() => void onPass(true)}
               disabled={busy !== null || passContactId === null}
               className="py-2 px-4 border border-[#f5a524]/60 bg-transparent hover:bg-[#f5a524]/10 text-[#f5a524] font-mono text-[11px] uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
             >
-              {busy === "pass-fail" ? "FAILING…" : "EXECUTE WITH STAGE-2 FAILURE"}
+              {busy === "pass-fail" ? "Failing…" : "Run pass with a stage 2 failure"}
             </button>
           </div>
 
@@ -899,7 +922,7 @@ export default function Deploy() {
               {/* Stages List with SAVEPOINT, ROLLBACK, COMMIT badges */}
               <div className="flex flex-col gap-2">
                 <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-                  Execution stages // Transaction outcome
+                  Pass steps
                 </span>
                 <div className="flex flex-col gap-2">
                   {passResult.stages.map((st, i) => {
@@ -912,14 +935,14 @@ export default function Deploy() {
                         <div className="p-3 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="font-mono text-[10px] text-[#8b96b0]">
-                              STAGE 0{i + 1}
+                              Stage {i + 1}
                             </span>
                             <span className="font-mono text-[12px] font-semibold text-white">
                               {st.stage}
                             </span>
                             {/* Savepoint badge if stage 1 was saved */}
                             <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10 text-[#7fb2ff]">
-                              SAVEPOINT
+                              Savepoint
                             </span>
                             <span
                               className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 border"
@@ -945,7 +968,7 @@ export default function Deploy() {
               {/* Queue Buffer Comparison Before vs After */}
               <div className="flex flex-col gap-2">
                 <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-                  Queued bytes by mode // Before vs After
+                  Waiting data before and after
                 </span>
                 <div className="flex flex-col gap-2.5 p-3 bg-[#05070d] border border-white/5">
                   {passModes.map((m) => {
