@@ -134,8 +134,20 @@ export const OVERRIDE_PRESET: Features = {
 };
 
 export async function loadModels(): Promise<AiModel[]> {
-  const r = await apiFetch<AiModel[]>("/api/ai/models");
-  return r.data;
+  // Backend encodes the Postgres enum array as a "{A,B,...}" string.
+  const r = await apiFetch<Array<Record<string, unknown>>>("/api/ai/models");
+  return (r.data as Array<Record<string, unknown>>).map((m) => {
+    const classes = m["classes"];
+    const list = Array.isArray(classes)
+      ? (classes as RouterAction[])
+      : String(classes ?? "")
+          .replace(/^\{/, "")
+          .replace(/\}$/, "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0) as RouterAction[];
+    return { ...(m as unknown as AiModel), classes: list };
+  });
 }
 
 export async function loadTree(modelId: number): Promise<DtNode[]> {

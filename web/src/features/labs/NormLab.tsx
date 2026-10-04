@@ -15,13 +15,19 @@ export function NormLab() {
 
   const load = useCallback(async () => {
     try {
+      // Backend stages: {stages: [{stage, table, rows, count}], fds: [{stage, fd, violates, fix}]}.
+      // Group the 12 build tables into the 5 display steps; anomalies arrive
+      // grouped as {update, insert, delete} and flatten to one list.
       const [s, a, l] = await Promise.all([
-        apiFetch<NormStage[]>("/api/labs/norm/stages"),
-        apiFetch<NormAnomaly[]>("/api/labs/norm/anomalies"),
+        apiFetch<{
+          stages?: Array<{ stage: string; table: string; rows: Array<Record<string, unknown>> }>;
+          fds?: Array<{ stage: string; fd: string; violates: string; fix: string }>;
+        }>("/api/labs/norm/stages"),
+        apiFetch<Record<string, NormAnomaly[]>>("/api/labs/norm/anomalies"),
         apiFetch<LosslessRow[]>("/api/labs/norm/lossless"),
       ]);
-      setStages(s.data);
-      setAnomalies(a.data);
+      setStages(groupStages(s.data.stages ?? [], s.data.fds ?? []));
+      setAnomalies(flattenAnomalies(a.data));
       setLossless(l.data);
       setBootError(null);
     } catch (e) {
@@ -59,7 +65,7 @@ export function NormLab() {
               role="tab"
               aria-selected={i === active}
               onClick={() => setActive(i)}
-              className={`font-mono rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.12em] ${
+              className={`font-mono rounded-full border px-3 py-1 text-[11px] tracking-[0.12em] ${
                 i === active
                   ? "border-[var(--ice)] bg-[var(--navy-700)] text-[var(--text)]"
                   : i < active
@@ -73,7 +79,7 @@ export function NormLab() {
         </div>
         <DecompTree active={active} />
         <div className="mt-4">
-          <p className="font-mono mb-2 text-[10px] uppercase tracking-[0.16em] text-[var(--warn)]">
+          <p className="font-mono mb-2 text-[10px] tracking-[0.16em] text-[var(--warn)]">
             {cur.stage} · functional dependencies
           </p>
           <div className="flex flex-col gap-1.5">
@@ -117,7 +123,7 @@ export function NormLab() {
               <button
                 key={k}
                 onClick={() => setAnomalyKind(k)}
-                className={`font-mono rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.14em] ${
+                className={`font-mono rounded-full border px-3 py-1 text-[10px] tracking-[0.14em] ${
                   anomalyKind === k
                     ? "border-[var(--ice)] bg-[var(--navy-700)] text-[var(--text)]"
                     : "border-[var(--line)] text-[var(--text-2)] hover:text-[var(--text)]"
@@ -132,11 +138,11 @@ export function NormLab() {
         {anomaly ? (
           <div className="grid gap-3 md:grid-cols-2">
             <div className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">before</p>
+              <p className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">before</p>
               <p className="font-mono mt-1 text-[11.5px] text-[var(--text-2)]">{anomaly.before}</p>
             </div>
             <div className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">after</p>
+              <p className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">after</p>
               <p className="font-mono mt-1 text-[11.5px] text-[var(--warn)]">{anomaly.after}</p>
             </div>
             <p className="text-[13px] leading-relaxed text-[var(--text-2)] md:col-span-2">
@@ -154,7 +160,7 @@ export function NormLab() {
             <thead className="bg-[var(--navy-700)]">
               <tr>
                 {["stage", "original", "rejoined", "missing", "spurious", ""].map((c) => (
-                  <th key={c} className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--text-2)]">{c}</th>
+                  <th key={c} className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] tracking-[0.1em] text-[var(--text-2)]">{c}</th>
                 ))}
               </tr>
             </thead>
@@ -237,7 +243,7 @@ function HighlightGrid({ rows, highlight }: { rows: Array<Record<string, unknown
             {cols.map((c) => (
               <th
                 key={c}
-                className={`font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.06em] ${highlight.has(c) ? "text-[var(--warn)]" : "text-[var(--text-2)]"}`}
+                className={`font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] tracking-[0.06em] ${highlight.has(c) ? "text-[var(--warn)]" : "text-[var(--text-2)]"}`}
               >
                 {c}{highlight.has(c) ? " ●" : ""}
               </th>
@@ -267,6 +273,45 @@ function HighlightGrid({ rows, highlight }: { rows: Array<Record<string, unknown
 function pickAnomaly(all: NormAnomaly[], kind: string): NormAnomaly | null {
   const hit = all.find((a) => a.stage.toLowerCase().includes(kind));
   return hit ?? all[0] ?? null;
+}
+
+const STAGE_GROUPS: Array<{ stage: string; match: (s: string) => boolean }> = [
+  { stage: "UNF", match: (s) => s === "unf" },
+  { stage: "1NF", match: (s) => s === "1nf" },
+  { stage: "2NF", match: (s) => s.startsWith("2nf") },
+  { stage: "3NF", match: (s) => s.startsWith("3nf") },
+  { stage: "BCNF", match: (s) => s.startsWith("bcnf") },
+];
+
+/** Collapse the 12 build tables + flat FD list into the 5 stepper steps. */
+function groupStages(
+  raw: Array<{ stage: string; table: string; rows: Array<Record<string, unknown>> }>,
+  fds: Array<{ stage: string; fd: string; violates: string; fix: string }>,
+): NormStage[] {
+  return STAGE_GROUPS.map((g) => {
+    const parts = raw.filter((r) => g.match(r.stage));
+    const tables = parts.map((p) => ({
+      name: p.table,
+      columns: Object.keys(p.rows[0] ?? {}),
+      rows: p.rows.slice(0, 12),
+    }));
+    const groupFds = fds
+      .filter((f) => f.stage.toUpperCase() === g.stage)
+      .map((f) => ({ fd: f.fd, violates: f.violates, fix: f.fix }));
+    return { stage: g.stage, tables, fds: groupFds };
+  }).filter((g) => g.tables.length > 0);
+}
+
+/** Backend groups anomalies by kind; flatten and tag each row with its kind. */
+function flattenAnomalies(data: Record<string, NormAnomaly[]>): NormAnomaly[] {
+  if (Array.isArray(data)) return data as NormAnomaly[];
+  const out: NormAnomaly[] = [];
+  for (const [kind, list] of Object.entries(data ?? {})) {
+    for (const a of list ?? []) {
+      out.push({ ...a, stage: `${kind} anomaly (${a.stage})` });
+    }
+  }
+  return out;
 }
 
 function fallbackStages(): NormStage[] {

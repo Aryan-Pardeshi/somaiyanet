@@ -70,7 +70,7 @@ function ActionCard({
       }`}
       style={accent ? { boxShadow: "0 0 18px #7fb2ff44" } : undefined}
     >
-      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-3)]">
+      <p className="font-mono text-[10px] tracking-[0.16em] text-[var(--text-3)]">
         {title}
       </p>
       <p
@@ -103,7 +103,7 @@ function Slider({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="font-mono flex justify-between text-[10px] uppercase tracking-[0.12em] text-[var(--text-3)]">
+      <span className="font-mono flex justify-between text-[10px] tracking-[0.12em] text-[var(--text-3)]">
         <span>{label}</span>
         <span className="text-[var(--warn)]">{value}</span>
       </span>
@@ -284,7 +284,7 @@ export default function Brain() {
                 </span>
                 {m.is_active && (
                   <span className="font-mono rounded-full bg-[var(--ok)] px-2 py-0.5 text-[10px] text-black">
-                    ACTIVE
+                    Active
                   </span>
                 )}
                 <span className="font-mono ml-auto text-[12px] text-[var(--warn)]">
@@ -359,7 +359,7 @@ export default function Brain() {
 
         {/* Tree */}
         <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
+          <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
             tree · dt_node · wheel to zoom, drag to pan
           </h2>
           {tree.length === 0 ? (
@@ -376,7 +376,7 @@ export default function Brain() {
         {/* Inference */}
         <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
+            <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
               inference · preview
             </h2>
             <select
@@ -436,7 +436,7 @@ export default function Brain() {
               />
               {(preview?.preview?.overridden || whatif?.watchdog) && (
                 <span className="font-mono absolute -right-1 -top-2 rotate-6 rounded border-2 border-[var(--ice)] bg-[var(--space)] px-2 py-0.5 text-[10px] tracking-[0.14em] text-[var(--ice)]">
-                  OVERRIDE
+                  Override
                 </span>
               )}
             </div>
@@ -445,7 +445,7 @@ export default function Brain() {
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               onClick={() => void onRecord()}
-              className="font-mono rounded-full bg-[var(--ice)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#04122e] hover:scale-[1.02]"
+              className="font-mono rounded-full bg-[var(--ice)] px-4 py-2 text-[11px] font-semibold tracking-[0.14em] text-[#04122e] hover:scale-[1.02]"
             >
               Record decision
             </button>
@@ -466,12 +466,12 @@ export default function Brain() {
         {/* What-if */}
         <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
+            <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
               what-if · POST /api/ai/whatif · 250ms debounce
             </h2>
             <button
               onClick={forceOverride}
-              className="font-mono ml-auto rounded-full border border-[var(--ice)]/60 px-3 py-1.5 text-[10px] uppercase tracking-[0.12em] text-[var(--text)] hover:bg-[var(--navy-700)]"
+              className="font-mono ml-auto rounded-full border border-[var(--ice)]/60 px-3 py-1.5 text-[10px] tracking-[0.12em] text-[var(--text)] hover:bg-[var(--navy-700)]"
             >
               Force a watchdog override
             </button>
@@ -512,7 +512,7 @@ export default function Brain() {
 
         {/* Decision log */}
         <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
+          <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
             decision log · live from /api/stream
           </h2>
           <div className="mt-3 overflow-x-auto">

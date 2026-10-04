@@ -38,8 +38,34 @@ export function SecurityLab() {
 
   const loadMatrix = useCallback(async () => {
     try {
-      const r = await apiFetch<SecurityMatrix>("/api/labs/security/matrix");
-      setMatrix(r.data);
+      // Backend cells are one row per (role, object, priv) with a `has` flag;
+      // the grid wants one cell per (role, object) with a `privs` list.
+      // Backend also splits function names into `funcs` and memberships into `members`.
+      const r = await apiFetch<{
+        roles?: string[];
+        objects?: string[];
+        funcs?: string[];
+        cells?: Array<{ role: string; object: string; priv: string; has: boolean }>;
+        members?: Array<{ role: string; member: string }>;
+        policies?: Array<Record<string, unknown>>;
+      }>("/api/labs/security/matrix");
+      const grouped = new Map<string, SecurityMatrix["cells"][number]>();
+      for (const c of r.data.cells ?? []) {
+        const k = `${c.role}␟${c.object}`;
+        let cell = grouped.get(k);
+        if (!cell) {
+          cell = { role: c.role, object: c.object, privs: [] };
+          grouped.set(k, cell);
+        }
+        if (c.has) cell.privs.push(c.priv);
+      }
+      setMatrix({
+        roles: r.data.roles ?? [],
+        objects: [...(r.data.objects ?? []), ...(r.data.funcs ?? [])],
+        cells: [...grouped.values()],
+        memberships: r.data.members ?? [],
+        policies: r.data.policies ?? [],
+      });
       setMatrixError(null);
     } catch (e) {
       setMatrixError(e);
@@ -66,15 +92,40 @@ export function SecurityLab() {
     const k = `${role}:${action}`;
     setRunning(k);
     try {
-      const r = await apiFetch<{ ok: boolean; message?: string; per_station?: Record<string, number> }>(
+      // Backend returns {role, action, allowed, result, error}; read_downlinks
+      // rows look like [{to_node, legs}] and become the per-station bars.
+      const r = await apiFetch<{
+        allowed?: boolean;
+        ok?: boolean;
+        message?: string;
+        result?: unknown;
+        error?: { sqlstate?: string; message?: string } | null;
+        per_station?: Record<string, number>;
+      }>(
         "/api/labs/security/try",
         { method: "POST", body: JSON.stringify({ role, action_key: action }) },
       );
-      const ok = r.data.ok !== false;
-      setResults((p) => ({ ...p, [k]: { ok, message: r.data.message ?? "allowed" } }));
-      if (action === "read_downlinks") {
-        const counts = (r.data.per_station ?? {}) as Record<string, number>;
-        setDownlinks((p) => ({ ...p, [role]: counts }));
+      const allowed = r.data.allowed ?? r.data.ok ?? false;
+      const errObj = r.data.error as { sqlstate?: string; message?: string } | null | undefined;
+      setResults((p) => ({
+        ...p,
+        [k]: {
+          ok: allowed,
+          message: allowed ? (r.data.message ?? "allowed") : (errObj?.message ?? r.data.message ?? "refused"),
+          sqlstate: errObj?.sqlstate,
+        },
+      }));
+      if (action === "read_downlinks" && allowed) {
+        if (r.data.per_station) {
+          setDownlinks((p) => ({ ...p, [role]: r.data.per_station as Record<string, number> }));
+        } else if (Array.isArray(r.data.result)) {
+          const counts: Record<string, number> = {};
+          for (const row of r.data.result as Array<Record<string, unknown>>) {
+            const station = String(row["to_node"] ?? "?");
+            counts[station] = Number(row["legs"] ?? row["count"] ?? 0);
+          }
+          setDownlinks((p) => ({ ...p, [role]: counts }));
+        }
       }
     } catch (e) {
       const err = e as ApiError;
@@ -114,9 +165,9 @@ export function SecurityLab() {
           <table className="w-full border-collapse text-left">
             <thead className="bg-[var(--navy-700)]">
               <tr>
-                <th className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--text-2)]">role \ object</th>
+                <th className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] tracking-[0.1em] text-[var(--text-2)]">role \ object</th>
                 {objects.map((o) => (
-                  <th key={o} className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.06em] text-[var(--text-2)]">{o}</th>
+                  <th key={o} className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] tracking-[0.06em] text-[var(--text-2)]">{o}</th>
                 ))}
               </tr>
             </thead>
@@ -186,7 +237,7 @@ export function SecurityLab() {
               void runTry("station_operator_hel", "read_downlinks");
               void runTry("mission_director", "read_downlinks");
             }}
-            className="font-mono rounded-full border border-[var(--line)] px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]"
+            className="font-mono rounded-full border border-[var(--line)] px-3 py-1 text-[10px] tracking-[0.14em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]"
           >
             compare 3 roles
           </button>
@@ -246,7 +297,7 @@ export function SecurityLab() {
           <table className="w-full border-collapse text-left">
             <thead className="bg-[var(--navy-700)]">
               <tr>
-                <th className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--text-2)]">action</th>
+                <th className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] tracking-[0.1em] text-[var(--text-2)]">action</th>
                 {roles.map((r) => (
                   <th key={r} className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] text-[var(--text-2)]">{shortRole(r)}</th>
                 ))}

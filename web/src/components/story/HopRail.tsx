@@ -6,8 +6,9 @@ export interface HopNode {
 }
 
 /**
- * Horizontal rail of nodes (circles = SATs, squares = stations) joined by
- * dashed segments. Hops at or before `active` glow Somaiya red.
+ * Hop rail: nodes (circles = SATs, squares = stations) joined by dashed
+ * line-art segments on transparent ground. Hops at or before `active` glow
+ * Somaiya red; the rest are thin dashed outlines.
  */
 export function HopRail({
   nodes,
@@ -36,15 +37,19 @@ export function HopRail({
                 <span
                   title={n.id}
                   className={cn(
-                    "block size-4 transition-colors duration-500",
-                    n.kind === "SAT" ? "rounded-full" : "rounded-[4px]",
+                    "block size-4 bg-transparent transition-colors duration-500",
+                    n.kind === "SAT" ? "rounded-full" : "rounded-[2px]",
                     lit
-                      ? "bg-[var(--ice)]"
-                      : "border border-dashed border-[var(--text-3)] bg-transparent"
+                      ? "border border-solid border-[var(--somaiya)]"
+                      : "border border-dashed border-[var(--text-3)]"
                   )}
                   style={
                     lit
-                      ? { boxShadow: "0 0 12px var(--ice)" }
+                      ? {
+                          boxShadow:
+                            "0 0 12px var(--somaiya), inset 0 0 6px rgba(215,38,61,0.55)",
+                          backgroundColor: "rgba(215,38,61,0.18)",
+                        }
                       : undefined
                   }
                 />
@@ -60,15 +65,15 @@ export function HopRail({
               {!isLast && (
                 <div className="relative mx-1 mb-6 h-px flex-1 border-t border-dashed border-[var(--text-3)]">
                   <div
-                    className="absolute inset-y-0 left-0 border-t-2 border-solid border-[var(--ice)] transition-all duration-700"
+                    className="absolute inset-y-0 left-0 border-t border-solid border-[var(--somaiya)] transition-all duration-700"
                     style={{
                       width: i < active ? "100%" : "0%",
-                      boxShadow: i < active ? "0 0 8px var(--ice)" : undefined,
+                      boxShadow: i < active ? "0 0 8px var(--somaiya)" : undefined,
                     }}
                   />
                   {i + 1 === active && (
                     <span
-                      className="absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--ice)]"
+                      className="absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--somaiya)]"
                       style={{ left: "100%", animation: "hop-pulse 1.1s ease-in-out infinite" }}
                     />
                   )}

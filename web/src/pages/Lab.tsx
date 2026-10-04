@@ -86,7 +86,7 @@ export default function Lab() {
   const initialTab = schemaTab === "mapping" || schemaTab === "constraints" ? schemaTab : "diagram";
 
   return (
-    <LabShell slug={lab} title={meta.title} chips={meta.chips} notice={meta.notice}>
+    <LabShell title={meta.title} chips={meta.chips} notice={meta.notice}>
       {lab === "transactions" && <TxLab />}
       {lab === "security" && <SecurityLab />}
       {lab === "indexing" && <IndexLab />}

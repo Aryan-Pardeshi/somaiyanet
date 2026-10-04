@@ -61,7 +61,7 @@ function TableNode({ data }: NodeProps) {
         {partitioned ? "▤ " : ""}{t.name}
       </p>
       {t.tag !== undefined && t.tag !== null && t.tag !== "" && (
-        <p className="font-mono mt-0.5 text-[9.5px] uppercase tracking-[0.1em] text-[var(--ice)]">{tagBadge(t.tag)}</p>
+        <p className="font-mono mt-0.5 text-[9.5px] tracking-[0.1em] text-[var(--ice)]">{tagBadge(t.tag)}</p>
       )}
       <div className="mt-1.5 flex flex-col gap-0.5">
         {t.columns.slice(0, 8).map((c) => (
@@ -89,8 +89,19 @@ export function SchemaLab({ initialTab = "diagram" }: { initialTab?: Tab }) {
 
   const load = useCallback(async () => {
     try {
-      const r = await apiFetch<SchemaData>("/api/labs/schema");
-      setData(r.data);
+      // Backend returns catalog-split rows (tables/columns/pks/fks/checks/...);
+      // assemble the SchemaData shape the diagram reads.
+      const r = await apiFetch<{
+        tables?: Array<{ table_name: string; kind?: string; comment?: string | null; tags?: string[] }>;
+        columns?: Array<{ table_name: string; column_name: string; data_type: string; nullable?: boolean; default_expr?: string | null; generated?: string }>;
+        pks?: Array<{ table_name: string; definition?: string }>;
+        fks?: Array<{ table_name: string; constraint_name?: string; definition?: string; ref_table?: string }>;
+        checks?: Array<Record<string, unknown>>;
+        partitions?: Array<{ parent: string; child: string }>;
+        views?: Array<Record<string, unknown>>;
+        mapping_notes?: string[];
+      }>("/api/labs/schema");
+      setData(assembleSchema(r.data));
       setBootError(null);
     } catch (e) {
       setBootError(e);
@@ -165,7 +176,7 @@ export function SchemaLab({ initialTab = "diagram" }: { initialTab?: Tab }) {
             role="tab"
             aria-selected={tab === t}
             onClick={() => setTab(t)}
-            className={`font-mono rounded-full border px-3.5 py-1.5 text-[11px] uppercase tracking-[0.14em] ${
+            className={`font-mono rounded-full border px-3.5 py-1.5 text-[11px] tracking-[0.14em] ${
               tab === t
                 ? "border-[var(--ice)] bg-[var(--navy-700)] text-[var(--text)]"
                 : "border-[var(--line)] text-[var(--text-2)] hover:text-[var(--text)]"
@@ -240,6 +251,86 @@ export function SchemaLab({ initialTab = "diagram" }: { initialTab?: Tab }) {
       )}
     </div>
   );
+}
+
+function parseFk(def: string, fallbackTo: string): { from: string[]; toTable: string; to: string[] } {
+  const m = /FOREIGN KEY \(([^)]+)\) REFERENCES (\S+)\(([^)]+)\)/.exec(def ?? "");
+  if (!m) return { from: [], toTable: fallbackTo, to: [] };
+  const cols = (s: string) => s.split(",").map((c) => c.trim().replace(/"/g, ""));
+  return { from: cols(m[1]), toTable: m[2].replace(/"/g, ""), to: cols(m[3]) };
+}
+
+function parsePkCols(def: string): string[] {
+  const m = /PRIMARY KEY \(([^)]+)\)/.exec(def ?? "");
+  return m ? m[1].split(",").map((c) => c.trim().replace(/"/g, "")) : [];
+}
+
+/** Assemble catalog rows into the diagram's SchemaData shape. */
+function assembleSchema(raw: {
+  tables?: Array<{ table_name: string; kind?: string; comment?: string | null; tags?: string[] }>;
+  columns?: Array<{ table_name: string; column_name: string; data_type: string; nullable?: boolean; default_expr?: string | null; generated?: string }>;
+  pks?: Array<{ table_name: string; definition?: string }>;
+  fks?: Array<{ table_name: string; constraint_name?: string; definition?: string; ref_table?: string }>;
+  checks?: Array<Record<string, unknown>>;
+  partitions?: Array<{ parent: string; child: string }>;
+  views?: Array<Record<string, unknown>>;
+  mapping_notes?: string[];
+}): SchemaData {
+  const pkByTable = new Map<string, Set<string>>();
+  for (const p of raw.pks ?? []) {
+    const set = pkByTable.get(p.table_name) ?? new Set<string>();
+    for (const c of parsePkCols(p.definition ?? "")) set.add(c);
+    pkByTable.set(p.table_name, set);
+  }
+  const fkColsByTable = new Map<string, Set<string>>();
+  const fks: SchemaData["fks"] = [];
+  for (const f of raw.fks ?? []) {
+    const parsed = parseFk(f.definition ?? "", f.ref_table ?? "");
+    const set = fkColsByTable.get(f.table_name) ?? new Set<string>();
+    for (const c of parsed.from) set.add(c);
+    fkColsByTable.set(f.table_name, set);
+    fks.push({
+      from_table: f.table_name,
+      from_cols: parsed.from,
+      to_table: parsed.toTable,
+      to_cols: parsed.to,
+    });
+  }
+  const colsByTable = new Map<string, SchemaTable["columns"]>();
+  for (const c of raw.columns ?? []) {
+    const list = colsByTable.get(c.table_name) ?? [];
+    list.push({
+      name: c.column_name,
+      type: c.data_type,
+      nullable: c.nullable ?? true,
+      def: c.default_expr,
+      generated: Boolean(c.generated),
+      pk: pkByTable.get(c.table_name)?.has(c.column_name) ?? false,
+      fk: fkColsByTable.get(c.table_name)?.has(c.column_name) ?? false,
+    });
+    colsByTable.set(c.table_name, list);
+  }
+  const tables: SchemaTable[] = (raw.tables ?? []).map((t) => ({
+    name: t.table_name,
+    comment: t.comment,
+    tag: (t.tags ?? [])[0] ?? null,
+    columns: colsByTable.get(t.table_name) ?? [],
+    pks: [...(pkByTable.get(t.table_name) ?? [])],
+  }));
+  const partitions = raw.partitions ?? [];
+  return {
+    tables,
+    fks,
+    constraints: raw.checks ?? [],
+    partitions: partitions as unknown as SchemaData["partitions"],
+    views: viewsToRecords(raw.views),
+    mapping_notes: raw.mapping_notes ?? [],
+    partition_count: partitions.filter((p) => p.parent === "telemetry").length || partitions.length,
+  };
+}
+
+function viewsToRecords(views?: Array<Record<string, unknown>>): SchemaData["views"] {
+  return (views ?? []) as SchemaData["views"];
 }
 
 function fallbackTables(): SchemaTable[] {

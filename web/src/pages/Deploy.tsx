@@ -191,10 +191,10 @@ export default function Deploy() {
       setLastLog(ok.log ? [ok.log] : []);
       refresh(pod);
     } catch (e) {
-      // Failure path: backend returns before/after inside the error body.
+      // Failure path: the error envelope carries before/after in err.data.
       if (e instanceof ApiError) {
         setError(e);
-        const data = (e as unknown as { data?: ConfirmFail }).data;
+        const data = (e.data ?? undefined) as ConfirmFail | undefined;
         if (data?.before) {
           setBefore(data.before);
           setAfter(data.after);
@@ -294,7 +294,7 @@ export default function Deploy() {
         {/* Pod selector + illustration */}
         <section className="mt-6 grid gap-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4 lg:grid-cols-2">
           <div>
-            <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-3)]">
+            <label className="font-mono text-[10px] tracking-[0.16em] text-[var(--text-3)]">
               pod
             </label>
             <select
@@ -333,7 +333,7 @@ export default function Deploy() {
 
           {/* Signals + actions */}
           <div>
-            <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
+            <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
               deploy signals · {confirmedCount} of 3 confirmed (need 2)
             </h2>
             <div className="mt-2 flex flex-col gap-2">
@@ -361,13 +361,13 @@ export default function Deploy() {
                       <button
                         onClick={() => setOkState((p) => ({ ...p, [s]: !(p[s] ?? true) }))}
                         aria-label={`Toggle ok for ${s}`}
-                        className="font-mono rounded-full border border-[var(--line)] px-2.5 py-1 text-[10px] uppercase tracking-[0.1em] text-[var(--text-2)]"
+                        className="font-mono rounded-full border border-[var(--line)] px-2.5 py-1 text-[10px] tracking-[0.1em] text-[var(--text-2)]"
                       >
                         ok: {okState[s] ? "true" : "false"}
                       </button>
                       <button
                         onClick={() => void onSignal(s)}
-                        className="font-mono rounded-full bg-[var(--ice)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#04122e] hover:scale-105"
+                        className="font-mono rounded-full bg-[var(--ice)] px-3 py-1 text-[10px] font-semibold tracking-[0.1em] text-[#04122e] hover:scale-105"
                       >
                         send
                       </button>
@@ -380,21 +380,21 @@ export default function Deploy() {
               <button
                 onClick={() => void onConfirm(false)}
                 disabled={busy !== null}
-                className="font-mono rounded-full bg-[var(--ice)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#04122e] hover:scale-[1.02] disabled:opacity-50"
+                className="font-mono rounded-full bg-[var(--ice)] px-4 py-2 text-[11px] font-semibold tracking-[0.14em] text-[#04122e] hover:scale-[1.02] disabled:opacity-50"
               >
                 {busy === "confirm" ? "confirming…" : "Confirm deployment"}
               </button>
               <button
                 onClick={() => void onConfirm(true)}
                 disabled={busy !== null}
-                className="font-mono rounded-full border border-[var(--warn)]/60 px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-[var(--warn)] hover:bg-[var(--navy-700)] disabled:opacity-50"
+                className="font-mono rounded-full border border-[var(--warn)]/60 px-4 py-2 text-[11px] tracking-[0.14em] text-[var(--warn)] hover:bg-[var(--navy-700)] disabled:opacity-50"
               >
                 {busy === "fail" ? "failing…" : "Simulate failure"}
               </button>
               <button
                 onClick={() => void onReset()}
                 disabled={busy !== null}
-                className="font-mono rounded-full border border-[var(--line)] px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-[var(--text-2)] hover:text-[var(--text)] disabled:opacity-50"
+                className="font-mono rounded-full border border-[var(--line)] px-4 py-2 text-[11px] tracking-[0.14em] text-[var(--text-2)] hover:text-[var(--text)] disabled:opacity-50"
               >
                 {busy === "reset" ? "resetting…" : "Reset demo"}
               </button>
@@ -406,12 +406,12 @@ export default function Deploy() {
         {(before !== null || after !== null) && (
           <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
+              <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
                 before / after
               </h2>
               {rolledBack && (
                 <span className="font-mono rotate-[-2deg] rounded border-2 border-[var(--warn)] px-2 py-0.5 text-[11px] tracking-[0.14em] text-[var(--warn)]">
-                  ROLLED BACK
+                  Rolled back
                 </span>
               )}
             </div>
@@ -467,7 +467,7 @@ export default function Deploy() {
 
         {/* State machine + illegal jump */}
         <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
+          <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
             state machine · trg_satellite_state
           </h2>
           <div className="mt-3">
@@ -476,13 +476,13 @@ export default function Deploy() {
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               onClick={() => void onIllegal()}
-              className="font-mono rounded-full border border-[var(--ice)]/60 px-4 py-1.5 text-[11px] uppercase tracking-[0.12em] text-[var(--text)] hover:bg-[var(--navy-700)]"
+              className="font-mono rounded-full border border-[var(--ice)]/60 px-4 py-1.5 text-[11px] tracking-[0.12em] text-[var(--text)] hover:bg-[var(--navy-700)]"
             >
               Try illegal jump (STOWED → NOMINAL)
             </button>
             <Link
               to="/labs/transactions"
-              className="font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--ice)] hover:underline"
+              className="font-mono text-[11px] tracking-[0.12em] text-[var(--ice)] hover:underline"
             >
               Open transactions lab
             </Link>
@@ -496,12 +496,12 @@ export default function Deploy() {
 
         {/* Pass execution */}
         <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
+          <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
             pass execution · SAVEPOINT demo · execute_pass()
           </h2>
           <div className="mt-3 grid gap-2 sm:grid-cols-3">
             <label className="flex flex-col gap-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
+              <span className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">
                 sat
               </span>
               <select
@@ -517,7 +517,7 @@ export default function Deploy() {
               </select>
             </label>
             <label className="flex flex-col gap-1.5 sm:col-span-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
+              <span className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">
                 downlink contact
               </span>
               <select
@@ -538,14 +538,14 @@ export default function Deploy() {
             <button
               onClick={() => void onPass(false)}
               disabled={busy !== null || passContactId === null}
-              className="font-mono rounded-full bg-[var(--ice)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#04122e] hover:scale-[1.02] disabled:opacity-50"
+              className="font-mono rounded-full bg-[var(--ice)] px-4 py-2 text-[11px] font-semibold tracking-[0.14em] text-[#04122e] hover:scale-[1.02] disabled:opacity-50"
             >
               {busy === "pass" ? "executing…" : "Execute pass"}
             </button>
             <button
               onClick={() => void onPass(true)}
               disabled={busy !== null || passContactId === null}
-              className="font-mono rounded-full border border-[var(--warn)]/60 px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-[var(--warn)] hover:bg-[var(--navy-700)] disabled:opacity-50"
+              className="font-mono rounded-full border border-[var(--warn)]/60 px-4 py-2 text-[11px] tracking-[0.14em] text-[var(--warn)] hover:bg-[var(--navy-700)] disabled:opacity-50"
             >
               {busy === "pass-fail" ? "failing…" : "Execute with stage-2 failure"}
             </button>
@@ -567,7 +567,7 @@ export default function Deploy() {
                         }}
                       />
                       <p className="font-mono text-[12px] text-[var(--text)]">
-                        {st.stage} · {rolled ? "ROLLED BACK TO SAVEPOINT" : st.status}
+                        {st.stage} · {rolled ? "Rolled back to savepoint" : st.status}
                       </p>
                       <p className="font-mono text-[11px] text-[var(--text-2)]">
                         {st.packets} packets · {st.bytes} bytes
@@ -577,7 +577,7 @@ export default function Deploy() {
                 })}
               </ol>
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
+                <p className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">
                   queued bytes by mode · before → after
                 </p>
                 <div className="mt-2 flex flex-col gap-2">

@@ -77,9 +77,13 @@ export interface IndexRunResult {
   ms_after?: number | null;
   node_before?: string | null;
   node_after?: string | null;
+  nodes_before?: string[] | null;
+  nodes_after?: string[] | null;
   buffers_before?: number | null;
   buffers_after?: number | null;
   index_size?: string | null;
+  sizes?: Array<Record<string, unknown>> | null;
+  query?: IndexQuery | null;
 }
 
 export interface NormStage {

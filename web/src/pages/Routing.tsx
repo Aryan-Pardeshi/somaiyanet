@@ -167,7 +167,8 @@ export default function Routing() {
     : [];
 
   const queueByMode = QUEUE_ORDER.map((m) => {
-    const rows = queue.filter((q) => q.mode === m);
+    // v_queue_by_mode carries every status; the bars show the dispatchable queue only.
+    const rows = queue.filter((q) => q.mode === m && q.status === "QUEUED");
     return {
       mode: m,
       packets: rows.reduce((a, r) => a + Number(r.packets), 0),
@@ -207,7 +208,7 @@ export default function Routing() {
         {/* Controls */}
         <section className="mt-6 grid gap-3 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4 sm:grid-cols-2 lg:grid-cols-5">
           <label className="flex flex-col gap-1.5">
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-3)]">
+            <span className="font-mono text-[10px] tracking-[0.16em] text-[var(--text-3)]">
               origin sat
             </span>
             <select
@@ -223,7 +224,7 @@ export default function Routing() {
             </select>
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-3)]">
+            <span className="font-mono text-[10px] tracking-[0.16em] text-[var(--text-3)]">
               time t0
             </span>
             <span className="flex gap-1.5">
@@ -235,14 +236,14 @@ export default function Routing() {
               />
               <button
                 onClick={() => setT0Local(toIsoLocal(new Date()))}
-                className="font-mono shrink-0 rounded-lg border border-[var(--line)] px-2.5 text-[11px] uppercase tracking-[0.12em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]"
+                className="font-mono shrink-0 rounded-lg border border-[var(--line)] px-2.5 text-[11px] tracking-[0.12em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]"
               >
                 now
               </button>
             </span>
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-3)]">
+            <span className="font-mono text-[10px] tracking-[0.16em] text-[var(--text-3)]">
               size · {formatBytes(size)} · ≈{txSeconds(size).toFixed(1)}s @9600bps
             </span>
             <input
@@ -256,7 +257,7 @@ export default function Routing() {
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-3)]">
+            <span className="font-mono text-[10px] tracking-[0.16em] text-[var(--text-3)]">
               max hops · {maxHops}
             </span>
             <input
@@ -273,7 +274,7 @@ export default function Routing() {
             <button
               onClick={() => void onFind()}
               disabled={loading}
-              className="font-mono w-full rounded-full bg-[var(--ice)] px-4 py-2.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#04122e] hover:scale-[1.02] disabled:opacity-50"
+              className="font-mono w-full rounded-full bg-[var(--ice)] px-4 py-2.5 text-[12px] font-semibold tracking-[0.14em] text-[#04122e] hover:scale-[1.02] disabled:opacity-50"
             >
               {loading ? "routing…" : "Find routes"}
             </button>
@@ -283,7 +284,7 @@ export default function Routing() {
         {/* Results + globe */}
         <section className="mt-6 flex flex-col gap-6 lg:flex-row">
           <div className="w-full lg:w-[45%]">
-            <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
+            <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
               routes · earliest arrival wins
             </h2>
             {routes.length === 0 ? (
@@ -341,7 +342,7 @@ export default function Routing() {
             {selected !== null && (
               <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
                 <span className="flex items-center gap-2">
-                  <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
+                  <h3 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
                     hops · POST /api/routing/plan
                   </h3>
                   {planning && (
@@ -389,7 +390,7 @@ export default function Routing() {
                           })),
                         )
                       }
-                      className="font-mono mt-3 rounded-full border border-[var(--ice)]/60 px-4 py-1.5 text-[11px] uppercase tracking-[0.14em] text-[var(--text)] hover:bg-[var(--navy-700)]"
+                      className="font-mono mt-3 rounded-full border border-[var(--ice)]/60 px-4 py-1.5 text-[11px] tracking-[0.14em] text-[var(--text)] hover:bg-[var(--navy-700)]"
                     >
                       Replay
                     </button>
@@ -400,7 +401,7 @@ export default function Routing() {
 
             {/* Queue panel */}
             <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-              <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
+              <h3 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
                 queue · {origin} · v_queue_by_mode
               </h3>
               <div className="mt-3 flex flex-col gap-2">
@@ -455,7 +456,7 @@ export default function Routing() {
 
         {/* Why this route */}
         <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
+          <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
             why this route?
           </h2>
           <p className="mt-2 max-w-[80ch] text-sm leading-relaxed text-[var(--text-2)]">

@@ -3,8 +3,9 @@ import { ScrollTrigger } from "@/lib/gsap"
 import { cn } from "@/lib/utils"
 
 /**
- * A DB row as a key/value card that "inserts" with a slide plus a red flash
- * the first time it scrolls into view. Reduced motion shows the end state.
+ * A DB row as line art: a thin 1 px --line box on transparent ground that
+ * "inserts" with a slide plus a faint ice flash the first time it scrolls
+ * into view. Reduced motion shows the end state.
  */
 export function RowCard({
   title,
@@ -41,7 +42,7 @@ export function RowCard({
     <div
       ref={ref}
       className={cn(
-        "w-full rounded-xl border border-[var(--line)] bg-[var(--navy-800)] transition-all duration-700",
+        "w-full border border-[var(--line)] bg-transparent transition-all duration-700",
         inView
           ? "translate-x-0 opacity-100"
           : "-translate-x-6 opacity-0",
@@ -55,17 +56,17 @@ export function RowCard({
     >
       <style>{`
         @keyframes row-flash {
-          0% { box-shadow: inset 0 0 0 999px rgba(127, 178, 255, 0.22); }
+          0% { box-shadow: inset 0 0 0 999px rgba(127, 178, 255, 0.12); }
           100% { box-shadow: inset 0 0 0 999px rgba(127, 178, 255, 0); }
         }
       `}</style>
-      <p className="border-b border-[var(--line)] px-4 py-2 text-[13px] font-medium text-[var(--text-2)]">
+      <p className="font-mono border-b border-[var(--line)] px-4 py-2 text-[12px] tracking-[0.08em] text-[var(--text-2)]">
         {title}
       </p>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 px-4 py-3">
         {rows.map(([k, v]) => (
           <div key={k} className="contents">
-            <dt className="text-[12px] text-[var(--text-2)]">{k}</dt>
+            <dt className="font-mono text-[12px] text-[var(--text-3)]">{k}</dt>
             <dd className="font-mono text-[12px] text-[var(--text)]">{v}</dd>
           </div>
         ))}

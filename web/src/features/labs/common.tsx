@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
 import { highlightSql } from "@/app/sql";
 import { BackendOffline } from "@/app/SqlDrawer";
 import { ApiError } from "@/app/api";
@@ -14,42 +13,18 @@ export const LABS = [
 ] as const;
 
 export function LabShell({
-  slug,
   title,
   chips,
   notice,
   children,
 }: {
-  slug: string;
   title: string;
   chips: string[];
   notice: string[];
   children: ReactNode;
 }) {
   return (
-    <div className="shell grid gap-6 py-8 lg:grid-cols-[200px_minmax(0,1fr)]">
-      <nav aria-label="Labs" className="lg:sticky lg:top-20 lg:self-start">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-3)]">
-          Labs
-        </p>
-        <ul className="mt-2 flex gap-2 overflow-x-auto lg:flex-col lg:overflow-visible">
-          {LABS.map((l) => (
-            <li key={l.slug} className="shrink-0">
-              <Link
-                to={`/labs/${l.slug}`}
-                aria-current={l.slug === slug ? "page" : undefined}
-                className={`font-mono block rounded-lg border px-3 py-2 text-[11px] uppercase tracking-[0.14em] ${
-                  l.slug === slug
-                    ? "border-[var(--ice)] bg-[var(--navy-700)] text-[var(--text)]"
-                    : "border-[var(--line)] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]"
-                }`}
-              >
-                {l.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+    <div className="shell grid gap-6 py-8 lg:grid-cols-[minmax(0,1fr)]">
       <div className="min-w-0">
         <p className="text-[13px] font-medium text-[var(--text-2)]">{title}</p>
         <div className="mt-2 flex flex-wrap gap-1.5">
@@ -63,7 +38,7 @@ export function LabShell({
           ))}
         </div>
         <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--warn)]">
+          <p className="font-mono text-[10px] tracking-[0.18em] text-[var(--warn)]">
             What the examiner should notice
           </p>
           <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-[13px] leading-relaxed text-[var(--text-2)]">
@@ -88,7 +63,7 @@ export function Card({ title, kicker, children, aside }: {
     <section className="min-w-0 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
       <div className="flex flex-wrap items-center gap-2">
         {kicker !== undefined && (
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-3)]">
+          <span className="font-mono text-[10px] tracking-[0.18em] text-[var(--text-3)]">
             {kicker}
           </span>
         )}
@@ -104,7 +79,7 @@ export function SqlBlock({ label, sql }: { label?: string; sql: string }) {
   return (
     <div className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-2.5">
       {label !== undefined && (
-        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
+        <p className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">
           {label}
         </p>
       )}
@@ -197,13 +172,13 @@ export function OfflineOrEmpty({
   if (e?.status === 0 || e?.status === 404) return <BackendOffline onRetry={onRetry} />;
   return (
     <div className="rounded-xl border border-dashed border-[var(--line)] bg-[var(--navy-800)] p-6 text-center">
-      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--text-2)]">
+      <p className="font-mono text-[11px] tracking-[0.16em] text-[var(--text-2)]">
         Lab backend pending
       </p>
       <p className="font-mono mt-2 text-[11px] text-[var(--text-3)]">{hint}</p>
       <button
         onClick={onRetry}
-        className="font-mono mt-3 rounded-full border border-[var(--line)] px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]"
+        className="font-mono mt-3 rounded-full border border-[var(--line)] px-3 py-1 text-[10px] tracking-[0.14em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]"
       >
         retry
       </button>
@@ -261,7 +236,7 @@ function PlanNode({ node, depth }: { node: Record<string, unknown>; depth: numbe
       </p>
       {kids.length > 0 && (
         <details className="mt-2" open={depth < 2}>
-          <summary className="font-mono cursor-pointer text-[10px] uppercase tracking-[0.14em] text-[var(--text-2)]">
+          <summary className="font-mono cursor-pointer text-[10px] tracking-[0.14em] text-[var(--text-2)]">
             {kids.length} child{kids.length > 1 ? "ren" : ""}
           </summary>
           <div className="mt-2 flex flex-col gap-2">

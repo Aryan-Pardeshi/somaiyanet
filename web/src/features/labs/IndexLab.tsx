@@ -84,11 +84,12 @@ export function IndexLab() {
   const bulk = async () => {
     setBulkMsg("loading…");
     try {
-      const r = await apiFetch<{ rows: number }>("/api/labs/index/bulk", {
+      // Backend returns {inserted}; keep the load small (≤ 50k rows).
+      const r = await apiFetch<{ inserted?: number; rows?: number }>("/api/labs/index/bulk", {
         method: "POST",
-        body: JSON.stringify({ rows: 500000 }),
+        body: JSON.stringify({ rows: 50000 }),
       });
-      setBulkMsg(`inserted ${r.data.rows ?? 500000} rows (director only)`);
+      setBulkMsg(`inserted ${r.data.inserted ?? r.data.rows ?? 50000} rows (director only)`);
       await load();
     } catch (e) {
       const err = e as { message?: string; sqlstate?: string };
@@ -123,7 +124,7 @@ export function IndexLab() {
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {shownCatalog.map((c) => (
             <div key={c.key} className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-3">
-              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--warn)]">{c.kind}</p>
+              <p className="font-mono text-[11px] tracking-[0.12em] text-[var(--warn)]">{c.kind}</p>
               <p className="font-mono mt-1 text-[12.5px] font-bold text-[var(--text)]">{c.key}</p>
               <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-2)]">{c.purpose}</p>
               <SqlBlock sql={c.ddl} />
@@ -146,10 +147,10 @@ export function IndexLab() {
         aside={
           <button
             onClick={() => void bulk()}
-            title="Director only: bench_bulk_telemetry(500000)"
-            className="font-mono rounded-full border border-[var(--warn)]/60 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--warn)] hover:scale-105"
+            title="Director only: bench_bulk_telemetry(50000)"
+            className="font-mono rounded-full border border-[var(--warn)]/60 px-3 py-1 text-[10px] tracking-[0.14em] text-[var(--warn)] hover:scale-105"
           >
-            bulk load 500k rows
+            bulk load 50k rows
           </button>
         }
       >
@@ -157,7 +158,7 @@ export function IndexLab() {
           <p className="font-mono mb-2 text-[11px] text-[var(--text-2)]">{bulkMsg}</p>
         )}
         <div className="flex flex-wrap items-center gap-2">
-          <label htmlFor="idx-q" className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">Query</label>
+          <label htmlFor="idx-q" className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">Query</label>
           <select
             id="idx-q"
             value={qk}
@@ -172,7 +173,7 @@ export function IndexLab() {
               <option key={q.key} value={q.key}>{q.title}</option>
             ))}
           </select>
-          <label htmlFor="idx-i" className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">Index</label>
+          <label htmlFor="idx-i" className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">Index</label>
           <select
             id="idx-i"
             value={indexKey || activeQuery?.best_index}
@@ -186,7 +187,7 @@ export function IndexLab() {
           <button
             onClick={() => void run()}
             disabled={running}
-            className="font-mono rounded-full bg-[var(--ice)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#04122e] hover:scale-105 disabled:opacity-40"
+            className="font-mono rounded-full bg-[var(--ice)] px-4 py-1.5 text-[11px] font-semibold tracking-[0.14em] text-[#04122e] hover:scale-105 disabled:opacity-40"
           >
             {running ? "running…" : "run"}
           </button>
@@ -206,22 +207,20 @@ export function IndexLab() {
                   </div>
                   <p className="font-mono mt-1.5 text-[11px] text-[var(--text-2)]">
                     {b.ms !== null && b.ms !== undefined ? `${(b.ms as number).toFixed(2)} ms` : "timing n/a"}
-                    {result.buffers_before !== undefined && i === 0 && result.buffers_before !== null ? ` · buffers ${result.buffers_before}` : ""}
-                    {result.buffers_after !== undefined && i === 1 && result.buffers_after !== null ? ` · buffers ${result.buffers_after}` : ""}
                   </p>
                   <p className="font-mono mt-0.5 text-[10.5px] text-[var(--text-3)]">
-                    scan {b.node ?? "?"} · index size {result.index_size ?? "n/a"}
+                    scan {b.node ?? "?"} · {(i === 0 ? result.nodes_before : result.nodes_after)?.join(" → ") ?? ""} · index size {sizeFor(result, indexKey)}
                   </p>
                 </div>
               ))}
             </div>
             <div className="grid gap-3 md:grid-cols-2">
               <div>
-                <p className="font-mono mb-1 text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">plan before</p>
+                <p className="font-mono mb-1 text-[10px] tracking-[0.14em] text-[var(--text-3)]">plan before</p>
                 <PlanTree plan={result.plan_before} />
               </div>
               <div>
-                <p className="font-mono mb-1 text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">plan after</p>
+                <p className="font-mono mb-1 text-[10px] tracking-[0.14em] text-[var(--text-3)]">plan after</p>
                 <PlanTree plan={result.plan_after} />
               </div>
             </div>
@@ -250,6 +249,13 @@ export function IndexLab() {
       </Card>
     </div>
   );
+}
+
+function sizeFor(result: IndexRunResult, indexKey: string): string {
+  const sizes = result.sizes ?? [];
+  const hit = sizes.find((s) => String(s["key"] ?? s["index"] ?? s["name"] ?? "") === indexKey);
+  const size = hit ? (hit["size"] ?? hit["bytes"] ?? hit["index_size"]) : undefined;
+  return size !== undefined && size !== null ? String(size) : (result.index_size ?? "n/a");
 }
 
 function fallbackCatalog(): IndexCatalogEntry[] {

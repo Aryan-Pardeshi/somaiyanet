@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch, ApiError } from "@/app/api";
 import { highlightSql } from "@/app/sql";
 import { Card, DataGrid, OfflineOrEmpty, SqlBlock } from "./common";
-import type { TxExecResult, TxLabState, TxScenario, TxStep } from "./types";
+import type { TxExecResult, TxLabState, TxScenario, TxSessionState, TxStep } from "./types";
 
 const FALLBACK_SCENARIOS: TxScenario[] = [
   { key: "lost_update", title: "Lost update", description: "READ COMMITTED read-modify-write loses A's update; FOR UPDATE fixes it.", steps: [
@@ -97,11 +97,20 @@ export function TxLab() {
 
   const loadScenarios = useCallback(async () => {
     try {
-      const r = await apiFetch<TxScenario[]>("/api/labs/tx/scenarios");
-      if (Array.isArray(r.data) && r.data.length > 0) {
-        setScenarios(r.data);
+      // Backend returns a dict {key: {title, steps}}; normalize to an array.
+      const r = await apiFetch<Record<string, { title?: string; description?: string; steps?: TxStep[] }>>(
+        "/api/labs/tx/scenarios",
+      );
+      const list: TxScenario[] = Object.entries(r.data ?? {}).map(([key, v]) => ({
+        key,
+        title: v.title ?? key,
+        description: v.description ?? "",
+        steps: v.steps ?? [],
+      }));
+      if (list.length > 0) {
+        setScenarios(list);
         setUsingFallback(false);
-        setScenarioKey((k) => (r.data.some((s) => s.key === k) ? k : r.data[0].key));
+        setScenarioKey((k) => (list.some((s) => s.key === k) ? k : list[0].key));
       }
     } catch {
       setScenarios(FALLBACK_SCENARIOS);
@@ -146,8 +155,29 @@ export function TxLab() {
   const refreshState = useCallback(async () => {
     if (labId === null) return;
     try {
-      const r = await apiFetch<TxLabState>(`/api/labs/tx/${encodeURIComponent(labId)}/state`);
-      setState(r.data);
+      // Backend shape: {lab_id, A: {pid, result, activity, locks, xact}, B: {...}}.
+      const r = await apiFetch<{
+        A?: Record<string, unknown>;
+        B?: Record<string, unknown>;
+      }>(`/api/labs/tx/${encodeURIComponent(labId)}/state`);
+      const norm = (s?: Record<string, unknown> | null): TxSessionState | null => {
+        if (!s) return null;
+        const activity = (s["activity"] ?? null) as Record<string, unknown> | null;
+        const blocked = activity?.["blocked_by"];
+        return {
+          status: String(s["xact"] ?? "idle"),
+          activity,
+          blocking_pids: Array.isArray(blocked) ? (blocked as number[]) : [],
+          result: (s["result"] ?? null) as TxSessionState["result"],
+        };
+      };
+      const aLocks = ((r.data.A?.["locks"] ?? []) as Array<Record<string, unknown>>);
+      const bLocks = ((r.data.B?.["locks"] ?? []) as Array<Record<string, unknown>>);
+      setState({
+        session_a: norm(r.data.A),
+        session_b: norm(r.data.B),
+        locks: [...aLocks, ...bLocks],
+      });
     } catch {
       // Poll failures are transient; keep the last snapshot.
     }
@@ -184,11 +214,32 @@ export function TxLab() {
       if (labId === null || sql.trim() === "") return;
       setBusy(true);
       try {
-        const r = await apiFetch<TxExecResult>(
+        const r = await apiFetch<Record<string, unknown>>(
           `/api/labs/tx/${encodeURIComponent(labId)}/exec`,
           { method: "POST", body: JSON.stringify({ session, sql }) },
         );
-        const res = r.data;
+        // Backend error shape nests the failure: {status:"error",error:{sqlstate,message}}.
+        const raw = r.data as Record<string, unknown> & {
+          status?: string;
+          error?: { sqlstate?: string; message?: string };
+        };
+        let res: TxExecResult;
+        if (raw.status === "error" && raw.error) {
+          res = {
+            status: "done",
+            sqlstate: raw.error.sqlstate ?? null,
+            message: raw.error.message ?? null,
+          };
+        } else {
+          res = {
+            status: raw.status === "waiting" ? "waiting" : "done",
+            rows: (raw["rows"] ?? undefined) as TxExecResult["rows"],
+            rowcount: (raw["rowcount"] ?? undefined) as number | undefined,
+            notice: (raw["notice"] ?? null) as string | null,
+            sqlstate: (raw["sqlstate"] ?? null) as string | null,
+            message: (raw["message"] ?? null) as string | null,
+          };
+        }
         const label = res.status === "waiting" ? "waiting" : res.sqlstate ? `error:${res.sqlstate}` : "done";
         const detail =
           res.status === "waiting"
@@ -280,17 +331,17 @@ export function TxLab() {
         kicker="Exp 9 · CO1/CO4"
         aside={
           <div className="flex gap-2">
-            <button onClick={() => void reset()} className="font-mono rounded-full border border-[var(--line)] px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]">
+            <button onClick={() => void reset()} className="font-mono rounded-full border border-[var(--line)] px-3 py-1 text-[10px] tracking-[0.14em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]">
               reset
             </button>
-            <button onClick={() => void newSession()} className="font-mono rounded-full bg-[var(--ice)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#04122e] hover:scale-105">
+            <button onClick={() => void newSession()} className="font-mono rounded-full bg-[var(--ice)] px-3 py-1 text-[10px] font-semibold tracking-[0.14em] text-[#04122e] hover:scale-105">
               new lab session
             </button>
           </div>
         }
       >
         <div className="flex flex-wrap items-center gap-2">
-          <label htmlFor="tx-scenario" className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
+          <label htmlFor="tx-scenario" className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">
             Scenario
           </label>
           <select
@@ -304,7 +355,7 @@ export function TxLab() {
             ))}
           </select>
           {usingFallback && (
-            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--warn)]">
+            <span className="font-mono text-[10px] tracking-[0.12em] text-[var(--warn)]">
               script preview · backend offline
             </span>
           )}
@@ -342,7 +393,7 @@ export function TxLab() {
           <button
             onClick={nextStep}
             disabled={busy || doneSteps || labId === null}
-            className="font-mono rounded-full bg-[var(--ice)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#04122e] hover:scale-105 disabled:opacity-40"
+            className="font-mono rounded-full bg-[var(--ice)] px-4 py-1.5 text-[11px] font-semibold tracking-[0.14em] text-[#04122e] hover:scale-105 disabled:opacity-40"
           >
             {doneSteps ? "script complete" : busy ? "running…" : `next step (${stepIdx + 1}/${scenario.steps.length})`}
           </button>
@@ -361,13 +412,13 @@ export function TxLab() {
               title={`Session ${s}`}
               kicker={s === "A" ? `pid ${pids.a ?? "…"}` : `pid ${pids.b ?? "…"}`}
               aside={
-                <span className={`font-mono rounded-full border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.14em] ${pill(statusLabel)}`}>
+                <span className={`font-mono rounded-full border px-2.5 py-0.5 text-[10px] tracking-[0.14em] ${pill(statusLabel)}`}>
                   {statusLabel}
                 </span>
               }
             >
               <div className="flex flex-col gap-2">
-                <label htmlFor={`tx-sql-${s}`} className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
+                <label htmlFor={`tx-sql-${s}`} className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">
                   Ad-hoc SQL · ctrl+enter runs
                 </label>
                 <textarea
@@ -390,7 +441,7 @@ export function TxLab() {
                   <button
                     onClick={() => { void exec(s, inputs[s], null); setInputs((p) => ({ ...p, [s]: "" })); }}
                     disabled={busy || labId === null || inputs[s].trim() === ""}
-                    className="font-mono rounded-full border border-[var(--line)] px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)] disabled:opacity-40"
+                    className="font-mono rounded-full border border-[var(--line)] px-3 py-1 text-[10px] tracking-[0.14em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)] disabled:opacity-40"
                   >
                     run
                   </button>
@@ -436,7 +487,7 @@ export function TxLab() {
                 <thead className="bg-[var(--navy-700)]">
                   <tr>
                     {["pid", "locktype", "mode", "granted", "relation"].map((c) => (
-                      <th key={c} className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--text-2)]">{c}</th>
+                      <th key={c} className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] tracking-[0.1em] text-[var(--text-2)]">{c}</th>
                     ))}
                   </tr>
                 </thead>
@@ -461,7 +512,7 @@ export function TxLab() {
           )}
           {state?.lab_table !== undefined && state.lab_table !== null && state.lab_table.length > 0 && (
             <div>
-              <p className="font-mono mb-1 text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
+              <p className="font-mono mb-1 text-[10px] tracking-[0.14em] text-[var(--text-3)]">
                 lab_account
               </p>
               <DataGrid rows={state.lab_table as Array<Record<string, unknown>>} />
@@ -506,7 +557,7 @@ function WaitGraph({ pidA, pidB, aBlocked, bBlocked, cycle }: {
           <text x="180" y="46" textAnchor="middle" fill="var(--text-3)">no waits</text>
         )}
         {cycle && (
-          <text x="180" y="20" textAnchor="middle" fill="var(--danger)">DEADLOCK CYCLE</text>
+          <text x="180" y="20" textAnchor="middle" fill="var(--danger)">Deadlock cycle</text>
         )}
       </g>
     </svg>
@@ -519,7 +570,7 @@ function OutcomeCallouts({ scenarioKey, logs }: { scenarioKey: string; logs: Log
   if (scenarioKey === "phantom_or_write_skew" && has40001) {
     return (
       <div role="alert" className="rounded-xl border border-[var(--ice)] bg-[var(--navy-800)] p-4">
-        <p className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--ice)]">
+        <p className="font-mono text-[12px] tracking-[0.16em] text-[var(--ice)]">
           Serialization failure · 40001 — retry the transaction
         </p>
         <p className="mt-1 text-[13px] text-[var(--text-2)]">
@@ -531,7 +582,7 @@ function OutcomeCallouts({ scenarioKey, logs }: { scenarioKey: string; logs: Log
   if (scenarioKey === "deadlock" && has40P01) {
     return (
       <div role="alert" className="rounded-xl border border-[var(--ice)] bg-[var(--navy-800)] p-4">
-        <p className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--ice)]">
+        <p className="font-mono text-[12px] tracking-[0.16em] text-[var(--ice)]">
           Deadlock detected · 40P01 — Postgres aborted one victim
         </p>
         <p className="mt-1 text-[13px] text-[var(--text-2)]">
@@ -547,8 +598,8 @@ function OutcomeCallouts({ scenarioKey, logs }: { scenarioKey: string; logs: Log
       const overlap = idsA.filter((x) => idsB.includes(x));
       return (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--ok)]">
-            SKIP LOCKED — {overlap.length === 0 ? "disjoint ✓" : `overlap ✗ (${overlap.length})`}
+          <p className="font-mono text-[11px] tracking-[0.16em] text-[var(--ok)]">
+            Skip locked — {overlap.length === 0 ? "disjoint ✓" : `overlap ✗ (${overlap.length})`}
           </p>
           <p className="font-mono mt-2 text-[11px] text-[var(--text-2)]">A: [{idsA.slice(0, 12).join(", ")}]{idsA.length > 12 ? "…" : ""}</p>
           <p className="font-mono mt-1 text-[11px] text-[var(--text-2)]">B: [{idsB.slice(0, 12).join(", ")}]{idsB.length > 12 ? "…" : ""}</p>
@@ -559,7 +610,7 @@ function OutcomeCallouts({ scenarioKey, logs }: { scenarioKey: string; logs: Log
   if (scenarioKey === "mvcc") {
     return (
       <div className="rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--ice)]">MVCC</p>
+        <p className="font-mono text-[11px] tracking-[0.16em] text-[var(--ice)]">MVCC</p>
         <p className="mt-1 text-[13px] text-[var(--text-2)]">
           A updated without committing: A reads the new tuple (new xmax/ctid), B still reads the old committed
           version. Compare xmin, xmax and ctid in both result logs; after COMMIT, B sees the new ctid.
@@ -588,7 +639,7 @@ function WALBar({ logs }: { logs: LogEntry[] }) {
   void lsns;
   return (
     <div className="rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--warn)]">WAL</p>
+      <p className="font-mono text-[11px] tracking-[0.16em] text-[var(--warn)]">WAL</p>
       <p className="mt-1 text-[13px] text-[var(--text-2)]">
         Every write goes to the write-ahead log before the heap. Take LSN before/after the 1000-row insert and
         diff with pg_wal_lsn_diff — the bar is the WAL bytes that make crash recovery possible.

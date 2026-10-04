@@ -59,7 +59,7 @@ export function SqlLab({ presetName }: { presetName?: string }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
       <aside className="lg:sticky lg:top-20 lg:self-start">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-3)]">
+        <p className="font-mono text-[10px] tracking-[0.2em] text-[var(--text-3)]">
           Presets · Exp 4/5/6/7/8/9
         </p>
         {bootError !== null && presets.length === 0 ? (
@@ -70,7 +70,7 @@ export function SqlLab({ presetName }: { presetName?: string }) {
           <div className="mt-2 flex max-h-[60vh] flex-col gap-3 overflow-y-auto">
             {(Object.keys(grouped).length > 0 ? Object.entries(grouped) : Object.entries(groupFallback())).map(([g, list]) => (
               <div key={g}>
-                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--warn)]">{g}</p>
+                <p className="font-mono text-[10px] tracking-[0.12em] text-[var(--warn)]">{g}</p>
                 <ul className="mt-1 flex flex-col gap-1">
                   {(list as ConsolePreset[]).map((p) => (
                     <li key={p.name}>
@@ -94,7 +94,7 @@ export function SqlLab({ presetName }: { presetName?: string }) {
           title="Console"
           kicker={`role ${role || "…"}`}
           aside={
-            <label className="font-mono flex items-center gap-2 text-[10px] uppercase tracking-[0.14em] text-[var(--text-2)]">
+            <label className="font-mono flex items-center gap-2 text-[10px] tracking-[0.14em] text-[var(--text-2)]">
               <input type="checkbox" checked={explain} onChange={(e) => setExplain(e.target.checked)} className="accent-[#7fb2ff]" />
               explain
             </label>
@@ -104,7 +104,7 @@ export function SqlLab({ presetName }: { presetName?: string }) {
             Statements run inside BEGIN READ ONLY with a 5 s timeout — writes fail with 25006 even for the
             director. That is intentional; the write labs live on the other pages.
           </p>
-          <label htmlFor="sql-editor" className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
+          <label htmlFor="sql-editor" className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">
             Editor · ctrl+enter runs
           </label>
           <textarea
@@ -125,14 +125,14 @@ export function SqlLab({ presetName }: { presetName?: string }) {
             <button
               onClick={() => void runQuery(query, explain)}
               disabled={running || query.trim() === ""}
-              className="font-mono rounded-full bg-[var(--ice)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#04122e] hover:scale-105 disabled:opacity-40"
+              className="font-mono rounded-full bg-[var(--ice)] px-4 py-1.5 text-[11px] font-semibold tracking-[0.14em] text-[#04122e] hover:scale-105 disabled:opacity-40"
             >
               {running ? "running…" : "run"}
             </button>
           </div>
           {error !== null && (
             <div role="alert" className="mt-3 rounded-lg border border-[var(--ice)] bg-[var(--space)] p-3">
-              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--ice)]">PostgreSQL refused</p>
+              <p className="font-mono text-[11px] tracking-[0.14em] text-[var(--ice)]">PostgreSQL refused</p>
               <p className="font-mono mt-1 text-[11.5px] text-[var(--text)]">{error}</p>
             </div>
           )}

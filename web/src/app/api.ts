@@ -49,6 +49,8 @@ export class ApiError extends Error {
   hint?: string;
   sql: SqlRecord[];
   role?: string;
+  /** Error-envelope payload (e.g. deploy confirm before/after). */
+  data?: unknown;
 
   constructor(opts: {
     status: number;
@@ -58,6 +60,7 @@ export class ApiError extends Error {
     hint?: string;
     sql?: SqlRecord[];
     role?: string;
+    data?: unknown;
   }) {
     super(opts.message);
     this.name = "ApiError";
@@ -67,6 +70,7 @@ export class ApiError extends Error {
     this.hint = opts.hint;
     this.sql = opts.sql ?? [];
     this.role = opts.role;
+    this.data = opts.data;
   }
 
   /** True for the deliberate denial demo (RLS / GRANT refusal). */
@@ -140,6 +144,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<Api
     hint: e["hint"] !== undefined ? String(e["hint"]) : undefined,
     sql,
     role: body["role"] !== undefined ? String(body["role"]) : undefined,
+    data: body["data"],
   });
   errPusher?.(err);
   throw err;
