@@ -84,7 +84,7 @@
 
   html {
     background: var(--space);
-    background-image: radial-gradient(1200px 600px at 50% -10%, #0f2147 0%, transparent 60%);
+    background-image: none;
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

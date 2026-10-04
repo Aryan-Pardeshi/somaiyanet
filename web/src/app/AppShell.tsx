@@ -289,7 +289,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-[var(--space)] text-[var(--text)]">
       {/* Left sidebar: 232px, icon rail under 1200px, sheet under 768px */}
-      <aside className="sticky top-0 hidden h-screen w-16 shrink-0 flex-col bg-[var(--navy-900)] px-2 py-4 md:flex min-[1200px]:w-[232px] min-[1200px]:px-3">
+      <aside className="sticky top-0 hidden h-screen w-16 shrink-0 flex-col border-r border-[var(--line)] bg-[var(--space)] px-2 py-4 md:flex min-[1200px]:w-[232px] min-[1200px]:px-3">
         <Link
           to="/"
           aria-label="SomaiyaNet home"
@@ -304,7 +304,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[var(--line)] bg-[var(--navy-900)] px-4 md:hidden">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[var(--line)] bg-[var(--space)] px-4 md:hidden">
           <Link to="/" aria-label="SomaiyaNet home">
             <Brand className="text-base" />
           </Link>
@@ -343,7 +343,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent
           side="left"
-          className="w-72 border-[var(--line)] bg-[var(--navy-900)] text-[var(--text)]"
+          className="w-72 border-[var(--line)] bg-[var(--space)] text-[var(--text)]"
         >
           <div className="mt-2 flex items-center justify-between">
             <Brand className="text-base" />

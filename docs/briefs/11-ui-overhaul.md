@@ -14,7 +14,7 @@ Read every page before you start:
 ## 1. Design tokens (rewrite `src/styles/tokens.css`; it is the only place colours live)
 | token | hex | use |
 |---|---|---|
-| `--space` | `#02040a` | page background (true deep black) |
+| `--space` | `#000000` | page background (pure black, user decision) |
 | `--navy-900` | `#060d1f` | sidebar, landing section bands |
 | `--navy-800` | `#0a1630` | panels / cards |
 | `--navy-700` | `#0f2147` | raised: hover, selected rows, inputs |

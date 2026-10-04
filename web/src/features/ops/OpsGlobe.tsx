@@ -701,7 +701,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         {/* top bar with UTC clock */}
         <div
           className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex h-14 items-center gap-3 px-4"
-          style={{ background: "linear-gradient(to bottom,rgba(2,4,10,.9),rgba(2,4,10,0))" }}
+          style={{ background: "linear-gradient(to bottom,rgba(0,0,0,.9),rgba(0,0,0,0))" }}
         >
           <span className="text-[17px] font-semibold tracking-[-0.02em] text-[var(--text)]">
             SomaiyaSat <span className="font-mono text-[11px] font-normal tracking-[0.16em] text-[var(--text-2)]">OPS</span>
