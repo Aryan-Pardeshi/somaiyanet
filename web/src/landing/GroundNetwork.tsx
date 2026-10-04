@@ -95,33 +95,66 @@ export function GroundNetwork() {
           <SectionLabel>GROUND NETWORK</SectionLabel>
         </div>
 
-        <div className="relative mt-12" style={{ aspectRatio: `${W} / ${H}` }}>
-          <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-label="World map of the six ground stations" />
-          {STATIONS.map((s) => (
-            <div
-              key={s.id}
-              className="pointer-events-none absolute"
-              style={{ left: `${(toX(s.lng) / W) * 100}%`, top: `${(toY(s.lat) / H) * 100}%` }}
-            >
-              <span
-                className="absolute left-0 top-0 h-px w-8 bg-white/60"
-                style={{ transform: `translate(6px, ${"below" in s ? 10 : -10}px) rotate(${"below" in s ? 30 : -30}deg)`, transformOrigin: "left" }}
-              />
-              <span className="absolute whitespace-nowrap" style={{ left: 34, top: "below" in s ? 14 : -34 }}>
-                <span className={`block text-[13px] ${s.primary ? "text-white" : "text-[#dfe6f5]"}`}>{s.name}</span>
-                <span className="font-mono block text-[10px] tracking-[0.08em] text-[#8b96b0]">
-                  {s.id} · {s.passes} passes/day
+        <div className="relative mt-12 overflow-hidden border border-white/10" style={{ aspectRatio: `${W} / ${H}` }}>
+          <canvas
+            ref={canvasRef}
+            className="absolute inset-0 h-full w-full"
+            role="img"
+            aria-label="World map showing the six SomaiyaNet ground stations and coverage blooms"
+          />
+          {STATIONS.map((s) => {
+            const isEast = s.lng > 90;
+            const isBelow = "below" in s && s.below;
+            return (
+              <div
+                key={s.id}
+                className="pointer-events-none absolute hidden md:block"
+                style={{ left: `${(toX(s.lng) / W) * 100}%`, top: `${(toY(s.lat) / H) * 100}%` }}
+              >
+                {/* Pointer tick line */}
+                <span
+                  className="absolute top-0 h-px w-6 bg-white/60 sm:w-8"
+                  style={{
+                    left: isEast ? -28 : 4,
+                    transform: `translate(${isEast ? 0 : 2}px, ${isBelow ? 8 : -8}px) rotate(${
+                      isEast ? (isBelow ? -25 : 25) : isBelow ? 25 : -25
+                    }deg)`,
+                    transformOrigin: isEast ? "right" : "left",
+                  }}
+                />
+                {/* Station callout text */}
+                <span
+                  className={`absolute ${isEast ? "right-8 text-right" : "left-8 text-left"} whitespace-nowrap`}
+                  style={{ top: isBelow ? 12 : -32 }}
+                >
+                  <span className={`block text-[12px] sm:text-[13px] ${s.primary ? "text-white font-normal" : "text-[#dfe6f5]"}`}>
+                    {s.name}
+                  </span>
+                  <span className="font-mono block text-[9.5px] tracking-[0.08em] text-[#8b96b0] sm:text-[10px]">
+                    {s.id} · {s.passes} passes/day
+                  </span>
                 </span>
-              </span>
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
+        {/* Phones: the map is too small for callouts, so list the stations under it. */}
+        <ul className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 md:hidden">
+          {STATIONS.map((s) => (
+            <li key={s.id}>
+              <span className={`block text-[13px] ${s.primary ? "text-white" : "text-[#dfe6f5]"}`}>{s.name}</span>
+              <span className="font-mono block text-[10px] tracking-[0.08em] text-[#8b96b0]">
+                {s.id} · {s.passes} passes/day
+              </span>
+            </li>
+          ))}
+        </ul>
 
         <div className="mt-14 grid gap-10 border-t border-white/10 pt-10 sm:grid-cols-3">
           {[
-            ["Telemetry rows", stats.telemetry_rows.toLocaleString()],
-            ["Contacts in the next 24 h", stats.contacts_next_24h.toLocaleString()],
-            ["AI decisions logged", stats.ai_decisions.toLocaleString()],
+            ["Telemetry rows recorded", stats.telemetry_rows.toLocaleString()],
+            ["Scheduled contact passes (24 h)", stats.contacts_next_24h.toLocaleString()],
+            ["Autonomous routing decisions", stats.ai_decisions.toLocaleString()],
           ].map(([k, v]) => (
             <div key={k}>
               <p className="font-light text-white" style={{ fontSize: "clamp(36px, 4vw, 52px)", letterSpacing: "-0.03em" }}>

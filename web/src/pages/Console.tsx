@@ -81,6 +81,13 @@ export default function Console() {
   const [focus, setFocus] = useState(0);
   const [zooming, setZooming] = useState<string | null>(null);
   const tilesRef = useRef<Array<HTMLButtonElement | null>>([]);
+  const navTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (navTimer.current !== null) window.clearTimeout(navTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,7 +117,8 @@ export default function Console() {
         // Offline: still move on so the demo flow stays clickable; the
         // destination page shows the calm offline card / mock data.
       }
-      window.setTimeout(
+      if (navTimer.current !== null) window.clearTimeout(navTimer.current);
+      navTimer.current = window.setTimeout(
         () => navigate(next && canVisit(role, next) ? next : homeFor(role)),
         220,
       );

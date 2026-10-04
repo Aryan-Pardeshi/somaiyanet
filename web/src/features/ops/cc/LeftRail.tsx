@@ -262,7 +262,7 @@ export function LeftRail({
                   <SatIcon
                     size={48}
                     color={isSelected ? "#7fb2ff" : "#dfe6f5"}
-                    className={sat.state === "SAFE" ? "animate-pulse" : ""}
+                    className={sat.state === "SAFE" ? "motion-safe:animate-pulse" : ""}
                   />
                 </div>
 

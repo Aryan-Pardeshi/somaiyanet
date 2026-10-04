@@ -6,12 +6,12 @@ import { SectionLabel } from "./SectionLabel";
 import { Satellite } from "./hero/Satellite";
 
 const SPECS: Array<[string, string]> = [
-  ["Envelope", "127.4 × 57.9 × 57.2 mm"],
-  ["Deployer", "SomaiyaPod"],
-  ["Orbit", "~525 km, sun-synchronous"],
-  ["Payloads", "M17 · Codec2 · SSTV · TT&C"],
-  ["Inter-satellite range", "≤ 2000 km"],
-  ["Router", "Decision tree, 93 nodes, in PostgreSQL"],
+  ["Form factor", "127.4 × 57.9 × 57.2 mm"],
+  ["Deployer mechanism", "SomaiyaPod orbital deployer"],
+  ["Target orbit", "525 km sun-synchronous orbit"],
+  ["Payload communication", "Digital Voice (M17, Codec2) · SSTV Imagery · TT&C"],
+  ["Inter-satellite range", "Up to 2,000 km line-of-sight"],
+  ["Autonomous routing engine", "93-node decision tree in PostgreSQL"],
 ];
 
 /**
@@ -22,7 +22,7 @@ export function Spacecraft() {
   return (
     <section className="border-t border-white/10" style={{ background: "#000" }}>
       <div className="mx-auto max-w-[1180px] px-6 py-28">
-        <div className="flex items-end justify-between">
+        <div className="flex flex-wrap items-end justify-between gap-6">
           <h2 className="max-w-[16ch] font-light text-white" style={{ fontSize: "clamp(30px, 3.4vw, 46px)", lineHeight: 1.08, letterSpacing: "-0.02em" }}>
             Small enough to fit in your hand.
           </h2>
@@ -46,6 +46,7 @@ export function Spacecraft() {
               dpr={[1, 2]}
               camera={{ position: [0, 0.25, 6.2], fov: 32 }}
               gl={{ alpha: true, antialias: true }}
+              aria-label="3D blueprint model of SomaiyaSat PocketQube satellite"
             >
               <Blueprint />
             </Canvas>
@@ -71,6 +72,9 @@ export function Spacecraft() {
 function Blueprint() {
   const { gl, scene } = useThree();
   const model = useRef<THREE.Group>(null);
+  const reducedMotion =
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   useEffect(() => {
     const pmrem = new THREE.PMREMGenerator(gl);
     const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -81,9 +85,13 @@ function Blueprint() {
       pmrem.dispose();
     };
   }, [gl, scene]);
+
   useFrame((s) => {
-    if (model.current) model.current.rotation.y = -0.55 + Math.sin(s.clock.elapsedTime * 0.25) * 0.35;
+    if (model.current && !reducedMotion) {
+      model.current.rotation.y = -0.55 + Math.sin(s.clock.elapsedTime * 0.25) * 0.35;
+    }
   });
+
   return (
     <>
       <ambientLight intensity={0.5} />

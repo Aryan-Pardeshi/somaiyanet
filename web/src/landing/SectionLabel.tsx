@@ -8,7 +8,7 @@ export function SectionLabel({ children }: { children: string }) {
       <span
         aria-hidden="true"
         className="inline-block size-[6px] rounded-full"
-        style={{ background: "var(--royal)" }}
+        style={{ background: "#3d5bff" }}
       />
       {children}
     </p>

@@ -105,6 +105,7 @@ function Slider({
         max={max}
         step={step}
         value={value}
+        aria-label={label}
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full accent-[#3d5bff] cursor-pointer"
       />
@@ -237,7 +238,7 @@ export default function Brain() {
   const overrideReason = preview?.preview?.override_reason ?? whatif?.watchdog ?? null;
 
   return (
-    <div className="-m-6 p-6 min-h-[calc(100vh-3.5rem)] bg-black text-[#dfe6f5] flex flex-col gap-5">
+    <div className="-m-4 p-4 sm:-m-6 sm:p-6 min-h-[calc(100vh-3.5rem)] bg-black text-[#dfe6f5] flex flex-col gap-5">
       {/* Page Title Row */}
       <div className="flex flex-col gap-1 border-b border-white/5 pb-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -255,7 +256,7 @@ export default function Brain() {
               EXP 9 · CO4
             </span>
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10 text-[#7fb2ff]">
-              SQL INFERENCE ENGINE
+              Decision tree in SQL
             </span>
           </div>
         </div>

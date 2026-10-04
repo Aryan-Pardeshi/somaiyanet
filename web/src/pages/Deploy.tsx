@@ -76,6 +76,11 @@ function stateColor(state: string | null | undefined): string {
  */
 function PodSvg({ status, ejected }: { status: string; ejected: boolean }) {
   const out = ejected;
+  // SMIL has no CSS off-switch: skip the idle jiggle entirely when the
+  // user prefers reduced motion.
+  const reduceMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   return (
     <svg
       viewBox="0 0 340 150"
@@ -114,7 +119,7 @@ function PodSvg({ status, ejected }: { status: string; ejected: boolean }) {
         fill="#f5a524"
         opacity={0.9}
       >
-        {!out && (
+        {!out && !reduceMotion && (
           <animate
             attributeName="x"
             values="218;214;218"
@@ -126,7 +131,7 @@ function PodSvg({ status, ejected }: { status: string; ejected: boolean }) {
       {/* PocketQube 1P cube */}
       <g
         transform={out ? "translate(272,58)" : "translate(120,58)"}
-        style={{ transition: "transform 800ms ease" }}
+        style={reduceMotion ? undefined : { transition: "transform 800ms ease" }}
       >
         <rect
           x={-22}
@@ -181,7 +186,7 @@ function StateDiagram({ current }: { current: string | null }) {
     ["COMMISSIONING", "SAFE"],
   ];
   return (
-    <div className="flex flex-col gap-2" aria-label="Satellite state machine">
+    <div className="flex flex-col gap-2" role="img" aria-label="Satellite state machine">
       <div className="flex flex-wrap items-center gap-2">
         {STATES.map((s, i) => {
           const isActive = current === s;
@@ -379,7 +384,7 @@ export default function Deploy() {
     lastLog.length > 0 ? lastLog[0] : bundle && bundle.log.length > 0 ? bundle.log[0] : null;
 
   return (
-    <div className="-m-6 p-6 min-h-[calc(100vh-3.5rem)] bg-black text-[#dfe6f5] flex flex-col gap-5">
+    <div className="-m-4 p-4 sm:-m-6 sm:p-6 min-h-[calc(100vh-3.5rem)] bg-black text-[#dfe6f5] flex flex-col gap-5">
       {/* Page Title Row */}
       <div className="flex flex-col gap-1 border-b border-white/5 pb-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -462,10 +467,14 @@ export default function Deploy() {
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
               <div className="lg:col-span-4 flex flex-col gap-2">
-                <label className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                <label
+                  htmlFor="deploy-pod"
+                  className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]"
+                >
                   Pick a pod:
                 </label>
                 <select
+                  id="deploy-pod"
                   value={pod}
                   onChange={(e) => setPod(e.target.value)}
                   className="font-mono bg-[#05070d] border border-white/10 px-2.5 py-1.5 text-[12px] text-white focus:border-[#3d5bff] focus:outline-none"
@@ -865,10 +874,14 @@ export default function Deploy() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="flex flex-col gap-1.5">
-              <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+              <label
+                htmlFor="deploy-pass-sat"
+                className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]"
+              >
                 Pick a satellite
-              </span>
+              </label>
               <select
+                id="deploy-pass-sat"
                 value={passSat}
                 onChange={(e) => setPassSat(e.target.value)}
                 className="font-mono bg-[#05070d] border border-white/10 px-2.5 py-1.5 text-[12px] text-white focus:border-[#3d5bff] focus:outline-none"
@@ -882,10 +895,14 @@ export default function Deploy() {
             </div>
 
             <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+              <label
+                htmlFor="deploy-pass-contact"
+                className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]"
+              >
                 Pick a ground contact
-              </span>
+              </label>
               <select
+                id="deploy-pass-contact"
                 value={passContactId ?? ""}
                 onChange={(e) => setPassContactId(Number(e.target.value))}
                 className="font-mono bg-[#05070d] border border-white/10 px-2.5 py-1.5 text-[12px] text-white focus:border-[#3d5bff] focus:outline-none"

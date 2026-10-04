@@ -1,4 +1,4 @@
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { LABS, LabShell } from "@/features/labs/common";
 import { TxLab } from "@/features/labs/TxLab";
 import { SecurityLab } from "@/features/labs/SecurityLab";
@@ -89,6 +89,7 @@ const META: Record<
 export default function Lab() {
   const { lab = "" } = useParams();
   const { role } = useRole();
+  const [search] = useSearchParams();
 
   const visibleLabs = LABS.filter((item) => canVisit(role, `/labs/${item.slug}`));
 
@@ -114,7 +115,6 @@ export default function Lab() {
     return <Navigate to={`/labs/${fallback}`} replace />;
   }
 
-  const search = new URLSearchParams(window.location.search);
   const schemaTab = search.get("tab");
   const preset = search.get("preset") ?? undefined;
   const initialTab = schemaTab === "mapping" || schemaTab === "constraints" ? schemaTab : "diagram";

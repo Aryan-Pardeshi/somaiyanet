@@ -119,15 +119,17 @@ export default function Routing() {
         setMock(g.mock);
         setOffline(false);
         const ops = g.sats.filter((s) => isOperational(s.state));
-        if (ops.length > 0 && !ops.some((s) => s.node_id === origin)) {
-          setOrigin(ops[0].node_id);
+        if (ops.length > 0) {
+          setOrigin((prev) =>
+            ops.some((s) => s.node_id === prev) ? prev : ops[0].node_id,
+          );
         }
       })
       .catch((e: unknown) => {
         if (e instanceof ApiError && e.status === 0) setOffline(true);
         else if (e instanceof ApiError) setError(e);
       });
-  }, [origin]);
+  }, []);
 
   useEffect(() => {
     loadGlobe();
@@ -206,7 +208,7 @@ export default function Routing() {
   const displaySats = sats.length > 0 ? sats : [];
 
   return (
-    <div className="-m-6 p-6 min-h-[calc(100vh-3.5rem)] bg-black text-[#dfe6f5] flex flex-col gap-5">
+    <div className="-m-4 p-4 sm:-m-6 sm:p-6 min-h-[calc(100vh-3.5rem)] bg-black text-[#dfe6f5] flex flex-col gap-5">
       {/* Page Title Row */}
       <div className="flex flex-col gap-1 border-b border-white/5 pb-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -275,7 +277,7 @@ export default function Routing() {
                       <SatIcon
                         size={28}
                         color={isSel ? "#7fb2ff" : "#8b96b0"}
-                        className={s.state === "SAFE" ? "animate-pulse" : ""}
+                        className={s.state === "SAFE" ? "motion-safe:animate-pulse" : ""}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1">
@@ -316,11 +318,15 @@ export default function Routing() {
 
               {/* Time Picker */}
               <div className="flex flex-col gap-1.5">
-                <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                <label
+                  htmlFor="route-start-time"
+                  className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]"
+                >
                   Start time
-                </span>
+                </label>
                 <div className="flex gap-1.5">
                   <input
+                    id="route-start-time"
                     type="datetime-local"
                     value={t0Local}
                     onChange={(e) => setT0Local(e.target.value)}
@@ -351,6 +357,7 @@ export default function Routing() {
                   max={122880}
                   step={256}
                   value={size}
+                  aria-label="Data to send in bytes"
                   onChange={(e) => setSize(Number(e.target.value))}
                   className="w-full accent-[#3d5bff] cursor-pointer"
                 />
@@ -370,6 +377,7 @@ export default function Routing() {
                   max={5}
                   step={1}
                   value={maxHops}
+                  aria-label="Most hops allowed"
                   onChange={(e) => setMaxHops(Number(e.target.value))}
                   className="w-full accent-[#3d5bff] cursor-pointer"
                 />
@@ -528,7 +536,7 @@ export default function Routing() {
                           <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8b96b0]">
                             Earliest arrival
                           </span>
-                          <div className="text-[26px] sm:text-[30px] font-light tracking-tight text-white leading-tight font-sans">
+                          <div className="text-[26px] sm:text-[30px] font-light tracking-tight text-white leading-tight font-sans break-words">
                             {arrivalTimeStr}
                           </div>
                         </div>
@@ -584,7 +592,7 @@ export default function Routing() {
                     Hops on route #{selected}
                   </span>
                   {planning && (
-                    <span className="font-mono text-[10px] text-[#f5a524] uppercase tracking-wider animate-pulse">
+                    <span className="font-mono text-[10px] text-[#f5a524] uppercase tracking-wider motion-safe:animate-pulse">
                       Saving route…
                     </span>
                   )}

@@ -286,9 +286,9 @@ export function Satellite({ lineArt = false, scale = 1, lineColor = "#ffffff" }:
 
   return (
     <LineColor.Provider value={lineColor}>
-    <group scale={scale}>
-      {/* hexagonal riveted bus */}
-      <Part geometry={g.bus} material={mat.riveted} lineArt={lineArt} threshold={10} rotation={[0, Math.PI / 6, 0]} />
+      <group scale={scale}>
+        {/* hexagonal riveted bus */}
+        <Part geometry={g.bus} material={mat.riveted} lineArt={lineArt} threshold={10} rotation={[0, Math.PI / 6, 0]} />
       {/* tanks on two hex faces */}
       {[0.9, -2.2].map((a, i) => (
         <Part

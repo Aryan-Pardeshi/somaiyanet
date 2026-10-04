@@ -24,7 +24,7 @@ export function Placeholder({ name }: { name: string }) {
         <div className="p-6 flex flex-col items-start gap-4">
           <div className="flex items-center gap-2">
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
-              SYSTEM STATUS //
+              System status
             </span>
             <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 border border-[#f5a524]/40 bg-[#f5a524]/10 text-[#f5a524]">
               STANDBY
@@ -40,8 +40,8 @@ export function Placeholder({ name }: { name: string }) {
           </p>
 
           <div className="font-mono text-[10px] text-[#5f6f93] pt-3 border-t border-white/[0.06] w-full flex items-center justify-between">
-            <span>CHANNEL: {label.toUpperCase()}</span>
-            <span>AWAITING TELECOMMAND</span>
+            <span>PAGE: {label.toUpperCase()}</span>
+            <span>COMING SOON</span>
           </div>
         </div>
       </Panel>

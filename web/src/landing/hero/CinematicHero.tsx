@@ -424,7 +424,7 @@ function LineArtScene({ reveal }: { reveal: React.MutableRefObject<number> }) {
   );
 }
 
-function Scene({ progress, mobile }: { progress: React.MutableRefObject<number>; mobile: boolean }) {
+function Scene({ progress, mobile, glowRef }: { progress: React.MutableRefObject<number>; mobile: boolean; glowRef: React.RefObject<HTMLDivElement | null> }) {
   const maps = useEarthMaps();
   const { camera, gl, scene } = useThree();
   // studio reflections for the metal and cover-glass of the satellite
@@ -510,8 +510,9 @@ function Scene({ progress, mobile }: { progress: React.MutableRefObject<number>;
         });
       });
     }
-    const glow = document.getElementById("hero-navy-glow");
-    if (glow) glow.style.opacity = String(smooth(0.66, 0.84, p));
+    if (glowRef.current) {
+      glowRef.current.style.opacity = String(smooth(0.66, 0.84, p));
+    }
   });
 
   return (
@@ -545,6 +546,7 @@ function Scene({ progress, mobile }: { progress: React.MutableRefObject<number>;
 
 export function CinematicHero() {
   const outer = useRef<HTMLDivElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
   const progress = useRef(0);
   const reduced =
     typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -572,6 +574,7 @@ export function CinematicHero() {
       <div className="sticky top-0 h-screen w-full overflow-hidden">
         {/* navy glow sits BEHIND the transparent canvas */}
         <div
+          ref={glowRef}
           id="hero-navy-glow"
           aria-hidden="true"
           className="pointer-events-none absolute inset-0"
@@ -585,8 +588,9 @@ export function CinematicHero() {
           dpr={mobile ? [1, 1.5] : [1, 2]}
           gl={{ antialias: true, alpha: true }}
           camera={{ position: [0.9, 0.35, 5.6], fov: 45, near: 0.05, far: 200 }}
+          aria-label="Interactive 3D simulation of SomaiyaNet PocketQube constellation and orbital passes around Earth"
         >
-          <Scene progress={progress} mobile={mobile} />
+          <Scene progress={progress} mobile={mobile} glowRef={glowRef} />
         </Canvas>
         <div
           id="hero-loader"
@@ -597,16 +601,15 @@ export function CinematicHero() {
         </div>
         <div className="pointer-events-none absolute bottom-10 left-6 z-10 max-w-[760px] md:bottom-14 md:left-12">
           <h1
-            className="text-white"
-            style={{ fontSize: "clamp(52px, 7vw, 112px)", lineHeight: 0.98, letterSpacing: "-0.035em", fontWeight: 300 }}
+            className="break-words text-white"
+            style={{ fontSize: "clamp(40px, 7vw, 112px)", lineHeight: 0.98, letterSpacing: "-0.035em", fontWeight: 300 }}
           >
             Satellites that
             <br />
             route themselves.
           </h1>
           <p className="mt-5 max-w-[56ch] text-[17px] leading-relaxed text-[#9aa3b8]">
-            SomaiyaNet is a PocketQube constellation whose routing, AI decisions and permissions all live in
-            PostgreSQL. Built around use case KJS-SRS-01.
+            SomaiyaNet is an autonomous PocketQube constellation whose routing graphs, decision trees, and access permissions all live in PostgreSQL. Developed under specification KJS-SRS-01.
           </p>
         </div>
       </div>

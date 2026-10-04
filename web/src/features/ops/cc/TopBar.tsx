@@ -63,7 +63,7 @@ export function TopBar({
         {/* HUD top-left floating text */}
         <div className="hidden lg:flex flex-col gap-0.5 text-left font-mono pointer-events-auto">
           <div className="flex items-center gap-1.5 text-[10.5px] text-[#8b96b0]">
-            <span className="inline-block size-1.5 rounded-full bg-[#7ee2b8] animate-pulse" />
+            <span className="inline-block size-1.5 rounded-full bg-[#7ee2b8] motion-safe:animate-pulse" />
             <span>Routing decided by:</span>
             <span className="text-[#dfe6f5] font-semibold">AI decision tree (in PostgreSQL)</span>
           </div>
@@ -75,10 +75,10 @@ export function TopBar({
           </div>
         </div>
 
-        {/* Center chamfered pill tab bar */}
+        {/* Center chamfered pill tab bar (wraps on narrow screens) */}
         <nav
           aria-label="Ops navigation"
-          className="pointer-events-auto flex items-center p-1 rounded-lg border border-white/10 bg-[#060b17]/85 backdrop-blur-xl shadow-2xl"
+          className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-0.5 p-1 rounded-lg border border-white/10 bg-[#060b17]/85 backdrop-blur-xl shadow-2xl"
           style={{
             clipPath:
               "polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)",

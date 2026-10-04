@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type WheelEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ACTION_COLORS, type DtNode, type RouterAction } from "./api";
 
 interface Pos {
@@ -32,6 +32,8 @@ export function TreeSvg({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [showFull, setShowFull] = useState(false);
   const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const touch = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
 
   const byId = useMemo(() => new Map(nodes.map((n) => [n.node_id, n])), [nodes]);
   const onPath = useMemo(() => new Set(pathIds), [pathIds]);
@@ -90,12 +92,44 @@ export function TreeSvg({
   const maxX = Math.max(1, ...[...pos.values()].map((p) => p.x)) + X_GAP;
   const maxY = Math.max(1, ...[...pos.values()].map((p) => p.y)) + NODE_H + 40;
 
-  const onWheel = (e: WheelEvent): void => {
-    e.preventDefault();
-    setZoom((z) => Math.min(3, Math.max(0.3, z * (e.deltaY < 0 ? 1.1 : 0.9))));
-  };
-
   const polyPoints = useMemo(() => chamferPolygon(NODE_W, NODE_H, CUT), []);
+
+  // Wheel zoom via a non-passive listener: React's synthetic onWheel is
+  // passive, so preventDefault (to stop the page scrolling while zooming
+  // the tree) would be ignored there.
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const onWheelNative = (e: WheelEvent): void => {
+      e.preventDefault();
+      setZoom((z) => Math.min(3, Math.max(0.3, z * (e.deltaY < 0 ? 1.1 : 0.9))));
+    };
+    el.addEventListener("wheel", onWheelNative, { passive: false });
+    return () => el.removeEventListener("wheel", onWheelNative);
+  }, []);
+
+  const onCanvasKeyDown = (e: React.KeyboardEvent): void => {
+    const step = 24;
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      setPan((p) => ({ ...p, x: p.x + step }));
+    } else if (e.key === "ArrowRight") {
+      e.preventDefault();
+      setPan((p) => ({ ...p, x: p.x - step }));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setPan((p) => ({ ...p, y: p.y + step }));
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setPan((p) => ({ ...p, y: p.y - step }));
+    } else if (e.key === "+" || e.key === "=") {
+      e.preventDefault();
+      setZoom((z) => Math.min(3, z * 1.2));
+    } else if (e.key === "-") {
+      e.preventDefault();
+      setZoom((z) => Math.max(0.3, z / 1.2));
+    }
+  };
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -130,6 +164,7 @@ export function TreeSvg({
                 setZoom(1);
                 setPan({ x: 0, y: 0 });
               }}
+              aria-label="Reset zoom"
               className="font-mono px-2 py-0.5 text-[10px] border border-white/15 bg-transparent text-[#dfe6f5] hover:border-white/30 cursor-pointer"
             >
               1×
@@ -145,11 +180,15 @@ export function TreeSvg({
         </div>
       </div>
 
-      {/* SVG Canvas with HUD corner brackets */}
+      {/* Decision tree canvas: wheel zooms, drag or arrow keys pan */}
       <div
-        className="relative cursor-grab overflow-hidden border border-white/10 bg-[#05070d] active:cursor-grabbing"
+        ref={canvasRef}
+        tabIndex={0}
+        role="application"
+        aria-label="Decision tree diagram. Arrow keys pan, plus and minus zoom."
+        className="relative cursor-grab overflow-hidden border border-white/10 bg-[#05070d] focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#3d5bff] active:cursor-grabbing"
         style={{ height: 440 }}
-        onWheel={onWheel}
+        onKeyDown={onCanvasKeyDown}
         onMouseDown={(e) =>
           (drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y })
         }
@@ -163,19 +202,33 @@ export function TreeSvg({
         }}
         onMouseUp={() => (drag.current = null)}
         onMouseLeave={() => (drag.current = null)}
+        onTouchStart={(e) => {
+          const t = e.touches[0];
+          if (t) touch.current = { x: t.clientX, y: t.clientY, px: pan.x, py: pan.y };
+        }}
+        onTouchMove={(e) => {
+          const t = e.touches[0];
+          if (t && touch.current) {
+            setPan({
+              x: touch.current.px + (t.clientX - touch.current.x),
+              y: touch.current.py + (t.clientY - touch.current.y),
+            });
+          }
+        }}
+        onTouchEnd={() => (touch.current = null)}
       >
-        {/* HUD labels */}
+        {/* Corner labels */}
         <div className="pointer-events-none absolute left-2.5 top-2 z-10 font-mono text-[9px] uppercase tracking-wider text-[#8b96b0]/70">
-          ┌ PATH INFERENCE ENGINE // ROYAL BLUE ACTIVE
+          Active path highlighted
         </div>
         <div className="pointer-events-none absolute right-2.5 top-2 z-10 font-mono text-[9px] uppercase tracking-wider text-[#8b96b0]/70">
-          WHEEL TO ZOOM · DRAG TO PAN ┐
+          Scroll to zoom · Drag to move
         </div>
         <div className="pointer-events-none absolute left-2.5 bottom-2 z-10 font-mono text-[9px] uppercase tracking-wider text-[#8b96b0]/70">
-          └ DT_NODE POSTGRES VIRTUAL GRAPH
+          Decision tree from dt_node rows
         </div>
         <div className="pointer-events-none absolute right-2.5 bottom-2 z-10 font-mono text-[9px] uppercase tracking-wider text-[#8b96b0]/70">
-          DIM: {Math.round(maxX)}×{Math.round(maxY)} ┘
+          Size: {Math.round(maxX)}×{Math.round(maxY)}
         </div>
 
         <svg

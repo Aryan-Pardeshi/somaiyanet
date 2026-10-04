@@ -516,7 +516,7 @@ export function TxLab() {
                   <StatusBadge
                     status={waitingSess ? "warn" : st.includes("xact") ? "info" : "nominal"}
                     label={statusLabel}
-                    className={waitingSess ? "animate-pulse" : ""}
+                    className={waitingSess ? "motion-safe:animate-pulse" : ""}
                   />
                 </div>
 

@@ -104,7 +104,7 @@ export function SqlRibbon({
           {!done && (
             <span
               aria-hidden="true"
-              className="ml-0.5 inline-block h-[1em] w-[0.55em] translate-y-[0.15em] animate-pulse bg-[var(--ice)]"
+              className="ml-0.5 inline-block h-[1em] w-[0.55em] translate-y-[0.15em] motion-safe:animate-pulse bg-[var(--ice)]"
             />
           )}
         </pre>

@@ -413,7 +413,7 @@ export function RightRail({
                 Live data
               </span>
               <span className="font-mono text-[10px] text-[#7ee2b8] flex items-center gap-1">
-                <span className="size-1.5 rounded-full bg-[#7ee2b8] animate-pulse" />
+                <span className="size-1.5 rounded-full bg-[#7ee2b8] motion-safe:animate-pulse" />
                 STREAMING
               </span>
             </div>
@@ -508,7 +508,7 @@ export function RightRail({
               Selected satellite
             </span>
             <div className="flex items-baseline justify-between mt-1">
-              <h1 className="font-sans whitespace-nowrap text-[34px] font-light leading-none tracking-tight text-white">
+              <h1 className="font-sans min-w-0 break-words text-[34px] font-light leading-none tracking-tight text-white">
                 {sat.display_name || sat.node_id}
               </h1>
               <span

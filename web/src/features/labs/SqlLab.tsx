@@ -77,18 +77,19 @@ export function SqlLab({ presetName }: { presetName?: string }) {
     [],
   );
 
+  // Queries run as the session's Postgres role, so switching here switches
+  // the whole console session; reload so the shell's menu and header follow.
   const handleRoleChange = async (newRole: string) => {
-    setRole(newRole);
     try {
-      await apiFetch("/api/profile", {
+      await apiFetch("/api/session", {
         method: "POST",
         body: JSON.stringify({ role: newRole }),
       });
-      if (query.trim()) {
-        void runQuery(query, explain);
-      }
-    } catch {
-      // Best-effort role update.
+      setRole(newRole);
+      window.location.reload();
+    } catch (e) {
+      const err = e as { message?: string; sqlstate?: string };
+      setError({ message: err.message ?? "Could not switch role", sqlstate: err.sqlstate });
     }
   };
 
@@ -171,6 +172,7 @@ export function SqlLab({ presetName }: { presetName?: string }) {
                     <button
                       key={r}
                       onClick={() => void handleRoleChange(r)}
+                      aria-pressed={activeRole}
                       className={`font-mono text-[9px] uppercase tracking-[0.1em] px-2 py-0.5 rounded-[1px] transition-all cursor-pointer ${
                         activeRole
                           ? "bg-[#3d5bff] text-white font-semibold shadow-[0_0_8px_rgba(61,91,255,0.4)]"

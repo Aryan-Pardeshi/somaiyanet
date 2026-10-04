@@ -845,6 +845,11 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
             0%, 100% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.3); opacity: 0.6; }
           }
+          @media (prefers-reduced-motion: reduce) {
+            .ops-marker.ops-safe .ops-marker-ring {
+              animation: none;
+            }
+          }
         `}</style>
         <div ref={containerRef} className="absolute inset-0" />
         <div
@@ -858,7 +863,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
 
         {!booted && (
           <div className="absolute inset-0 z-40 flex items-center justify-center bg-black">
-            <p className="animate-pulse font-mono text-[12px] tracking-widest uppercase text-[#8b96b0]">
+            <p className="motion-safe:animate-pulse font-mono text-[12px] tracking-widest uppercase text-[#8b96b0]">
               Acquiring Constellation Orbit…
             </p>
           </div>

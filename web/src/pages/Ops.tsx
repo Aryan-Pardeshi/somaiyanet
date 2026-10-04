@@ -122,7 +122,7 @@ export default function Ops() {
   };
 
   return (
-    <div className="-m-6 relative min-h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-3.5rem)] lg:overflow-hidden bg-black text-[#dfe6f5] flex flex-col">
+    <div className="-m-4 sm:-m-6 relative min-h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-3.5rem)] lg:overflow-hidden bg-black text-[#dfe6f5] flex flex-col">
       {/* 1. Top Bar with Tabs + HUD corner floating text */}
       <TopBar
         activeTab={activeTab}

@@ -26,6 +26,14 @@ export function HopRail({
           0%, 100% { opacity: 1; }
           50% { opacity: 0.35; }
         }
+        .hop-pulse-dot {
+          animation: hop-pulse 1.1s ease-in-out infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .hop-pulse-dot {
+            animation: none;
+          }
+        }
       `}</style>
       <div className="flex items-center">
         {nodes.map((n, i) => {
@@ -73,8 +81,8 @@ export function HopRail({
                   />
                   {i + 1 === active && (
                     <span
-                      className="absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--somaiya)]"
-                      style={{ left: "100%", animation: "hop-pulse 1.1s ease-in-out infinite" }}
+                      className="hop-pulse-dot absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--somaiya)]"
+                      style={{ left: "100%" }}
                     />
                   )}
                 </div>

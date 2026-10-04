@@ -58,12 +58,36 @@ export function Panel({
     ...(glowColor ? { filter: `drop-shadow(0 0 10px ${glowColor})` } : {}),
   };
 
+  // Panels with onClick act as buttons (fleet cards, route cards, profile
+  // switcher): expose button semantics + keyboard activation so they work
+  // without a mouse. Plain containers stay generic divs.
+  const interactive = onClick !== undefined;
+  const {
+    role: restRole,
+    tabIndex: restTabIndex,
+    onKeyDown: restOnKeyDown,
+    ...divRest
+  } = rest;
+  const handleKeyDown = (
+    ev: React.KeyboardEvent<HTMLDivElement>,
+  ): void => {
+    restOnKeyDown?.(ev);
+    if (ev.defaultPrevented) return;
+    if (ev.key === "Enter" || ev.key === " ") {
+      ev.preventDefault();
+      onClick?.(ev as unknown as React.MouseEvent<HTMLDivElement>);
+    }
+  };
+
   return (
     <div
       style={containerStyle}
       onClick={onClick}
-      className={`relative transition-all duration-200 ${onClick ? "cursor-pointer" : ""} ${className}`}
-      {...rest}
+      role={interactive ? (restRole ?? "button") : restRole}
+      tabIndex={interactive ? (restTabIndex ?? 0) : restTabIndex}
+      onKeyDown={interactive ? handleKeyDown : restOnKeyDown}
+      className={`relative transition-[background-color,border-color,transform,filter] duration-200 ${onClick ? "cursor-pointer focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#3d5bff]" : ""} ${className}`}
+      {...divRest}
     >
       <div style={outerStyle} className="h-full w-full p-[1px]">
         <div

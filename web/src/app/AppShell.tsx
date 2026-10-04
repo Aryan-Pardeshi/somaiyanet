@@ -51,10 +51,10 @@ function getPageTitle(pathname: string): string {
   const mission = MISSION_NAV.find((m) => m.to === pathname);
   if (mission) return mission.label.toUpperCase();
   const lab = LABS_NAV.find((l) => l.to === pathname);
-  if (lab) return `LAB // ${lab.label.toUpperCase()}`;
+  if (lab) return `Lab ${lab.label}`;
   if (pathname.startsWith("/labs/")) {
     const sub = pathname.replace("/labs/", "");
-    return `LAB // ${sub.toUpperCase()}`;
+    return `Lab ${sub}`;
   }
   return pathname.replace(/^\//, "").toUpperCase() || "SOMAIYANET";
 }
@@ -440,7 +440,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           <div className="ml-auto flex items-center gap-3">
             {offline && (
               <span className="inline-flex items-center gap-1.5 border border-[#f5a524]/40 bg-[#f5a524]/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-[#f5a524]">
-                <span className="size-1.5 rounded-full bg-[#f5a524] animate-pulse" />
+                <span className="size-1.5 rounded-full bg-[#f5a524] motion-safe:animate-pulse" />
                 Backend offline
               </span>
             )}
@@ -449,7 +449,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1440px] flex-1 p-6">
+        <main className="mx-auto w-full max-w-[1440px] flex-1 p-4 sm:p-6">
           {redirected && !dismissed && profile !== null && (
             <div className="mb-4 flex items-start justify-between gap-3 border border-[#f5a524]/40 bg-[#f5a524]/10 px-3 py-2 text-[12.5px] text-[#dfe6f5]">
               <span>

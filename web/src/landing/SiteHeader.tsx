@@ -1,15 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 /** Fixed 64px bar: red packet dot + SomaiyaNet left, bordered button right. */
 export function SiteHeader() {
+  const [scrolled, setScrolled] = useState(false);
+
   useEffect(() => {
     const onScroll = (): void => {
-      const el = document.getElementById("site-header");
-      if (!el) return;
-      el.style.background =
-        window.scrollY > 8 ? "rgba(0,0,0,0.72)" : "transparent";
-      el.style.backdropFilter = window.scrollY > 8 ? "blur(12px)" : "none";
+      setScrolled(window.scrollY > 8);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -18,12 +16,19 @@ export function SiteHeader() {
 
   return (
     <header
-      id="site-header"
-      className="fixed inset-x-0 top-0 z-40 border-b border-white/10"
+      className={`fixed inset-x-0 top-0 z-40 transition-all duration-300 ${
+        scrolled
+          ? "border-b border-white/10 bg-black/80 backdrop-blur-md [-webkit-backdrop-filter:blur(12px)]"
+          : "border-b border-transparent bg-transparent"
+      }`}
       style={{ height: 64 }}
     >
-      <div className="mx-auto flex h-full max-w-[1200px] items-center px-6">
-        <Link to="/" aria-label="SomaiyaNet home" className="flex items-center gap-2">
+      <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between px-6">
+        <Link
+          to="/"
+          aria-label="SomaiyaNet home"
+          className="flex shrink-0 items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
           <span
             aria-hidden="true"
             className="inline-block size-[8px] rounded-full"
@@ -33,13 +38,14 @@ export function SiteHeader() {
             SomaiyaNet
           </span>
         </Link>
-        <div className="ml-auto">
+        <div className="flex shrink-0 items-center gap-3">
           <Link
             to="/console"
-            className="font-mono inline-block border border-white/40 px-4 py-2 text-[12px] uppercase text-white transition-colors hover:border-white hover:bg-white hover:text-black"
+            className="font-mono inline-block border border-white/40 px-4 py-2 text-[12px] uppercase text-white transition-colors hover:border-white hover:bg-white hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3d5bff]"
             style={{ letterSpacing: "0.08em" }}
           >
-            Take the console ↗
+            <span>Take the console</span>
+            <span aria-hidden="true" className="ml-1">↗</span>
           </Link>
         </div>
       </div>

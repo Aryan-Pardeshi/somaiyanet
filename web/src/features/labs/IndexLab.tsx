@@ -253,7 +253,7 @@ export function IndexLab() {
           )}
 
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
               <label
                 htmlFor="idx-q"
                 className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]"
@@ -268,7 +268,7 @@ export function IndexLab() {
                   const q = shownQueries.find((x) => x.key === e.target.value);
                   if (q) setIndexKey(q.best_index);
                 }}
-                className="font-mono border border-white/10 bg-[#05070d] px-3 py-1.5 text-[12px] text-[#dfe6f5] focus:border-[#3d5bff] focus:outline-none rounded-[2px]"
+                className="min-w-0 max-w-full flex-1 truncate font-mono border border-white/10 bg-[#05070d] px-3 py-1.5 text-[12px] text-[#dfe6f5] focus:border-[#3d5bff] focus:outline-none rounded-[2px]"
               >
                 {shownQueries.map((q) => (
                   <option key={q.key} value={q.key}>

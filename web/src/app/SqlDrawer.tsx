@@ -101,7 +101,8 @@ export function SqlDrawer() {
       )}
       <aside
         aria-hidden={!open}
-        className={`fixed right-0 top-0 z-50 flex h-full w-[min(520px,100vw)] flex-col border-l border-white/10 bg-black text-[#dfe6f5] transition-transform duration-200 ${
+        style={{ visibility: open ? "visible" : "hidden" }}
+        className={`fixed right-0 top-0 z-50 flex h-full w-[min(520px,100vw)] flex-col border-l border-white/10 bg-black text-[#dfe6f5] transition-[transform,visibility] duration-200 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -289,7 +290,7 @@ export function BackendOffline({ onRetry }: { onRetry?: () => void }) {
           <line x1="4" y1="4" x2="20" y2="20" />
         </svg>
         <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#f5a524]">
-          CONNECTION LOST // BACKEND OFFLINE
+          CONNECTION LOST · BACKEND OFFLINE
         </div>
         <p className="text-[13px] text-[#dfe6f5]">
           Backend is offline. Start it with{" "}

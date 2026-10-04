@@ -588,10 +588,11 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
 export function PacketStepper() {
   const root = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
+  const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     const el = root.current;
-    if (!el) return;
+    if (!el || reducedMotion) return;
     const ctx = gsap.context(() => {
       ScrollTrigger.create({
         trigger: el,
@@ -602,27 +603,27 @@ export function PacketStepper() {
       });
     }, el);
     return () => ctx.revert();
-  }, []);
+  }, [reducedMotion]);
 
   const step = STEPS[active];
   return (
     <section className="border-t border-white/10" style={{ background: "#000" }}>
       <div ref={root} className="mx-auto flex min-h-screen max-w-[1180px] flex-col justify-center px-6 py-16">
-        <div className="flex items-end justify-between">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <SectionLabel>LIFE OF A PACKET</SectionLabel>
           <span className="font-mono text-[11px] tracking-[0.08em] text-[#5f6f93]">
             {String(active + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")}
           </span>
         </div>
 
-        <div className="mt-10 grid items-center gap-10 md:grid-cols-[minmax(0,420px)_1fr] md:gap-16">
+        <div className="mt-10 grid items-center gap-10 md:grid-cols-[minmax(0,420px)_minmax(0,1fr)] md:gap-16">
           <div className="relative aspect-square w-full max-w-[420px] border border-white/80">
             <span className="font-mono absolute left-3 top-3 text-[10px] tracking-[0.1em] text-[#5f6f93]">{step.caption}</span>
             <div key={active} className="absolute inset-6">
               <Art kind={step.art} active size="lg" />
             </div>
           </div>
-          <div key={`t${active}`} className="fade-step max-w-[520px]">
+          <div key={`t${active}`} className="fade-step min-w-0 max-w-[520px]">
             <h3 className="font-light text-white" style={{ fontSize: "clamp(28px, 3vw, 40px)", lineHeight: 1.12, letterSpacing: "-0.02em" }}>
               {step.title}
             </h3>
@@ -635,19 +636,26 @@ export function PacketStepper() {
 
         <div className="mt-12 grid grid-cols-5 gap-3 md:max-w-[620px]">
           {STEPS.map((s, i) => (
-            <div key={s.caption} className="flex flex-col gap-2">
+            <button
+              key={s.caption}
+              type="button"
+              onClick={() => setActive(i)}
+              className="flex flex-col gap-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3d5bff]"
+              aria-label={`Step ${i + 1}: ${s.caption} — ${s.title}`}
+              aria-current={i === active ? "step" : undefined}
+            >
               <div
-                className="aspect-square border transition-colors duration-300"
+                className="aspect-square w-full border transition-all duration-300"
                 style={{ borderColor: i === active ? "#fff" : "rgba(255,255,255,0.18)", opacity: i <= active ? 1 : 0.5 }}
               >
                 <div className="h-full w-full p-2">
                   <Art kind={s.art} active={i === active} size="sm" />
                 </div>
               </div>
-              <span className="font-mono text-[10px] tracking-[0.08em]" style={{ color: i === active ? "#fff" : "#5f6f93" }}>
+              <span className="font-mono text-[10px] tracking-[0.08em] transition-colors" style={{ color: i === active ? "#fff" : "#5f6f93" }}>
                 {s.caption}
               </span>
-            </div>
+            </button>
           ))}
         </div>
       </div>
