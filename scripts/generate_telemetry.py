@@ -120,15 +120,17 @@ def run(conn_factory) -> None:
                     for ts, batt, temp, solar, rssi, mode, hk in series[sat]:
                         cp.write_row((ts, sat, batt, temp, solar, rssi, mode,
                                       json.dumps(hk)))
-        # Keep satellite.battery_v/last_seen exact even before the
-        # telemetry trigger brief (06) lands; harmless once it exists.
-        with conn.transaction():
-            for sat in sat_ids:
-                conn.execute(
-                    "UPDATE satellite SET battery_v = %s, last_seen = %s"
-                    " WHERE node_id = %s",
-                    (PINNED_BATTERY[sat], end, sat),
-                )
+        # trg_telemetry_ingest keeps satellite.battery_v/last_seen current.
+        # Only the superuser fallback (no roles/triggers yet) backfills by hand;
+        # ai_router is deliberately not allowed to UPDATE satellite.
+        if not as_router:
+            with conn.transaction():
+                for sat in sat_ids:
+                    conn.execute(
+                        "UPDATE satellite SET battery_v = %s, last_seen = %s"
+                        " WHERE node_id = %s",
+                        (PINNED_BATTERY[sat], end, sat),
+                    )
     conn.close()
 
     total = per_sat * len(sat_ids)
