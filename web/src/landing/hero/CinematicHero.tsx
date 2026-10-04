@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { ScrollTrigger } from "@/lib/gsap";
-import { PocketQube } from "./PocketQube";
+import { Satellite } from "./Satellite";
 
 /*
  * Scroll-scrubbed hero, one canvas, one progress value (0..1):
@@ -397,7 +397,7 @@ function LineArtScene({ reveal }: { reveal: React.MutableRefObject<number> }) {
     <group ref={root} visible={false}>
       {cubes.map((c, i) => (
         <group key={i} position={c} rotation={[0.12, i === 1 ? 0 : i === 0 ? 0.35 : -0.35, i === 1 ? 0 : i === 0 ? 0.08 : -0.08]}>
-          <PocketQube lineArt scale={0.4} />
+          <Satellite lineArt scale={0.3} />
         </group>
       ))}
       {beams.map((b, i) => (
@@ -498,7 +498,7 @@ function Scene({ progress, mobile }: { progress: React.MutableRefObject<number>;
     if (sat.current) {
       const show = smooth(0.44, 0.52, p) * (1 - smooth(0.66, 0.74, p));
       sat.current.visible = show > 0.01;
-      sat.current.position.set(0.5, lerp(0.38, 0.46, c), 0.85);
+      sat.current.position.set(0.28, lerp(0.36, 0.44, c), 0.85);
       const tt = performance.now() / 1000;
       sat.current.rotation.set(0.18, -0.5 + Math.sin(tt * 0.3) * 0.3, 0.32);
       sat.current.traverse((o) => {
@@ -536,7 +536,7 @@ function Scene({ progress, mobile }: { progress: React.MutableRefObject<number>;
       </group>
       <Warp amount={warpAmount} mobile={mobile} />
       <group ref={sat} visible={false}>
-        <PocketQube scale={0.2} />
+        <Satellite scale={0.2} />
       </group>
       <LineArtScene reveal={lineReveal} />
     </>
