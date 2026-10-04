@@ -12,3 +12,4 @@ web/dist/
 reference/
 # local scratch
 *.log
+__pycache__/
