@@ -87,9 +87,11 @@ def contacts(
         rows = sqlbook.run(
             role,
             "contacts window",
-            "SELECT * FROM contact WHERE start_ts <= %s + (%s || ' minutes')::interval "
-            "AND end_ts >= %s - INTERVAL '5 minutes' ORDER BY start_ts LIMIT 500",
-            (at_dt.isoformat(), str(window_min), at_dt.isoformat()),
+            "SELECT contact_id, kind, from_node, to_node, start_ts, end_ts, duration_s, "
+            "rate_bps, link_score, min_range_km, max_elevation_deg FROM contact "
+            "WHERE start_ts <= %s::timestamptz + make_interval(mins => %s::int) "
+            "AND end_ts >= %s::timestamptz - INTERVAL '5 minutes' ORDER BY start_ts LIMIT 500",
+            (at_dt.isoformat(), int(window_min), at_dt.isoformat()),
         )
         return sqlbook.envelope(rows, role)
     except Exception as exc:

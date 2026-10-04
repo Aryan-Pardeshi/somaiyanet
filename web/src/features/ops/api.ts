@@ -229,9 +229,10 @@ export function useOpsData(): OpsData {
 
     const loadKpis = async (): Promise<void> => {
       try {
-        const r = await fetchApi<Kpi[]>("/api/kpis");
+        const r = await fetchApi<Kpi[] | Kpi>("/api/kpis");
         if (cancelled) return;
-        setKpis(r.data);
+        // Backend returns the single mv_kpis row as an object.
+        setKpis(Array.isArray(r.data) ? r.data : [r.data]);
       } catch (e) {
         if (cancelled || e instanceof Unauthorized) return;
         setKpis(mockKpis(Date.now()));
@@ -240,9 +241,10 @@ export function useOpsData(): OpsData {
 
     const boot = async (): Promise<void> => {
       try {
-        const r = await fetchApi<ConstellationSat[]>("/api/constellation");
+        const r = await fetchApi<(ConstellationSat & { sat_id?: string })[]>("/api/constellation");
         if (cancelled) return;
-        setSats(r.data);
+        // v_constellation_status exposes the key as sat_id.
+        setSats(r.data.map((s) => ({ ...s, node_id: s.node_id ?? s.sat_id ?? "" })));
         setRole(r.role);
         setMock(false);
         usingMock = false;
