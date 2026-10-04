@@ -43,99 +43,538 @@ const STEPS: Step[] = [
   },
 ];
 
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return reduced;
+}
+
+/** Earth limb spanning the bottom with atmosphere line */
+function EarthLimb({ stroke, strokeWidth, draw }: { stroke: string; strokeWidth: number; draw: string }) {
+  return (
+    <g>
+      <path
+        d="M -10 178 Q 100 128 210 178"
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        fill="none"
+        pathLength={1}
+        className={draw}
+      />
+      <path
+        d="M -10 188 Q 100 138 210 188"
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        fill="none"
+        opacity={0.35}
+        pathLength={1}
+        className={draw}
+      />
+    </g>
+  );
+}
+
+/** Classic satellite icon with bus, solar cell dividers, and antenna */
+function Sat({
+  x,
+  y,
+  scale = 1,
+  stroke,
+  strokeWidth,
+  angle = 0,
+}: {
+  x: number;
+  y: number;
+  scale?: number;
+  stroke: string;
+  strokeWidth: number;
+  angle?: number;
+}) {
+  const transform = angle ? `translate(${x} ${y}) rotate(${angle}) scale(${scale})` : `translate(${x} ${y}) scale(${scale})`;
+  return (
+    <g transform={transform}>
+      {/* Central square bus */}
+      <rect x={-7} y={-7} width={14} height={14} stroke={stroke} strokeWidth={strokeWidth} fill="#000" />
+      {/* Inner detail line */}
+      <line x1={-7} y1={0} x2={7} y2={0} stroke={stroke} strokeWidth={strokeWidth * 0.8} />
+
+      {/* Left solar wing with boom & 3 cell dividers */}
+      <line x1={-11} y1={0} x2={-7} y2={0} stroke={stroke} strokeWidth={strokeWidth} />
+      <rect x={-27} y={-6} width={16} height={12} stroke={stroke} strokeWidth={strokeWidth} fill="#000" />
+      <line x1={-23} y1={-6} x2={-23} y2={6} stroke={stroke} strokeWidth={strokeWidth * 0.8} />
+      <line x1={-19} y1={-6} x2={-19} y2={6} stroke={stroke} strokeWidth={strokeWidth * 0.8} />
+      <line x1={-15} y1={-6} x2={-15} y2={6} stroke={stroke} strokeWidth={strokeWidth * 0.8} />
+
+      {/* Right solar wing with boom & 3 cell dividers */}
+      <line x1={7} y1={0} x2={11} y2={0} stroke={stroke} strokeWidth={strokeWidth} />
+      <rect x={11} y={-6} width={16} height={12} stroke={stroke} strokeWidth={strokeWidth} fill="#000" />
+      <line x1={15} y1={-6} x2={15} y2={6} stroke={stroke} strokeWidth={strokeWidth * 0.8} />
+      <line x1={19} y1={-6} x2={19} y2={6} stroke={stroke} strokeWidth={strokeWidth * 0.8} />
+      <line x1={23} y1={-6} x2={23} y2={6} stroke={stroke} strokeWidth={strokeWidth * 0.8} />
+
+      {/* Antennas */}
+      <line x1={0} y1={-7} x2={0} y2={-11} stroke={stroke} strokeWidth={strokeWidth} />
+      <line x1={0} y1={7} x2={0} y2={10} stroke={stroke} strokeWidth={strokeWidth} />
+    </g>
+  );
+}
+
+/** Ground station dish: parabolic bowl, feed arm + feed point, mast, and base sitting on Earth limb */
+function Dish({
+  x = 152,
+  y = 160,
+  stroke,
+  strokeWidth,
+}: {
+  x?: number;
+  y?: number;
+  stroke: string;
+  strokeWidth: number;
+}) {
+  return (
+    <g>
+      {/* Base on Earth limb */}
+      <line x1={x - 8} y1={y} x2={x + 8} y2={y} stroke={stroke} strokeWidth={strokeWidth} />
+      {/* Mast & tripod legs */}
+      <path d={`M ${x - 6} ${y} L ${x} ${y - 15} L ${x + 6} ${y}`} stroke={stroke} strokeWidth={strokeWidth} fill="none" />
+      <line x1={x} y1={y} x2={x} y2={y - 15} stroke={stroke} strokeWidth={strokeWidth} />
+      <line x1={x - 3} y1={y - 7} x2={x + 3} y2={y - 7} stroke={stroke} strokeWidth={strokeWidth * 0.8} />
+      {/* Bracket to bowl */}
+      <line x1={x} y1={y - 15} x2={x - 2} y2={y - 20} stroke={stroke} strokeWidth={strokeWidth} />
+      {/* Parabolic bowl */}
+      <path
+        d={`M ${x + 7} ${y - 35} Q ${x + 3} ${y - 19} ${x - 15} ${y - 15}`}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        fill="none"
+      />
+      {/* Struts to feed point (x - 15, y - 33) */}
+      <line x1={x + 7} y1={y - 35} x2={x - 15} y2={y - 33} stroke={stroke} strokeWidth={strokeWidth * 0.75} />
+      <line x1={x - 15} y1={y - 15} x2={x - 15} y2={y - 33} stroke={stroke} strokeWidth={strokeWidth * 0.75} />
+      {/* Feed point */}
+      <circle cx={x - 15} cy={y - 33} r={1.5} fill={stroke} />
+    </g>
+  );
+}
+
 /** White line art; strokes draw themselves in when the box becomes active. */
 function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" | "sm" }) {
+  const reducedMotion = usePrefersReducedMotion();
   const s = active ? "#ffffff" : "rgba(255,255,255,0.45)";
   const blue = "#3d5bff";
+  const red = "#ff3b4f";
+  const strokeWidth = size === "lg" ? 1.3 : 2.4;
   const draw = active && size === "lg" ? "draw-in" : "";
-  const common = { fill: "none", strokeWidth: size === "lg" ? 1.4 : 2.2, vectorEffect: "non-scaling-stroke" as const };
+  const canAnimate = active && size === "lg" && !reducedMotion;
+
   return (
     <svg viewBox="0 0 200 200" className="h-full w-full">
       {kind === "scan" && (
         <g>
-          <rect x="40" y="38" width="120" height="90" stroke={s} {...common} pathLength={1} className={draw} />
-          {Array.from({ length: 9 }).map((_, i) => (
-            <line key={i} x1="46" x2={46 + (i < 6 ? 108 : 108 - (i - 5) * 30)} y1={48 + i * 9} y2={48 + i * 9} stroke={i % 3 === 0 ? blue : s} {...common} opacity={0.7} pathLength={1} className={draw} style={{ animationDelay: `${i * 0.08}s` }} />
-          ))}
-          <path d="M20 168 Q100 132 180 168" stroke={s} {...common} pathLength={1} className={draw} />
-          <path d="M20 180 Q100 144 180 180" stroke={s} {...common} opacity={0.4} pathLength={1} className={draw} />
+          {/* Earth limb spanning full width */}
+          <EarthLimb stroke={s} strokeWidth={strokeWidth} draw={draw} />
+
+          {/* Sat top-left */}
+          <Sat x={42} y={36} scale={0.78} stroke={s} strokeWidth={strokeWidth} />
+
+          {/* Dashed blue field-of-view cone from sat to Earth limb */}
+          <line x1={42} y1={42} x2={16} y2={168} stroke={blue} strokeDasharray="4 3" strokeWidth={strokeWidth} />
+          <line x1={42} y1={42} x2={94} y2={154} stroke={blue} strokeDasharray="4 3" strokeWidth={strokeWidth} />
+          <path
+            d="M 16 168 Q 55 158 94 154"
+            stroke={blue}
+            strokeDasharray="3 3"
+            strokeWidth={strokeWidth}
+            fill="none"
+            opacity={0.6}
+          />
+
+          {/* SSTV 4:3 frame on the right */}
+          <rect x={102} y={32} width={84} height={63} stroke={s} strokeWidth={strokeWidth} fill="none" rx={2} />
+
+          {/* Horizontal scan lines drawing in top-to-bottom, one blue */}
+          {Array.from({ length: 8 }).map((_, i) => {
+            const y = 37 + i * 7.5;
+            const isScanBlue = i === 4;
+            return (
+              <line
+                key={i}
+                x1={107}
+                y1={y}
+                x2={181}
+                y2={y}
+                stroke={isScanBlue ? blue : s}
+                strokeWidth={strokeWidth}
+                opacity={isScanBlue ? 1 : 0.65}
+                pathLength={1}
+                className={draw}
+                style={{ animationDelay: `${i * 0.09}s` }}
+              />
+            );
+          })}
+
+          {/* SSTV metadata label */}
+          {size === "lg" && (
+            <text
+              x={144}
+              y={107}
+              textAnchor="middle"
+              fill="#8b96b0"
+              fontFamily="monospace"
+              fontSize={7}
+              letterSpacing="0.05em"
+            >
+              SSTV · 320×256
+            </text>
+          )}
+
+          {/* Static red packet dot at sat */}
+          <circle cx={42} cy={36} r={size === "lg" ? 3.5 : 4.5} fill={red} />
         </g>
       )}
+
       {kind === "tree" && (
         <g>
-          {[
-            ["100,30", "60,80"],
-            ["100,30", "140,80"],
-            ["60,80", "36,130"],
-            ["60,80", "84,130"],
-            ["140,80", "116,130"],
-            ["140,80", "164,130"],
-            ["116,130", "116,170"],
-          ].map(([a, b], i) => {
-            const [x1, y1] = a.split(",").map(Number);
-            const [x2, y2] = b.split(",").map(Number);
-            const onPath = i === 1 || i === 4 || i === 6;
-            return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={onPath ? blue : s} {...common} pathLength={1} className={draw} style={{ animationDelay: `${i * 0.12}s` }} />;
-          })}
-          {[
-            [100, 30],
-            [60, 80],
-            [140, 80],
-            [36, 130],
-            [84, 130],
-            [116, 130],
-            [164, 130],
-          ].map(([cx, cy], i) => (
-            <circle key={i} cx={cx} cy={cy} r="7" stroke={i === 0 || i === 2 || i === 5 ? blue : s} {...common} fill="#000" />
-          ))}
-          <rect x="100" y="166" width="32" height="12" stroke={blue} {...common} />
+          {/* Tree branch connections */}
+          {/* Level 0 to Level 1 */}
+          <line
+            x1={100}
+            y1={35}
+            x2={50}
+            y2={69}
+            stroke={s}
+            strokeWidth={strokeWidth}
+            pathLength={1}
+            className={draw}
+          />
+          <line
+            x1={100}
+            y1={35}
+            x2={150}
+            y2={69}
+            stroke={blue}
+            strokeWidth={strokeWidth}
+            pathLength={1}
+            className={draw}
+          />
+
+          {/* Level 1 to Level 2 (Leaves) */}
+          <line
+            x1={50}
+            y1={87}
+            x2={25}
+            y2={125}
+            stroke={s}
+            strokeWidth={strokeWidth}
+            pathLength={1}
+            className={draw}
+          />
+          <line
+            x1={50}
+            y1={87}
+            x2={74}
+            y2={125}
+            stroke={s}
+            strokeWidth={strokeWidth}
+            pathLength={1}
+            className={draw}
+          />
+          <line
+            x1={150}
+            y1={87}
+            x2={133}
+            y2={125}
+            stroke={blue}
+            strokeWidth={strokeWidth}
+            pathLength={1}
+            className={draw}
+          />
+          <line
+            x1={150}
+            y1={87}
+            x2={179}
+            y2={125}
+            stroke={s}
+            strokeWidth={strokeWidth}
+            pathLength={1}
+            className={draw}
+          />
+
+          {/* Root node: battery_v */}
+          <rect x={72} y={17} width={56} height={18} rx={3} stroke={blue} strokeWidth={strokeWidth} fill="#000" />
+          {size === "lg" && (
+            <text x={100} y={29} textAnchor="middle" fill="#fff" fontFamily="monospace" fontSize={6.5}>
+              battery_v
+            </text>
+          )}
+
+          {/* Level 1: link_score */}
+          <rect x={22} y={69} width={56} height={18} rx={3} stroke={s} strokeWidth={strokeWidth} fill="#000" />
+          {size === "lg" && (
+            <text x={50} y={81} textAnchor="middle" fill="rgba(255,255,255,0.75)" fontFamily="monospace" fontSize={6.5}>
+              link_score
+            </text>
+          )}
+
+          {/* Level 1: contact_s (on path) */}
+          <rect x={123} y={69} width={54} height={18} rx={3} stroke={blue} strokeWidth={strokeWidth} fill="#000" />
+          {size === "lg" && (
+            <text x={150} y={81} textAnchor="middle" fill="#fff" fontFamily="monospace" fontSize={6.5}>
+              contact_s
+            </text>
+          )}
+
+          {/* Leaf: HOLD */}
+          <rect x={8} y={125} width={34} height={18} rx={3} stroke={s} strokeWidth={strokeWidth} fill="#000" />
+          {size === "lg" && (
+            <text x={25} y={137} textAnchor="middle" fill="rgba(255,255,255,0.75)" fontFamily="monospace" fontSize={6.5}>
+              HOLD
+            </text>
+          )}
+
+          {/* Leaf: TTC_VOICE */}
+          <rect x={48} y={125} width={52} height={18} rx={3} stroke={s} strokeWidth={strokeWidth} fill="#000" />
+          {size === "lg" && (
+            <text x={74} y={137} textAnchor="middle" fill="rgba(255,255,255,0.75)" fontFamily="monospace" fontSize={6}>
+              TTC_VOICE
+            </text>
+          )}
+
+          {/* Leaf: RELAY_VIA_ISL (chosen leaf with blue outline) */}
+          <rect x={104} y={125} width={58} height={18} rx={3} stroke={blue} strokeWidth={strokeWidth} fill="#000" />
+          {size === "lg" && (
+            <text x={133} y={137} textAnchor="middle" fill="#fff" fontFamily="monospace" fontSize={5.5}>
+              RELAY_VIA_ISL
+            </text>
+          )}
+
+          {/* Leaf: FULL */}
+          <rect x={164} y={125} width={30} height={18} rx={3} stroke={s} strokeWidth={strokeWidth} fill="#000" />
+          {size === "lg" && (
+            <text x={179} y={137} textAnchor="middle" fill="rgba(255,255,255,0.75)" fontFamily="monospace" fontSize={6.5}>
+              FULL
+            </text>
+          )}
+
+          {/* 'chosen' label beneath chosen leaf */}
+          {size === "lg" && (
+            <text
+              x={133}
+              y={156}
+              textAnchor="middle"
+              fill={blue}
+              fontFamily="monospace"
+              fontSize={6.5}
+              letterSpacing="0.08em"
+            >
+              chosen
+            </text>
+          )}
+
+          {/* Red dot travels root to leaf */}
+          {canAnimate ? (
+            <circle r={3.5} fill={red}>
+              <animateMotion
+                dur="2.2s"
+                repeatCount="indefinite"
+                path="M 100 26 L 100 35 L 150 69 L 150 87 L 133 125 L 133 134"
+              />
+            </circle>
+          ) : (
+            <circle cx={133} cy={134} r={size === "lg" ? 3.5 : 4} fill={red} />
+          )}
         </g>
       )}
+
       {kind === "hop" && (
         <g>
-          {[40, 100, 160].map((x, i) => (
-            <g key={x} transform={`translate(${x} ${i === 1 ? 52 : 70})`}>
-              <rect x="-9" y="-14" width="18" height="28" stroke={s} {...common} />
-              <rect x="-40" y="-7" width="26" height="14" stroke={s} {...common} opacity={0.7} />
-              <rect x="14" y="-7" width="26" height="14" stroke={s} {...common} opacity={0.7} />
-            </g>
-          ))}
-          <line x1="49" y1="70" x2="91" y2="52" stroke={s} {...common} strokeDasharray="4 4" />
-          <line x1="109" y1="52" x2="151" y2="70" stroke={s} {...common} strokeDasharray="4 4" />
-          <line x1="160" y1="84" x2="150" y2="160" stroke={s} {...common} strokeDasharray="4 4" />
-          <path d="M14 170 Q100 140 186 170" stroke={s} {...common} />
-          <rect x="145" y="152" width="10" height="10" stroke={s} {...common} />
-          {active && size === "lg" && (
-            <circle r="5" fill="#ff3b4f">
-              <animateMotion dur="2.6s" repeatCount="indefinite" path="M40 70 L100 52 L160 70 L150 157" />
+          {/* Earth limb spanning full width */}
+          <EarthLimb stroke={s} strokeWidth={strokeWidth} draw={draw} />
+
+          {/* Three Sats across top in gentle arc */}
+          <Sat x={36} y={52} scale={0.62} stroke={s} strokeWidth={strokeWidth} />
+          <Sat x={95} y={38} scale={0.62} stroke={s} strokeWidth={strokeWidth} />
+          <Sat x={154} y={54} scale={0.62} stroke={s} strokeWidth={strokeWidth} />
+
+          {/* Dashed ISL links between satellites */}
+          <line x1={48} y1={50} x2={83} y2={40} stroke={blue} strokeDasharray="3 3" strokeWidth={strokeWidth} />
+          <line x1={107} y1={40} x2={142} y2={50} stroke={blue} strokeDasharray="3 3" strokeWidth={strokeWidth} />
+
+          {/* Downlink beam from last sat down to ground station dish */}
+          <line x1={154} y1={62} x2={137} y2={127} stroke={blue} strokeDasharray="4 3" strokeWidth={strokeWidth} />
+
+          {/* Ground station dish on Earth limb */}
+          <Dish x={152} y={160} stroke={s} strokeWidth={strokeWidth} />
+
+          {/* Red dot: animateMotion along sat1 -> sat2 -> sat3 -> dish (lg only), static at sat2 in thumbnails */}
+          {canAnimate ? (
+            <circle r={3.5} fill={red}>
+              <animateMotion dur="2.8s" repeatCount="indefinite" path="M 36 52 L 95 38 L 154 54 L 137 127" />
             </circle>
+          ) : (
+            <circle cx={95} cy={38} r={size === "lg" ? 3.5 : 4} fill={red} />
           )}
-          {!active && <circle cx="100" cy="52" r="4" fill="#ff3b4f" />}
         </g>
       )}
+
       {kind === "dish" && (
         <g>
-          <path d="M14 168 Q100 132 186 168" stroke={s} {...common} pathLength={1} className={draw} />
-          <path d="M14 182 Q100 146 186 182" stroke={s} {...common} opacity={0.4} pathLength={1} className={draw} />
-          <path d="M112 128 Q132 98 160 104" stroke={s} {...common} pathLength={1} className={draw} />
-          <line x1="136" y1="112" x2="136" y2="146" stroke={s} {...common} />
-          <rect x="44" y="30" width="22" height="30" stroke={s} {...common} />
-          {[0, 1, 2].map((k) => (
-            <line key={k} x1="58" y1="62" x2={124 + k * 10} y2={106 + k * 4} stroke={blue} {...common} strokeDasharray="5 4" pathLength={1} className={draw} style={{ animationDelay: `${0.2 + k * 0.15}s` }} />
-          ))}
+          {/* Earth limb spanning full width */}
+          <EarthLimb stroke={s} strokeWidth={strokeWidth} draw={draw} />
+
+          {/* Sat upper-left */}
+          <Sat x={44} y={38} scale={0.78} stroke={s} strokeWidth={strokeWidth} />
+
+          {/* Downlink beam: narrow cone formed by two thin white lines to Dish feed point */}
+          <line
+            x1={38}
+            y1={44}
+            x2={137}
+            y2={127}
+            stroke={s}
+            strokeWidth={strokeWidth * 0.85}
+            opacity={0.65}
+            pathLength={1}
+            className={draw}
+          />
+          <line
+            x1={50}
+            y1={44}
+            x2={137}
+            y2={127}
+            stroke={s}
+            strokeWidth={strokeWidth * 0.85}
+            opacity={0.65}
+            pathLength={1}
+            className={draw}
+          />
+
+          {/* Dashed blue centre line */}
+          <line
+            x1={44}
+            y1={44}
+            x2={137}
+            y2={127}
+            stroke={blue}
+            strokeWidth={strokeWidth}
+            strokeDasharray="4 3"
+          />
+
+          {/* Dish standing on Earth limb lower-right */}
+          <Dish x={152} y={160} stroke={s} strokeWidth={strokeWidth} />
+
+          {/* 3 short arcs ('signal received') next to the dish */}
+          <path d="M 161 123 A 12 12 0 0 1 161 137" stroke={blue} strokeWidth={strokeWidth} fill="none" opacity={0.9} />
+          <path d="M 167 119 A 18 18 0 0 1 167 141" stroke={blue} strokeWidth={strokeWidth} fill="none" opacity={0.65} />
+          <path d="M 173 115 A 24 24 0 0 1 173 145" stroke={blue} strokeWidth={strokeWidth} fill="none" opacity={0.4} />
+
+          {/* Red dot moving down centre line (lg only) */}
+          {canAnimate ? (
+            <circle r={3.5} fill={red}>
+              <animateMotion dur="1.8s" repeatCount="indefinite" path="M 44 44 L 137 127" />
+            </circle>
+          ) : (
+            <circle cx={137} cy={127} r={size === "lg" ? 3.5 : 4} fill={red} />
+          )}
         </g>
       )}
+
       {kind === "rows" && (
         <g>
-          <rect x="30" y="34" width="140" height="132" stroke={s} {...common} />
-          <line x1="30" y1="58" x2="170" y2="58" stroke={s} {...common} />
-          {[0, 1, 2, 3].map((r) => (
-            <g key={r} className={active && size === "lg" ? "row-in" : ""} style={{ animationDelay: `${r * 0.18}s` }}>
-              <line x1="30" x2="170" y1={84 + r * 22} y2={84 + r * 22} stroke={s} {...common} opacity={0.35} />
-              <rect x="40" y={66 + r * 22} width="38" height="10" stroke={r === 0 ? blue : s} {...common} />
-              <rect x="88" y={66 + r * 22} width="70" height="10" stroke={s} {...common} opacity={0.6} />
+          {/* Table outer rect */}
+          <rect x={14} y={28} width={172} height={138} rx={3} stroke={s} strokeWidth={strokeWidth} fill="none" />
+
+          {/* Header dividing line */}
+          <line x1={14} y1={52} x2={186} y2={52} stroke={s} strokeWidth={strokeWidth} />
+
+          {/* Header row mono text */}
+          {size === "lg" && (
+            <g>
+              <text x={22} y={43} fill="#8b96b0" fontFamily="monospace" fontSize={7} letterSpacing="0.05em">
+                op
+              </text>
+              <text x={64} y={43} fill="#8b96b0" fontFamily="monospace" fontSize={7} letterSpacing="0.05em">
+                table
+              </text>
+              <text x={138} y={43} fill="#8b96b0" fontFamily="monospace" fontSize={7} letterSpacing="0.05em">
+                changed_at
+              </text>
             </g>
-          ))}
+          )}
+
+          {/* 4 table rows, first row blue, rows fade in staggered */}
+          {[
+            { op: "INSERT", table: "packet", time: "12:04:31" },
+            { op: "UPDATE", table: "satellite", time: "12:04:32" },
+            { op: "INSERT", table: "routing_decision", time: "12:04:32" },
+            { op: "INSERT", table: "telecommand", time: "12:04:35" },
+          ].map((row, r) => {
+            const isFirst = r === 0;
+            const textColor = isFirst ? blue : s;
+            return (
+              <g
+                key={r}
+                className={active && size === "lg" ? "row-in" : ""}
+                style={{ animationDelay: `${r * 0.14}s` }}
+              >
+                {/* Row divider */}
+                {r > 0 && (
+                  <line
+                    x1={14}
+                    y1={52 + r * 28}
+                    x2={186}
+                    y2={52 + r * 28}
+                    stroke={s}
+                    strokeWidth={strokeWidth}
+                    opacity={0.2}
+                  />
+                )}
+
+                {size === "lg" ? (
+                  <>
+                    <text x={22} y={70 + r * 28} fill={textColor} fontFamily="monospace" fontSize={7.2}>
+                      {row.op}
+                    </text>
+                    <text x={64} y={70 + r * 28} fill={textColor} fontFamily="monospace" fontSize={7.2}>
+                      {row.table}
+                    </text>
+                    <text x={138} y={70 + r * 28} fill={textColor} fontFamily="monospace" fontSize={7.2}>
+                      {row.time}
+                    </text>
+                  </>
+                ) : (
+                  <>
+                    <rect x={22} y={64 + r * 28} width={24} height={5} fill={isFirst ? blue : s} rx={1} />
+                    <rect
+                      x={58}
+                      y={64 + r * 28}
+                      width={56}
+                      height={5}
+                      fill={isFirst ? blue : s}
+                      opacity={isFirst ? 0.9 : 0.6}
+                      rx={1}
+                    />
+                    <rect
+                      x={138}
+                      y={64 + r * 28}
+                      width={34}
+                      height={5}
+                      fill={isFirst ? blue : s}
+                      opacity={isFirst ? 0.8 : 0.4}
+                      rx={1}
+                    />
+                  </>
+                )}
+              </g>
+            );
+          })}
         </g>
       )}
     </svg>
@@ -179,7 +618,7 @@ export function PacketStepper() {
         <div className="mt-10 grid items-center gap-10 md:grid-cols-[minmax(0,420px)_1fr] md:gap-16">
           <div className="relative aspect-square w-full max-w-[420px] border border-white/80">
             <span className="font-mono absolute left-3 top-3 text-[10px] tracking-[0.1em] text-[#5f6f93]">{step.caption}</span>
-            <div key={active} className="absolute inset-8">
+            <div key={active} className="absolute inset-6">
               <Art kind={step.art} active size="lg" />
             </div>
           </div>
