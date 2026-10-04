@@ -1,6 +1,6 @@
 // globe logic adapted from lakshyamody/dbmsproj (app/components/globe_template.html)
 // Mission-ops globe: live TLE propagation, real terminator, ISL lines,
-// downlink beams, plane colouring, and an imperative route-playback handle.
+// downlink beams, dotted orbit paths, and an imperative handle for route playback + flyTo.
 import {
   forwardRef,
   useEffect,
@@ -16,7 +16,6 @@ import {
   islColor,
   propagateSat,
   rgba,
-  scoreColor,
   subSolarLatLng,
   unwrapLng,
   type LatLngAlt,
@@ -32,6 +31,7 @@ export interface RouteHop {
 
 export interface OpsGlobeHandle {
   playRoute: (hops: RouteHop[]) => void;
+  flyTo: (view: "globe" | "mumbai" | "fleet") => void;
 }
 
 interface OpsGlobeProps {
@@ -41,6 +41,7 @@ interface OpsGlobeProps {
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   histories: Record<string, number[]>;
+  highlightIds?: string[];
 }
 
 type World = InstanceType<typeof Globe>;
@@ -60,60 +61,27 @@ interface PathDatum {
   pts: Array<[number, number, number]>;
   colors: string | [string, string];
   stroke: number;
+  dashLength?: number;
+  dashGap?: number;
+  dashAnimateTime?: number;
 }
 
-const PLANE_A = "#a9caff";
-const PLANE_B = "#e6ecf8";
-const SAFE_RING = "#e5484d";
+const NOMINAL_COLOR = "#7ee2b8";
+const SAFE_COLOR = "#f5a524";
+const CRITICAL_COLOR = "#ff3b4f";
+const STOWED_COLOR = "#4a5a8a";
 const DOWNLINK_GREEN = "#3ecf8e";
 const TRAIL_N = 70;
 const MODEL_ALT = 525 / EARTH_R_KM;
+// Display altitude: 525 km hugs the surface at this zoom, so markers, orbits
+// and links are drawn on a raised shell (about 0.2 Earth radii) for legibility.
+const VIS_ALT = 0.2;
 
-function satColor(s: ConstellationSat): string {
-  if (s.state === "SAFE") return SAFE_RING;
-  return s.plane === "A" ? PLANE_A : PLANE_B;
-}
-
-function two(n: number): string {
-  return (n < 10 ? "0" : "") + String(n);
-}
-
-function countdownText(iso: string | null | undefined, nowMs: number): string {
-  if (!iso) return "not scheduled";
-  const delta = Math.floor((new Date(iso).getTime() - nowMs) / 1000);
-  if (delta <= 0) return "PASS WINDOW OPEN";
-  return `T- ${two(Math.floor(delta / 3600))}:${two(Math.floor((delta % 3600) / 60))}:${two(delta % 60)}`;
-}
-
-function sparklineSvg(series: number[], color: string): string {
-  const pts = series.filter((v) => v !== null && v !== undefined).map(Number);
-  if (pts.length < 2) return "";
-  const w = 260;
-  const h = 44;
-  const pad = 3;
-  let lo = Math.min(...pts);
-  let hi = Math.max(...pts);
-  if (hi - lo < 0.05) {
-    hi += 0.05;
-    lo -= 0.05;
-  }
-  const step = (w - pad * 2) / (pts.length - 1);
-  const coords = pts.map((v, i) => {
-    const x = pad + i * step;
-    const y = pad + (h - pad * 2) * (1 - (v - lo) / (hi - lo));
-    return [x, y] as [number, number];
-  });
-  const line = coords
-    .map((c, i) => `${i ? "L" : "M"}${c[0].toFixed(1)} ${c[1].toFixed(1)}`)
-    .join(" ");
-  const last = coords[coords.length - 1];
-  const area = `${line} L${last[0].toFixed(1)} ${h - pad} L${pad} ${h - pad} Z`;
-  return (
-    `<svg width="100%" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="display:block;height:44px">` +
-    `<path d="${area}" fill="${rgba(color, 0.12)}"/>` +
-    `<path d="${line}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>` +
-    `<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.4" fill="${color}"/></svg>`
-  );
+function satStatusColor(s: ConstellationSat): string {
+  if (s.state === "NOMINAL") return NOMINAL_COLOR;
+  if (s.state === "SAFE") return SAFE_COLOR;
+  if (s.state === "CRITICAL") return CRITICAL_COLOR;
+  return STOWED_COLOR;
 }
 
 export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
@@ -140,15 +108,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
     const liveRef = useRef(props);
     liveRef.current = props;
 
-    const [clock, setClock] = useState(() => new Date());
-    const [speed, setSpeed] = useState(1);
     const [booted, setBooted] = useState(false);
-    const [playing, setPlaying] = useState(false);
-    const [legendOpen, setLegendOpen] = useState(
-      () =>
-        typeof window === "undefined" ||
-        window.innerWidth >= 1400,
-    );
 
     const nodePos = (name: string, tMs: number): LatLngAlt | null => {
       const rec = recsRef.current.get(name);
@@ -173,11 +133,37 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         from,
         to,
       };
-      setPlaying(true);
+    };
+
+    const flyToView = (view: "globe" | "mumbai" | "fleet"): void => {
+      const world = worldRef.current;
+      if (!world) return;
+      if (view === "globe") {
+        world.pointOfView({ lat: 19.07, lng: 72.9, altitude: 2.45 }, 1200);
+      } else if (view === "mumbai") {
+        const bom = liveRef.current.stations.find((s) => s.node_id === "GS-BOM");
+        const lat = bom ? bom.latitude : 19.076;
+        const lng = bom ? bom.longitude : 72.877;
+        world.pointOfView({ lat, lng, altitude: 1.45 }, 1200);
+      } else if (view === "fleet") {
+        const selId = liveRef.current.selectedId;
+        const target =
+          (selId ? satsRef.current.find((s) => s.uid === selId && s.ok) : null) ??
+          satsRef.current.find((s) => s.ok);
+        if (target) {
+          world.pointOfView(
+            { lat: target.lat, lng: target.lng, altitude: 1.75 },
+            1200,
+          );
+        } else {
+          world.pointOfView({ lat: 19.07, lng: 72.9, altitude: 2.2 }, 1200);
+        }
+      }
     };
 
     useImperativeHandle(ref, () => ({
       playRoute: playRouteHops,
+      flyTo: flyToView,
     }));
 
     // ---- globe construction (once) ---------------------------------------
@@ -187,32 +173,33 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
       simRef.current.simMs = Date.now();
       simRef.current.lastReal = Date.now();
       const texBase = `${import.meta.env.BASE_URL}assets/textures`;
+
       const world: World = new Globe(el)
         .backgroundColor("rgba(0,0,0,0)")
-        .globeImageUrl(`${texBase}/earth_day.jpg`)
+        .globeImageUrl(`${texBase}/earth_night.jpg`)
         .bumpImageUrl(`${texBase}/earth_topology.jpg`)
         .showAtmosphere(true)
-        .atmosphereColor("#3a6bd6")
-        .atmosphereAltitude(0.25)
+        .atmosphereColor("#cfd8ff")
+        .atmosphereAltitude(0.18)
         .width(el.clientWidth)
         .height(el.clientHeight);
       worldRef.current = world;
       world.controls().autoRotate = true;
-      world.controls().autoRotateSpeed = 0.32;
+      world.controls().autoRotateSpeed = 0.28;
       world.controls().enableZoom = true;
       world.controls().minDistance = 160;
       world.controls().maxDistance = 700;
       world.pointOfView({ lat: 19.07, lng: 72.9, altitude: 2.45 }, 0);
       world.onGlobeClick(() => liveRef.current.onSelect(null));
 
-      // Rings: pulsing ground stations. Labels: station names.
+      // Rings: pulsing ground stations
       world
         .ringsData([])
         .ringLat((d: object) => (d as { lat: number }).lat)
         .ringLng((d: object) => (d as { lng: number }).lng)
         .ringColor((d: object) => {
           const primary = (d as { primary: boolean }).primary;
-          const c = primary ? "127,178,255" : "230,236,248";
+          const c = primary ? "127,178,255" : "207,216,255";
           return (t: number): string => `rgba(${c},${((1 - t) * 0.95).toFixed(3)})`;
         })
         .ringMaxRadius((d: object) =>
@@ -223,25 +210,29 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
           (d as { primary: boolean }).primary ? 1100 : 1700,
         )
         .ringAltitude(0.004);
+
+      // Station labels
       world
         .labelsData([])
         .labelLat((d: object) => (d as { lat: number }).lat)
         .labelLng((d: object) => (d as { lng: number }).lng)
         .labelText((d: object) => (d as { name: string }).name)
-        .labelSize((d: object) => ((d as { primary: boolean }).primary ? 0.8 : 0.62))
+        .labelSize((d: object) => ((d as { primary: boolean }).primary ? 0.75 : 0.6))
         .labelDotRadius((d: object) =>
           (d as { primary: boolean }).primary ? 0.3 : 0.22,
         )
         .labelColor((d: object) =>
           (d as { primary: boolean }).primary
-            ? "rgba(243,234,216,1)"
-            : "rgba(185,176,158,.96)",
+            ? "rgba(223,230,245,1)"
+            : "rgba(139,150,176,0.9)",
         )
         .labelResolution(2)
         .labelAltitude(0.006);
 
-      // One paths layer carries the selected-sat trail plus ISL and
-      // downlink chords (2-point paths render as straight chords).
+      // Paths layer for:
+      // 1. Thin dotted white orbit paths
+      // 2. Selected satellite orbit trail
+      // 3. ISL lines & Downlink beams
       world
         .pathsData([])
         .pathPoints((d: object) => (d as PathDatum).pts)
@@ -250,8 +241,12 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         .pathPointAlt((p: object) => (p as [number, number, number])[2])
         .pathColor((d: object) => (d as PathDatum).colors)
         .pathStroke((d: object) => (d as PathDatum).stroke)
+        .pathDashLength((d: object) => (d as PathDatum).dashLength ?? 0)
+        .pathDashGap((d: object) => (d as PathDatum).dashGap ?? 0)
+        .pathDashAnimateTime((d: object) => (d as PathDatum).dashAnimateTime ?? 0)
         .pathTransitionDuration(0);
 
+      // HTML Elements for Satellites
       world
         .htmlElementsData([])
         .htmlLat((d: object) => (d as SatDatum).lat)
@@ -260,21 +255,21 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         .htmlTransitionDuration(0)
         .htmlElement((d: object) => (d as SatDatum).el);
 
-      // Sun + night lights + specular oceans + cloud shell, without a
-      // THREE import: constructors are reached through live objects.
+      // Sun and specular lighting
       try {
         const lights = world.lights() as unknown[];
         if (lights && lights.length >= 2) {
           sunRef.current.lights = lights;
           const amb = lights[0] as { intensity: number };
           const dir = lights[1] as { intensity: number };
-          amb.intensity = Math.PI * 0.62;
+          amb.intensity = Math.PI * 0.45;
           dir.intensity = Math.PI * 0.95;
           world.lights(lights as never);
         }
       } catch {
-        // Headless/test renderers may not expose lights; globe still works.
+        // Headless fallback
       }
+
       const mat = world.globeMaterial() as unknown as Record<string, unknown>;
       if (mat) {
         mat["bumpScale"] = 3.2;
@@ -286,6 +281,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
           minFilter: unknown;
           magFilter: unknown;
         } | null;
+
         const loadTexture = (
           url: string,
           cb: (tex: Record<string, unknown>) => void,
@@ -305,24 +301,17 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
           };
           img.src = url;
         };
-        loadTexture(`${texBase}/earth_night.jpg`, (tex) => {
-          mat["emissiveMap"] = tex;
-          const em = mat["emissive"] as {
-            setRGB?: (r: number, g: number, b: number) => void;
-          } | null;
-          if (em?.setRGB) em.setRGB(1, 1, 1);
-          mat["emissiveIntensity"] = 0.9;
-          mat["needsUpdate"] = true;
-        });
+
         loadTexture(`${texBase}/earth_specular.jpg`, (tex) => {
           mat["specularMap"] = tex;
           const sp = mat["specular"] as {
             setRGB?: (r: number, g: number, b: number) => void;
           } | null;
-          if (sp?.setRGB) sp.setRGB(0.42, 0.52, 0.68);
-          mat["shininess"] = 26;
+          if (sp?.setRGB) sp.setRGB(0.4, 0.5, 0.65);
+          mat["shininess"] = 24;
           mat["needsUpdate"] = true;
         });
+
         loadTexture(`${texBase}/earth_clouds.jpg`, (tex) => {
           const holder: { mesh: unknown } = { mesh: null };
           try {
@@ -350,7 +339,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
                   map: tex,
                   alphaMap: tex,
                   transparent: true,
-                  opacity: 0.62,
+                  opacity: 0.35,
                   depthWrite: false,
                 });
                 const clouds = new mesh.constructor(
@@ -364,7 +353,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
               }
             });
           } catch {
-            // Cloud shell is decoration; ignore failures.
+            // Cloud shell failure ignore
           }
         });
       }
@@ -393,6 +382,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
       let raf = 0;
       let lastLayer = 0;
       let lastPath = 0;
+
       const tick = (): void => {
         raf = requestAnimationFrame(tick);
         const real = Date.now();
@@ -405,10 +395,10 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         const clouds = cloudsRef.current?.obj as {
           rotation?: { y: number };
         } | null;
-        if (clouds?.rotation) clouds.rotation.y += 0.00012;
+        if (clouds?.rotation) clouds.rotation.y += 0.0001;
         updateSun(simMs);
 
-        // Propagate every sat from its TLE (refs only, no React state).
+        // Propagate every sat from its TLE
         for (const s of satsRef.current) {
           const rec = recsRef.current.get(s.uid);
           if (!rec) {
@@ -419,14 +409,14 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
           if (p) {
             s.lat = p.lat;
             s.lng = p.lng;
-            s.alt = p.alt;
+            s.alt = VIS_ALT;
             s.ok = true;
           } else {
             s.ok = false;
           }
         }
 
-        // Packet-dot playback, every frame for smooth motion.
+        // Packet-dot playback for demo route
         const play = playRef.current;
         const dot = dotRef.current;
         if (play && dot) {
@@ -452,7 +442,6 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
             if (next >= play.hops.length) {
               playRef.current = null;
               dot.style.display = "none";
-              setPlaying(false);
             } else {
               const hop = play.hops[next];
               const t = Date.parse(hop.depart_ts);
@@ -471,23 +460,50 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
           }
         }
 
-        // Layer refresh, throttled: markers often, paths less often.
+        // Layer refresh throttled
         if (real - lastLayer > 180) {
           lastLayer = real;
           const visible = satsRef.current.filter((s) => s.ok);
           world.htmlElementsData(visible as unknown as object[]);
         }
-        if (real - lastPath > 500) {
+
+        if (real - lastPath > 600) {
           lastPath = real;
           const paths: PathDatum[] = [];
-          const { selectedId, contacts, stations } = liveRef.current;
-          // Orbit trail for the selected sat.
+          const { selectedId, contacts, stations, sats } = liveRef.current;
+
+          // 1. Thin dotted white orbit path for each active satellite
+          const periodMs = 95.1 * 60 * 1000;
+          for (const s of sats) {
+            if (s.state === "STOWED") continue;
+            const rec = recsRef.current.get(s.node_id);
+            if (!rec) continue;
+            const orbitPts: LatLngAlt[] = [];
+            const steps = 64;
+            for (let i = 0; i <= steps; i++) {
+              const q = propagateSat(rec, simMs + (i / steps) * periodMs);
+              if (q) orbitPts.push(q);
+            }
+            if (orbitPts.length >= 2) {
+              unwrapLng(orbitPts);
+              paths.push({
+                pts: orbitPts.map(
+                  (q) => [q.lat, q.lng, VIS_ALT] as [number, number, number],
+                ),
+                colors: "rgba(223, 230, 245, 0.42)",
+                stroke: 0.9,
+                dashLength: 0.012,
+                dashGap: 0.012,
+              });
+            }
+          }
+
+          // 2. Brighter trail for the selected sat
           if (selectedId) {
             const rec = recsRef.current.get(selectedId);
             const datum = satsRef.current.find((s) => s.uid === selectedId);
             if (rec && datum) {
-              const periodMs = 95 * 60 * 1000;
-              const span = periodMs * 0.3;
+              const span = periodMs * 0.35;
               const seq: LatLngAlt[] = [];
               for (let i = TRAIL_N; i >= 0; i--) {
                 const q = propagateSat(rec, simMs - span * (i / TRAIL_N));
@@ -497,16 +513,16 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
                 unwrapLng(seq);
                 paths.push({
                   pts: seq.map(
-                    (q) =>
-                      [q.lat, q.lng, q.alt] as [number, number, number],
+                    (q) => [q.lat, q.lng, VIS_ALT] as [number, number, number],
                   ),
-                  colors: [rgba(datum.color, 0), rgba(datum.color, 1)],
-                  stroke: 2,
+                  colors: [rgba("#3d5bff", 0), rgba("#3d5bff", 1)],
+                  stroke: 2.2,
                 });
               }
             }
           }
-          // Live ISL chords (blue gradient) + downlink beams (green).
+
+          // 3. Live ISL chords + Downlink beams
           const pos = new Map<string, LatLngAlt>();
           for (const s of satsRef.current)
             if (s.ok) pos.set(s.uid, { lat: s.lat, lng: s.lng, alt: s.alt });
@@ -528,7 +544,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
                   [b.lat, b.lng, b.alt],
                 ],
                 colors: islColor(c.link_score),
-                stroke: 1.1,
+                stroke: 1.2,
               });
             } else {
               const a = pos.get(c.from_node);
@@ -540,7 +556,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
                   [a.lat, a.lng, a.alt],
                 ],
                 colors: DOWNLINK_GREEN,
-                stroke: 0.9,
+                stroke: 1.0,
               });
             }
           }
@@ -549,7 +565,6 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
       };
       raf = requestAnimationFrame(tick);
 
-      const clockTimer = window.setInterval(() => setClock(new Date()), 1000);
       const bootTimer = window.setTimeout(() => setBooted(true), 900);
       const onResize = (): void => {
         world.width(el.clientWidth).height(el.clientHeight);
@@ -558,22 +573,20 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
 
       return () => {
         cancelAnimationFrame(raf);
-        window.clearInterval(clockTimer);
         window.clearTimeout(bootTimer);
         window.removeEventListener("resize", onResize);
         try {
           world._destructor();
         } catch {
-          // Already torn down; ignore.
+          // ignore
         }
         worldRef.current = null;
       };
     }, []);
 
-    // ---- data sync: TLEs -> satrecs + markers, stations -> rings ---------
+    // ---- data sync: TLEs -> satrecs + HTML ring markers -------------------
     useEffect(() => {
       const world = worldRef.current;
-      // Satrecs are usable before the globe exists; markers need the world.
       for (const s of props.sats) {
         if (!recsRef.current.has(s.node_id)) {
           try {
@@ -582,50 +595,71 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
               satellite.twoline2satrec(s.tle_line1, s.tle_line2),
             );
           } catch {
-            // Unusable element set: skip, never plot a bogus point.
+            // invalid TLE
           }
         }
       }
       if (!world) return;
+
       const byUid = new Map(satsRef.current.map((s) => [s.uid, s]));
       const next: SatDatum[] = [];
+      const { highlightIds, selectedId } = props;
+
       for (const s of props.sats) {
-        if (s.state === "STOWED") continue; // listed in panel, not drawn
-        const color = satColor(s);
+        if (s.state === "STOWED") continue; // Stowed sats don't orbit
+        const color = satStatusColor(s);
+        const isSelected = selectedId === s.node_id;
+        const isDimmed =
+          highlightIds !== undefined &&
+          highlightIds.length > 0 &&
+          !highlightIds.includes(s.node_id);
+
         let datum = byUid.get(s.node_id);
         if (!datum) {
           const div = document.createElement("div");
-          div.className = "ops-sat";
-          div.style.color = color;
-          div.innerHTML =
-            `<div class="ops-halo"></div><div class="ops-body"></div>` +
-            `<div class="ops-tag">${s.node_id}</div>`;
+          div.className = "ops-marker";
+          div.innerHTML = `
+            <div class="ops-marker-ring">
+              <div class="ops-marker-dot"></div>
+            </div>
+            <div class="ops-marker-tag">${s.node_id.replace("SAT-", "")}</div>
+          `;
           div.addEventListener("click", (ev) => {
             ev.stopPropagation();
             const cur = liveRef.current;
             cur.onSelect(cur.selectedId === s.node_id ? null : s.node_id);
           });
-          datum = { uid: s.node_id, label: s.node_id, color, lat: 0, lng: 0, alt: MODEL_ALT, ok: true, el: div };
+          datum = {
+            uid: s.node_id,
+            label: s.display_name || s.node_id,
+            color,
+            lat: 0,
+            lng: 0,
+            alt: MODEL_ALT,
+            ok: true,
+            el: div,
+          };
           const p = recsRef.current.get(s.node_id);
           const here = p ? propagateSat(p, Date.now()) : null;
           if (here) {
             datum.lat = here.lat;
             datum.lng = here.lng;
-            datum.alt = here.alt;
+            datum.alt = VIS_ALT;
           }
-        } else {
-          datum.color = color;
-          datum.el.style.color = color;
         }
+
+        // Apply dynamic styles & classes
+        datum.color = color;
+        datum.el.style.setProperty("--sat-color", color);
+        datum.el.classList.toggle("ops-selected", isSelected);
+        datum.el.classList.toggle("ops-dimmed", isDimmed);
         datum.el.classList.toggle("ops-safe", s.state === "SAFE");
-        datum.el.classList.toggle(
-          "ops-selected",
-          props.selectedId === s.node_id,
-        );
+
         next.push(datum);
       }
       satsRef.current = next;
 
+      // Stations
       const rings = props.stations.map((st) => ({
         lat: st.latitude,
         lng: st.longitude,
@@ -639,226 +673,115 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
       }));
       world.ringsData(rings as unknown as object[]);
       world.labelsData(labels as unknown as object[]);
-    }, [props.sats, props.stations, props.selectedId]);
-
-    const setSpeedBoth = (v: number): void => {
-      simRef.current.speed = v;
-      simRef.current.lastReal = Date.now();
-      if (v === 1) simRef.current.simMs = Date.now();
-      setSpeed(v);
-    };
-
-    const selected = props.selectedId
-      ? (props.sats.find((s) => s.node_id === props.selectedId) ?? null)
-      : null;
-    const hist = selected
-      ? [...(props.histories[selected.node_id] ?? [])]
-      : [];
-    if (selected && selected.battery_v !== null && selected.battery_v !== undefined) {
-      const last = hist[hist.length - 1];
-      if (last === undefined || Math.abs(last - selected.battery_v) > 1e-9)
-        hist.push(selected.battery_v);
-    }
-    const spark = selected ? sparklineSvg(hist.slice(-48), satColor(selected)) : "";
-    const stowed = props.sats.filter((s) => s.state === "STOWED");
-
-    const demoRoute = (): void => {
-      const now = Date.now();
-      const iso = (ms: number): string => new Date(ms).toISOString();
-      const hops: RouteHop[] = [
-        { from_node: "SAT-A1", to_node: "SAT-A2", depart_ts: iso(now), arrive_ts: iso(now + 4000), kind: "ISL" },
-        { from_node: "SAT-A2", to_node: "SAT-A3", depart_ts: iso(now + 4000), arrive_ts: iso(now + 8000), kind: "ISL" },
-        { from_node: "SAT-A3", to_node: "GS-BOM", depart_ts: iso(now + 8000), arrive_ts: iso(now + 12000), kind: "DOWNLINK" },
-      ];
-      worldRef.current?.pointOfView({ lat: 20, lng: 70, altitude: 1.6 }, 800);
-      // Route through the same imperative path /routing will use.
-      playRouteHops(hops);
-    };
+    }, [props.sats, props.stations, props.selectedId, props.highlightIds]);
 
     return (
-      <div className="relative h-full w-full overflow-hidden bg-[var(--space)]">
+      <div className="relative h-full w-full overflow-hidden bg-black select-none">
         <style>{`
-          .ops-sat{position:relative;width:46px;height:46px;margin:-23px 0 0 -23px;cursor:pointer;pointer-events:auto;user-select:none}
-          .ops-sat .ops-halo{position:absolute;inset:7px;border-radius:50%;border:1px solid currentColor;opacity:.34;animation:ops-sonar 2.6s ease-out infinite}
-          @keyframes ops-sonar{0%{transform:scale(.55);opacity:.55}100%{transform:scale(1.5);opacity:0}}
-          .ops-sat .ops-body{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 8px 1px currentColor}
-          .ops-sat.ops-selected .ops-body{box-shadow:0 0 0 2px var(--space),0 0 0 4px var(--ice),0 0 12px var(--ice)}
-          .ops-sat.ops-safe .ops-body{box-shadow:0 0 0 2px var(--space),0 0 0 4px var(--danger),0 0 12px var(--danger)}
-          .ops-sat .ops-tag{position:absolute;left:28px;top:12px;font-family:'Geist Mono',monospace;font-size:.6rem;letter-spacing:.1em;white-space:nowrap;color:var(--text);background:rgba(6,13,31,.8);border:1px solid var(--line);border-radius:6px;padding:1px 5px}
-          .ops-sat:hover .ops-tag,.ops-sat.ops-selected .ops-tag{border-color:currentColor}
-          .ops-sat.ops-safe .ops-body{animation:ops-blink 1.1s ease-in-out infinite}
-          @keyframes ops-blink{0%,100%{opacity:1}50%{opacity:.35}}
-          .ops-flash{animation:ops-flash .8s ease-out}
-          @keyframes ops-flash{0%{background:rgba(127,178,255,.3)}100%{background:transparent}}
+          .ops-marker {
+            position: relative;
+            cursor: pointer;
+            pointer-events: auto;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            transform: translate(-7px, -7px);
+            transition: opacity 0.25s ease;
+          }
+          .ops-marker.ops-dimmed {
+            opacity: 0.18 !important;
+            pointer-events: none !important;
+          }
+          .ops-marker-ring {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 1.5px solid var(--sat-color, #7ee2b8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(6, 11, 23, 0.4);
+            box-shadow: 0 0 6px var(--sat-color, #7ee2b8);
+            transition: all 0.2s ease;
+          }
+          .ops-marker-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--sat-color, #7ee2b8);
+          }
+          .ops-marker-tag {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-family: 'Geist Mono', ui-monospace, monospace;
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            color: #dfe6f5;
+            background: rgba(6, 13, 31, 0.88);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 3px;
+            padding: 1px 5px;
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+          }
+          .ops-marker:hover .ops-marker-ring {
+            transform: scale(1.2);
+            border-color: #3d5bff;
+          }
+          .ops-marker:hover .ops-marker-tag {
+            border-color: #3d5bff;
+            color: #ffffff;
+          }
+          .ops-marker.ops-selected .ops-marker-ring {
+            width: 22px;
+            height: 22px;
+            margin: -4px 0 0 -4px;
+            border: 2px solid #3d5bff;
+            box-shadow: 0 0 12px #3d5bff, inset 0 0 6px #3d5bff;
+          }
+          .ops-marker.ops-selected .ops-marker-dot {
+            width: 6px;
+            height: 6px;
+            background: #ffffff;
+            box-shadow: 0 0 6px #ffffff;
+          }
+          .ops-marker.ops-selected .ops-marker-tag {
+            left: 22px;
+            border-color: #3d5bff;
+            background: rgba(61, 91, 255, 0.25);
+            color: #ffffff;
+            font-weight: 600;
+          }
+          .ops-marker.ops-safe .ops-marker-ring {
+            animation: ops-marker-pulse 1.2s ease-in-out infinite;
+          }
+          @keyframes ops-marker-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.6; }
+          }
         `}</style>
         <div ref={containerRef} className="absolute inset-0" />
         <div
           ref={dotRef}
-          className="pointer-events-none absolute left-0 top-0 z-20 hidden h-3 w-3 rounded-full bg-white"
-          style={{ boxShadow: "0 0 12px 3px rgba(255,255,255,.9)", display: "none" }}
+          className="pointer-events-none absolute left-0 top-0 z-30 hidden h-3 w-3 rounded-full bg-[#ff3b4f]"
+          style={{
+            boxShadow: "0 0 14px 4px rgba(255,59,79,.95)",
+            display: "none",
+          }}
         />
 
-        {/* top bar with UTC clock */}
-        <div
-          className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex h-14 items-center gap-3 px-4"
-          style={{ background: "linear-gradient(to bottom,rgba(0,0,0,.9),rgba(0,0,0,0))" }}
-        >
-          <span className="text-[17px] font-semibold tracking-[-0.02em] text-[var(--text)]">
-            SomaiyaSat <span className="font-mono text-[11px] font-normal tracking-[0.16em] text-[var(--text-2)]">OPS</span>
-          </span>
-          {playing && (
-            <span className="rounded-full border border-[var(--warn)]/40 bg-[var(--navy-800)] px-2 py-1 text-[12px] text-[var(--warn)]">
-              playing route
-            </span>
-          )}
-          <div className="flex-1" />
-          <div className="font-mono text-[13px] tracking-[0.06em] text-[var(--text)]">
-            {`${two(clock.getUTCHours())}:${two(clock.getUTCMinutes())}:${two(clock.getUTCSeconds())} `}
-            <span className="text-[var(--text-2)]">UTC</span>
-          </div>
-        </div>
-
-        {/* selected-sat side panel */}
-        {selected && (
-          <aside className="absolute left-4 top-16 z-30 w-[300px] max-w-[calc(100%-2rem)] rounded-xl border border-[var(--line)] bg-[var(--navy-800)]/90 p-4 backdrop-blur-xl">
-            <div className="flex items-start gap-2">
-              <div>
-                <p className="font-mono text-[15px] tracking-[0.04em] text-[var(--text)]">{selected.node_id}</p>
-                <span
-                  className="mt-1 inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em]"
-                  style={{ color: selected.state === "SAFE" ? SAFE_RING : "#3ecf8e", borderColor: "currentColor" }}
-                >
-                  {selected.state}
-                </span>
-              </div>
-              <button
-                onClick={() => props.onSelect(null)}
-                aria-label="Close panel"
-                className="ml-auto rounded-md border border-[var(--line)] px-2 py-0.5 text-[var(--text-2)] hover:border-[var(--ice)]/60 hover:text-[var(--text)]"
-              >
-                ×
-              </button>
-            </div>
-            {selected.state === "STOWED" ? (
-              <p className="mt-3 font-mono text-xs leading-relaxed text-[var(--text-2)]">
-                in SomaiyaPod — awaiting deployment. No orbit track yet.
-              </p>
-            ) : (
-              <>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-2">
-                    <p className="text-[12px] font-medium text-[var(--text-2)]">Battery</p>
-                    <p className="mt-1 font-mono text-[15px] text-[var(--warn)]">
-                      {selected.battery_v === null || selected.battery_v === undefined ? "—" : `${selected.battery_v.toFixed(2)} V`}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-2">
-                    <p className="text-[12px] font-medium text-[var(--text-2)]">Plane and slot</p>
-                    <p className="mt-1 font-mono text-[15px] text-[var(--text)]">{selected.plane} / {selected.slot}</p>
-                  </div>
-                  <div className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-2">
-                    <p className="text-[12px] font-medium text-[var(--text-2)]">Queued</p>
-                    <p className="mt-1 font-mono text-[15px] text-[var(--text)]">
-                      {selected.queued_bytes === undefined ? "—" : `${(selected.queued_bytes / 1024).toFixed(1)} KB`}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-2">
-                    <p className="text-[12px] font-medium text-[var(--text-2)]">Next downlink</p>
-                    <p className="mt-1 font-mono text-[15px] text-[var(--text)]">{selected.next_downlink_station ?? "—"}</p>
-                  </div>
-                </div>
-                <p className="mt-2 font-mono text-xs text-[var(--text)]">
-                  {countdownText(selected.next_downlink_start, clock.getTime())}
-                </p>
-                <div className="mt-2">
-                  <p className="text-[12px] font-medium text-[var(--text-2)]">Battery, live</p>
-                  {spark ? (
-                    <div dangerouslySetInnerHTML={{ __html: spark }} />
-                  ) : (
-                    <p className="mt-1 font-mono text-xs text-[var(--text-3)]">awaiting telemetry…</p>
-                  )}
-                </div>
-              </>
-            )}
-            {stowed.length > 0 && (
-              <p className="mt-3 border-t border-[var(--line)] pt-2 font-mono text-[11px] text-[var(--text-2)]">
-                in SomaiyaPod: {stowed.map((s) => s.node_id).join(", ")}
-              </p>
-            )}
-          </aside>
-        )}
-
-        {/* speed control */}
-        <div className="absolute bottom-[132px] left-4 z-30 flex items-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--navy-800)]/80 px-2 py-1.5 backdrop-blur-xl">
-          <span className="px-1 text-[12px] text-[var(--text-2)]">Speed</span>
-          {[1, 10, 60].map((v) => (
-            <button
-              key={v}
-              onClick={() => setSpeedBoth(v)}
-              className={`rounded-full border px-2 py-1 text-[12px] transition-colors ${
-                speed === v
-                  ? "border-[var(--ice)] bg-[var(--navy-700)] text-[var(--text)]"
-                  : "border-[var(--line)] text-[var(--text-2)] hover:text-[var(--text)]"
-              }`}
-            >
-              {v === 1 ? "live" : `${v}×`}
-            </button>
-          ))}
-          {speed !== 1 && (
-            <span className="pl-1 text-[12px] text-[var(--warn)]">fast-forward ×{speed}</span>
-          )}
-        </div>
-
-        {/* legend: collapsible glass chip, collapsed by default under 1400px */}
-        <div className="absolute bottom-4 left-4 z-30 rounded-xl border border-[var(--line)] bg-[var(--navy-900)]/80 px-3 py-2 backdrop-blur-xl">
-          <button
-            onClick={() => setLegendOpen((o) => !o)}
-            aria-expanded={legendOpen}
-            className="flex items-center gap-2 text-[12px] text-[var(--text-2)] hover:text-[var(--text)]"
-          >
-            Legend
-            <span aria-hidden="true" className="text-[var(--text-3)]">
-              {legendOpen ? "▾" : "▸"}
-            </span>
-          </button>
-          {legendOpen && (
-            <div className="mt-1.5 flex flex-col gap-1.5">
-              <div className="flex items-center gap-2 text-[12px] text-[var(--text-2)]">
-                <span className="h-[3px] w-4 rounded" style={{ background: DOWNLINK_GREEN }} /> Downlink beam
-              </div>
-              <div className="flex items-center gap-2 text-[12px] text-[var(--text-2)]">
-                <span className="h-[3px] w-4 rounded" style={{ background: "#7fb2ff" }} /> ISL, alpha by score
-              </div>
-              <div className="flex items-center gap-2 text-[12px] text-[var(--text-2)]">
-                <span className="h-2 w-2 rounded-full" style={{ background: PLANE_A }} /> Plane A
-                <span className="ml-2 h-2 w-2 rounded-full" style={{ background: PLANE_B }} /> Plane B
-                <span className="ml-2 h-2 w-2 rounded-full" style={{ background: SAFE_RING }} /> Safe
-              </div>
-              <div className="flex items-center gap-2 text-[12px] text-[var(--text-2)]">
-                <span style={{ color: scoreColor(80) }}>Link 70 or more: good</span>
-                <span style={{ color: scoreColor(55) }}>40 to 69: fair</span>
-                <span style={{ color: scoreColor(10) }}>Under 40: poor</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {import.meta.env.DEV && (
-          <button
-            onClick={demoRoute}
-            className="absolute bottom-4 right-4 text-[12px] z-30 rounded-full border border-dashed border-[var(--line)] bg-[var(--space)]/60 px-3 py-1.5 text-[var(--text-2)] hover:border-[var(--ice)]/60 hover:text-[var(--text)]"
-          >
-            ▶ demo 3-hop route
-          </button>
-        )}
-
         {!booted && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--space)]">
-            <p className="animate-pulse text-[12px] text-[var(--text-2)]">acquiring orbit…</p>
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-black">
+            <p className="animate-pulse font-mono text-[12px] tracking-widest uppercase text-[#8b96b0]">
+              Acquiring Constellation Orbit…
+            </p>
           </div>
         )}
       </div>
     );
-
   },
 );
