@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { Brand } from "@/components/story/Brand";
+import { Panel } from "@/components/cc/Panel";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { apiFetch } from "./api";
 import { SqlButton, SqlDrawer, SqlProvider } from "./SqlDrawer";
@@ -45,6 +46,18 @@ function titleFor(role: string): string {
   );
 }
 
+function getPageTitle(pathname: string): string {
+  const mission = MISSION_NAV.find((m) => m.to === pathname);
+  if (mission) return mission.label.toUpperCase();
+  const lab = LABS_NAV.find((l) => l.to === pathname);
+  if (lab) return `LAB // ${lab.label.toUpperCase()}`;
+  if (pathname.startsWith("/labs/")) {
+    const sub = pathname.replace("/labs/", "");
+    return `LAB // ${sub.toUpperCase()}`;
+  }
+  return pathname.replace(/^\//, "").toUpperCase() || "SOMAIYANET";
+}
+
 function UtcClock() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -53,18 +66,10 @@ function UtcClock() {
   }, []);
   const p = (n: number): string => String(n).padStart(2, "0");
   return (
-    <span className="font-mono text-[12px] tabular-nums text-[var(--text-2)]">
+    <span className="font-mono text-[11px] tabular-nums text-[#8b96b0]">
       {p(now.getUTCHours())}:{p(now.getUTCMinutes())}:{p(now.getUTCSeconds())} UTC
     </span>
   );
-}
-
-function navClass(active: boolean): string {
-  return `relative flex items-center gap-3 rounded-lg px-3 py-2 text-[14px] transition-colors ${
-    active
-      ? "bg-[var(--navy-600)] text-[var(--text)]"
-      : "text-[var(--text-2)] hover:bg-[var(--navy-700)] hover:text-[var(--text)]"
-  }`;
 }
 
 function ShellInner({ children }: { children: React.ReactNode }) {
@@ -152,70 +157,93 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   const switcher = (
     <div className="relative" ref={chipRef}>
-      <button
+      <Panel
+        cut={6}
+        className="w-full"
         onClick={() => setChipOpen((o) => !o)}
         aria-expanded={chipOpen}
         aria-label="Switch profile"
-        className="flex w-full items-center gap-2.5 rounded-[10px] border border-[var(--line)] bg-[var(--navy-800)] p-2 hover:border-[var(--line-strong)]"
       >
-        {profile !== null && !checking ? (
-          <>
-            <ProfileAvatar role={profile.role} size={28} />
-            <span className="min-w-0 flex-1 text-left leading-tight min-[1200px]:block">
-              <span className="block truncate text-[13px] font-semibold">
-                {profile.title ?? titleFor(profile.role)}
-              </span>
-              <span className="block truncate font-mono text-[12px] text-[var(--text-3)]">
-                {profile.role}
-              </span>
+        <div className="p-2 flex items-center gap-2.5 w-full select-none cursor-pointer">
+          {profile !== null && !checking ? (
+            <>
+              <ProfileAvatar role={profile.role} size={24} />
+              <div className="min-w-0 flex-1 text-left leading-tight">
+                <span className="block truncate text-[12px] font-medium text-white">
+                  {profile.title ?? titleFor(profile.role)}
+                </span>
+                <span className="block truncate font-mono text-[10px] text-[#8b96b0] uppercase tracking-wider">
+                  {profile.role}
+                </span>
+              </div>
+              <ChevronDown
+                size={13}
+                className={`shrink-0 text-[#8b96b0] transition-transform duration-200 ${
+                  chipOpen ? "rotate-180" : ""
+                }`}
+              />
+            </>
+          ) : (
+            <span className="px-1 font-mono text-[11px] text-[#8b96b0]">
+              {checking ? "CHECKING..." : "NO PROFILE"}
             </span>
-            <ChevronDown
-              size={14}
-              className="shrink-0 text-[var(--text-3)] min-[1200px]:block"
-            />
-          </>
-        ) : (
-          <span className="px-1 text-[13px] text-[var(--text-3)]">
-            {checking ? "Checking session" : "No profile"}
-          </span>
-        )}
-      </button>
+          )}
+        </div>
+      </Panel>
+
       {chipOpen && profile !== null && (
         <div
-          className="absolute bottom-full left-0 z-50 mb-2 w-64 overflow-hidden rounded-[10px] border border-[var(--line)] bg-[var(--navy-800)]"
-          style={{ boxShadow: "0 10px 30px -12px #000a" }}
+          className="absolute bottom-full left-0 z-50 mb-2 w-64 border border-white/10 bg-[#05070d]/95 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.85)]"
         >
-          <p className="px-4 pb-1 pt-3 text-[12px] font-medium text-[var(--text-2)]">
-            Switch profile
-          </p>
-          {profiles.map((p) => (
-            <button
-              key={p.role}
-              onClick={() => void switchProfile(p.role)}
-              className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-[var(--navy-700)]"
-            >
-              <ProfileAvatar role={p.role} size={30} />
-              <span className="leading-tight">
-                <span className="block text-[13px] font-semibold">{p.title}</span>
-                <span className="block font-mono text-[12px] text-[var(--text-3)]">
-                  {p.role}
-                </span>
-              </span>
-              {profile.role === p.role && (
-                <span
-                  aria-hidden="true"
-                  className="ml-auto inline-block size-2 rounded-full"
-                  style={{ background: accentRing(p.accent) }}
-                />
-              )}
-            </button>
-          ))}
+          <div className="border-b border-white/[0.06] px-3 py-2">
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8b96b0]">
+              SWITCH PROFILE
+            </p>
+          </div>
+          <div className="flex flex-col py-1">
+            {profiles.map((p) => {
+              const isCurrent = profile.role === p.role;
+              return (
+                <button
+                  key={p.role}
+                  onClick={() => void switchProfile(p.role)}
+                  className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors cursor-pointer ${
+                    isCurrent
+                      ? "bg-[#3d5bff]/10 text-white"
+                      : "text-[#dfe6f5] hover:bg-white/[0.06]"
+                  }`}
+                >
+                  <ProfileAvatar role={p.role} size={26} />
+                  <div className="min-w-0 flex-1 leading-tight">
+                    <span className="block truncate text-[12px] font-medium text-white">
+                      {p.title}
+                    </span>
+                    <span className="block truncate font-mono text-[10px] text-[#8b96b0] uppercase tracking-wider">
+                      {p.role}
+                    </span>
+                  </div>
+                  {isCurrent ? (
+                    <span
+                      aria-hidden="true"
+                      className="size-1.5 rounded-full bg-[#3d5bff] shadow-[0_0_6px_#3d5bff]"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden="true"
+                      className="size-1.5 rounded-full opacity-60"
+                      style={{ background: accentRing(p.accent) }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
           <Link
             to="/console"
             onClick={() => setChipOpen(false)}
-            className="block border-t border-[var(--line)] px-4 py-2.5 text-[13px] text-[var(--text-2)] hover:text-[var(--text)]"
+            className="block border-t border-white/[0.06] px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-[#8b96b0] hover:text-white hover:bg-white/[0.04] transition-colors"
           >
-            Change profile
+            CHANGE PROFILE →
           </Link>
         </div>
       )}
@@ -224,59 +252,105 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   const navList = (
     <>
-      <p className="px-3 text-[12px] font-medium text-[var(--text-2)] min-[1200px]:block">
-        <span className="hidden min-[1200px]:inline">Mission</span>
+      <p className="px-3 pt-1 pb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
+        MISSION
       </p>
-      <nav className="mt-1 flex flex-col gap-0.5" aria-label="Mission">
+      <nav className="mt-0.5 flex flex-col gap-0.5" aria-label="Mission">
         {MISSION_NAV.map(({ to, label, Icon }) => (
           <NavLink
             key={to}
             to={to}
             title={label}
             onClick={() => setSheetOpen(false)}
-            className={({ isActive }) => navClass(isActive)}
+            className={({ isActive }) =>
+              `group relative flex items-center gap-2.5 px-3 py-2 text-[13px] transition-colors select-none ${
+                isActive
+                  ? "text-white"
+                  : "text-[#8b96b0] hover:text-white hover:bg-white/[0.03]"
+              }`
+            }
           >
             {({ isActive }) => (
               <>
                 {isActive && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute left-0 top-1.5 h-[calc(100%-12px)] w-0.5 rounded-full bg-[var(--ice)]"
-                  />
+                  <>
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-0 top-0 bottom-0 w-[2px] bg-[#3d5bff]"
+                    />
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 bg-[#3d5bff]/[0.08]"
+                      style={{
+                        clipPath:
+                          "polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%)",
+                      }}
+                    />
+                  </>
                 )}
-                <Icon size={17} className="shrink-0" />
-                <span className="hidden min-[1200px]:inline">{label}</span>
+                <Icon
+                  size={16}
+                  className={`shrink-0 transition-colors ${
+                    isActive
+                      ? "text-[#7fb2ff]"
+                      : "text-[#8b96b0] group-hover:text-white"
+                  }`}
+                />
+                <span className="truncate">{label}</span>
               </>
             )}
           </NavLink>
         ))}
       </nav>
-      <p className="mt-5 px-3 text-[12px] font-medium text-[var(--text-2)]">
-        <span className="hidden min-[1200px]:inline">Database labs</span>
+
+      <p className="mt-5 px-3 pt-1 pb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
+        DATABASE LABS
       </p>
-      <nav className="mt-1 flex flex-col gap-0.5" aria-label="Database labs">
+      <nav className="mt-0.5 flex flex-col gap-0.5" aria-label="Database labs">
         {LABS_NAV.map(({ to, label, Icon }) => (
           <NavLink
             key={to}
             to={to}
             title={label}
             onClick={() => setSheetOpen(false)}
-            className={({ isActive }) =>
-              navClass(isActive || location.pathname === to)
-            }
+            className={({ isActive }) => {
+              const active = isActive || location.pathname === to;
+              return `group relative flex items-center gap-2.5 px-3 py-2 text-[13px] transition-colors select-none ${
+                active
+                  ? "text-white"
+                  : "text-[#8b96b0] hover:text-white hover:bg-white/[0.03]"
+              }`;
+            }}
           >
             {({ isActive }) => {
               const active = isActive || location.pathname === to;
               return (
                 <>
                   {active && (
-                    <span
-                      aria-hidden="true"
-                      className="absolute left-0 top-1.5 h-[calc(100%-12px)] w-0.5 rounded-full bg-[var(--ice)]"
-                    />
+                    <>
+                      <span
+                        aria-hidden="true"
+                        className="absolute left-0 top-0 bottom-0 w-[2px] bg-[#3d5bff]"
+                      />
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 bg-[#3d5bff]/[0.08]"
+                        style={{
+                          clipPath:
+                            "polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%)",
+                        }}
+                      />
+                    </>
                   )}
-                  <Icon size={17} className="shrink-0" />
-                  <span className="hidden min-[1200px]:inline">{label}</span>
+                  <Icon
+                    size={16}
+                    className={`shrink-0 transition-colors ${
+                      active
+                        ? "text-[#7fb2ff]"
+                        : "text-[#8b96b0] group-hover:text-white"
+                    }`}
+                  />
+                  <span className="truncate">{label}</span>
                 </>
               );
             }}
@@ -286,46 +360,60 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     </>
   );
 
+  const pageTitle = getPageTitle(location.pathname);
+
   return (
-    <div className="flex min-h-screen bg-[var(--space)] text-[var(--text)]">
-      {/* Left sidebar: 232px, icon rail under 1200px, sheet under 768px */}
-      <aside className="sticky top-0 hidden h-screen w-16 shrink-0 flex-col border-r border-[var(--line)] bg-[var(--space)] px-2 py-4 md:flex min-[1200px]:w-[232px] min-[1200px]:px-3">
+    <div className="flex min-h-screen bg-black text-[#dfe6f5]">
+      {/* Left sidebar: ~220px, pure black, 1px right border white/8 */}
+      <aside className="sticky top-0 hidden h-screen w-[220px] shrink-0 flex-col border-r border-white/[0.08] bg-black px-2.5 py-3 md:flex">
         <Link
           to="/"
           aria-label="SomaiyaNet home"
-          className="flex items-center gap-2 px-1"
+          className="flex items-center gap-2 px-2 py-1"
         >
-          <Brand className="text-lg" />
+          <Brand className="text-base" />
         </Link>
-        <div className="mt-6 flex-1 overflow-y-auto">{navList}</div>
-        <div className="mt-4 border-t border-[var(--line)] pt-3">{switcher}</div>
+        <div className="mt-4 flex-1 overflow-y-auto">{navList}</div>
+        <div className="mt-3 border-t border-white/[0.08] pt-2.5">{switcher}</div>
       </aside>
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[var(--line)] bg-[var(--space)] px-4 md:hidden">
-          <Link to="/" aria-label="SomaiyaNet home">
-            <Brand className="text-base" />
-          </Link>
-          <div className="ml-auto flex items-center gap-2">
-            <UtcClock />
-            <SqlButton />
+        <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-white/[0.08] bg-black/80 px-4 backdrop-blur-md md:hidden">
+          <div className="flex items-center gap-2.5 min-w-0">
             <button
               aria-label="Open menu"
               onClick={() => setSheetOpen(true)}
-              className="rounded-lg border border-[var(--line)] p-2 text-[var(--text-2)]"
+              className="p-1 border border-white/10 text-[#8b96b0] hover:text-white bg-transparent transition-colors cursor-pointer"
             >
               <Menu size={16} />
             </button>
+            <Link to="/" aria-label="SomaiyaNet home" className="shrink-0">
+              <Brand className="text-sm" />
+            </Link>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-[#8b96b0] truncate">
+              / {pageTitle}
+            </span>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <UtcClock />
+            <SqlButton />
           </div>
         </header>
 
-        {/* Desktop header */}
-        <header className="sticky top-0 z-30 hidden h-14 items-center gap-3 border-b border-[var(--line)] bg-[var(--space)]/90 px-6 backdrop-blur-md md:flex">
+        {/* Desktop top bar: transparent black, 1px bottom border white/8, page title left in mono uppercase, UTC clock + SQL button right */}
+        <header className="sticky top-0 z-30 hidden h-12 items-center justify-between border-b border-white/[0.08] bg-black/70 px-6 backdrop-blur-md md:flex">
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-[#dfe6f5]">
+              {pageTitle}
+            </span>
+          </div>
+
           <div className="ml-auto flex items-center gap-3">
             {offline && (
-              <span className="hidden rounded-full border border-dashed border-[var(--warn)]/60 px-2.5 py-1 text-[12px] text-[var(--warn)] sm:inline-block">
+              <span className="inline-flex items-center gap-1.5 border border-[#f5a524]/40 bg-[#f5a524]/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-[#f5a524]">
+                <span className="size-1.5 rounded-full bg-[#f5a524] animate-pulse" />
                 Backend offline
               </span>
             )}
@@ -343,37 +431,22 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent
           side="left"
-          className="w-72 border-[var(--line)] bg-[var(--space)] text-[var(--text)]"
+          showCloseButton={false}
+          className="w-[260px] border-r border-white/[0.08] bg-black p-4 text-[#dfe6f5]"
         >
-          <div className="mt-2 flex items-center justify-between">
+          <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
             <Brand className="text-base" />
             <button
               aria-label="Close menu"
               onClick={() => setSheetOpen(false)}
-              className="rounded-lg border border-[var(--line)] p-1.5 text-[var(--text-2)]"
+              className="p-1 border border-white/10 text-[#8b96b0] hover:text-white transition-colors cursor-pointer"
             >
               <X size={15} />
             </button>
           </div>
-          <div className="mt-4">{navList}</div>
-          <div className="mt-6 border-t border-[var(--line)] pt-3">
-            {profiles.map((p) => (
-              <button
-                key={p.role}
-                onClick={() => void switchProfile(p.role)}
-                className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--navy-700)]"
-              >
-                <ProfileAvatar role={p.role} size={26} />
-                <span className="text-[13px]">{p.title}</span>
-              </button>
-            ))}
-            <Link
-              to="/console"
-              onClick={() => setSheetOpen(false)}
-              className="mt-1 block px-2 py-1.5 text-[13px] text-[var(--text-2)]"
-            >
-              Change profile
-            </Link>
+          <div className="mt-2 flex-1 overflow-y-auto">{navList}</div>
+          <div className="mt-4 border-t border-white/[0.08] pt-3">
+            {switcher}
           </div>
         </SheetContent>
       </Sheet>
@@ -391,4 +464,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </SqlProvider>
   );
 }
-

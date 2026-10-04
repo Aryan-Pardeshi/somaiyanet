@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/app/api";
-import { Card, DataGrid, OfflineOrEmpty, PlanTree, SqlBlock } from "./common";
+import { Card, DataGrid, OfflineOrEmpty, Panel, PlanTree, SqlBlock, StatusBadge } from "./common";
 import type { IndexCatalogEntry, IndexQuery, IndexRunResult } from "./types";
 
 interface CatalogResp {
@@ -84,7 +84,6 @@ export function IndexLab() {
   const bulk = async () => {
     setBulkMsg("loading…");
     try {
-      // Backend returns {inserted}; keep the load small (≤ 50k rows).
       const r = await apiFetch<{ inserted?: number; rows?: number }>("/api/labs/index/bulk", {
         method: "POST",
         body: JSON.stringify({ rows: 50000 }),
@@ -117,134 +116,311 @@ export function IndexLab() {
   const msB = result ? (result.ms_before ?? totalMs(result.plan_before)) : null;
   const msA = result ? (result.ms_after ?? totalMs(result.plan_after)) : null;
   const maxMs = Math.max(msB ?? 0, msA ?? 0, 1);
+  const speedup = msB !== null && msA !== null && msA > 0 ? (msB / msA).toFixed(1) : null;
 
   return (
     <div className="flex flex-col gap-6">
-      <Card title="Index catalog" kicker="bench_index_catalog() · Exp 8">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {shownCatalog.map((c) => (
-            <div key={c.key} className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-3">
-              <p className="font-mono text-[11px] tracking-[0.12em] text-[var(--warn)]">{c.kind}</p>
-              <p className="font-mono mt-1 text-[12.5px] font-bold text-[var(--text)]">{c.key}</p>
-              <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-2)]">{c.purpose}</p>
-              <SqlBlock sql={c.ddl} />
-              {c.size !== undefined && c.size !== null && (
-                <p className="font-mono mt-1.5 text-[10.5px] text-[var(--text-3)]">size {c.size}</p>
-              )}
-            </div>
-          ))}
+      {/* 1. Index Types as Panels with size in big light number */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#5f6f93]">
+              bench_index_catalog() · Exp 8 · CO3
+            </span>
+            <span className="text-[#5f6f93] text-[10px]">·</span>
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b96b0]">
+              Index storage architecture & footprint
+            </h2>
+          </div>
+          <span className="font-mono text-[10px] text-[#5f6f93]">
+            {shownCatalog.length} INDEX ARCHITECTURES
+          </span>
         </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {shownCatalog.map((c) => {
+            const sizeVal = result ? sizeFor(result, c.key) : c.size ?? "run to measure";
+            return (
+              <Panel key={c.key} cut={8} className="w-full">
+                <div className="p-3.5 sm:p-4 flex flex-col gap-3">
+                  <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+                    <StatusBadge
+                      status={c.kind.includes("brin") ? "nominal" : "info"}
+                      label={c.kind.toUpperCase()}
+                    />
+                    <span className="font-mono text-[10px] text-[#5f6f93]">
+                      POSTGRES 16
+                    </span>
+                  </div>
+
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div>
+                      <span className="font-mono text-[13px] font-bold text-white tracking-wide block">
+                        {c.key}
+                      </span>
+                      <p className="mt-1 text-[12px] leading-relaxed text-[#8b96b0]">
+                        {c.purpose}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Size in big light number (Geist Sans weight 300) */}
+                  <div className="border border-white/5 bg-black/40 p-2.5 rounded-[2px] flex flex-col gap-0.5">
+                    <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8b96b0]">
+                      Index footprint
+                    </span>
+                    <div className="font-sans text-[28px] sm:text-[32px] font-light text-white tracking-tight leading-none">
+                      {sizeVal}
+                    </div>
+                  </div>
+
+                  <SqlBlock sql={c.ddl} />
+                </div>
+              </Panel>
+            );
+          })}
+        </div>
+
         {sizes.length > 0 && (
-          <div className="mt-3">
+          <div className="mt-2">
+            <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0] block mb-1">
+              Live index sizes (pg_relation_size)
+            </span>
             <DataGrid rows={sizes} limit={20} />
           </div>
         )}
-      </Card>
+      </div>
 
-      <Card
-        title="Benchmark runner"
-        kicker="drop → EXPLAIN → apply → EXPLAIN"
-        aside={
-          <button
-            onClick={() => void bulk()}
-            title="Director only: bench_bulk_telemetry(50000)"
-            className="font-mono rounded-full border border-[var(--warn)]/60 px-3 py-1 text-[10px] tracking-[0.14em] text-[var(--warn)] hover:scale-105"
-          >
-            bulk load 50k rows
-          </button>
-        }
-      >
-        {bulkMsg !== null && (
-          <p className="font-mono mb-2 text-[11px] text-[var(--text-2)]">{bulkMsg}</p>
-        )}
-        <div className="flex flex-wrap items-center gap-2">
-          <label htmlFor="idx-q" className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">Query</label>
-          <select
-            id="idx-q"
-            value={qk}
-            onChange={(e) => {
-              setQueryKey(e.target.value);
-              const q = shownQueries.find((x) => x.key === e.target.value);
-              if (q) setIndexKey(q.best_index);
-            }}
-            className="font-mono rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-1.5 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
-          >
-            {shownQueries.map((q) => (
-              <option key={q.key} value={q.key}>{q.title}</option>
-            ))}
-          </select>
-          <label htmlFor="idx-i" className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">Index</label>
-          <select
-            id="idx-i"
-            value={indexKey || activeQuery?.best_index}
-            onChange={(e) => setIndexKey(e.target.value)}
-            className="font-mono rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-1.5 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
-          >
-            {shownCatalog.map((c) => (
-              <option key={c.key} value={c.key}>{c.key}</option>
-            ))}
-          </select>
-          <button
-            onClick={() => void run()}
-            disabled={running}
-            className="font-mono rounded-full bg-[var(--ice)] px-4 py-1.5 text-[11px] font-semibold tracking-[0.14em] text-[#04122e] hover:scale-105 disabled:opacity-40"
-          >
-            {running ? "running…" : "run"}
-          </button>
-        </div>
-        {activeQuery !== undefined && <div className="mt-2"><SqlBlock label="query" sql={activeQuery.sql} /></div>}
-        {result !== null && (
-          <div className="mt-3 flex flex-col gap-3">
-            <div className="grid gap-3 md:grid-cols-2">
-              {[{ t: `before · ${before ?? "?"}`, ms: msB, node: before }, { t: `after · ${after ?? "?"}`, ms: msA, node: after }].map((b, i) => (
-                <div key={i} className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-3">
-                  <p className="font-mono text-[11px] text-[var(--text)]">{b.t}</p>
-                  <div className="mt-2 h-2.5 rounded bg-[var(--navy-700)]">
-                    <div
-                      className={`h-2.5 rounded ${i === 0 ? "bg-[var(--warn)]" : "bg-[var(--ok)]"}`}
-                      style={{ width: `${b.ms !== null && b.ms !== undefined ? Math.max(3, ((b.ms as number) / maxMs) * 100) : 3}%` }}
-                    />
-                  </div>
-                  <p className="font-mono mt-1.5 text-[11px] text-[var(--text-2)]">
-                    {b.ms !== null && b.ms !== undefined ? `${(b.ms as number).toFixed(2)} ms` : "timing n/a"}
-                  </p>
-                  <p className="font-mono mt-0.5 text-[10.5px] text-[var(--text-3)]">
-                    scan {b.node ?? "?"} · {(i === 0 ? result.nodes_before : result.nodes_after)?.join(" → ") ?? ""} · index size {sizeFor(result, indexKey)}
-                  </p>
-                </div>
-              ))}
+      {/* 2. Benchmark Runner & Timing Comparison as Horizontal Bars */}
+      <Panel cut={8} className="w-full">
+        <div className="p-3.5 sm:p-4 flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#5f6f93]">
+                Drop → EXPLAIN → Apply → EXPLAIN
+              </span>
+              <span className="text-[#5f6f93] text-[10px]">·</span>
+              <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b96b0]">
+                Live benchmark runner
+              </h2>
             </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div>
-                <p className="font-mono mb-1 text-[10px] tracking-[0.14em] text-[var(--text-3)]">plan before</p>
-                <PlanTree plan={result.plan_before} />
-              </div>
-              <div>
-                <p className="font-mono mb-1 text-[10px] tracking-[0.14em] text-[var(--text-3)]">plan after</p>
-                <PlanTree plan={result.plan_after} />
-              </div>
-            </div>
+            <button
+              onClick={() => void bulk()}
+              title="Director only: bench_bulk_telemetry(50000)"
+              className="font-mono text-[10px] uppercase tracking-[0.1em] px-3 py-1 border border-[#f5a524]/40 text-[#f5a524] hover:bg-[#f5a524]/10 rounded-[2px] transition-colors cursor-pointer"
+            >
+              BULK LOAD 50K ROWS
+            </button>
           </div>
-        )}
-      </Card>
 
-      <Card title="Partition pruning" kicker="telemetry_YYYYMMDD">
-        <p className="text-[13px] leading-relaxed text-[var(--text-2)]">
-          The 6-hour query (SELECT count(*) FROM telemetry WHERE ts ≥ now() − 6h) should touch only 1–2 daily
-          partitions. Run it below; the plan lists exactly which telemetry_YYYYMMDD children were scanned.
-        </p>
-        <div className="mt-2">
-          <SqlBlock sql="SELECT count(*) FROM telemetry WHERE ts >= now() - interval '6 hours';" />
+          {bulkMsg !== null && (
+            <p className="font-mono text-[11px] text-[#f5a524] bg-[#f5a524]/10 border border-[#f5a524]/30 px-3 py-1.5 rounded-[2px]">
+              {bulkMsg}
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <label
+                htmlFor="idx-q"
+                className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]"
+              >
+                Query
+              </label>
+              <select
+                id="idx-q"
+                value={qk}
+                onChange={(e) => {
+                  setQueryKey(e.target.value);
+                  const q = shownQueries.find((x) => x.key === e.target.value);
+                  if (q) setIndexKey(q.best_index);
+                }}
+                className="font-mono border border-white/10 bg-[#05070d] px-3 py-1.5 text-[12px] text-[#dfe6f5] focus:border-[#3d5bff] focus:outline-none rounded-[2px]"
+              >
+                {shownQueries.map((q) => (
+                  <option key={q.key} value={q.key}>
+                    {q.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2 min-w-0">
+              <label
+                htmlFor="idx-i"
+                className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]"
+              >
+                Index
+              </label>
+              <select
+                id="idx-i"
+                value={indexKey || activeQuery?.best_index}
+                onChange={(e) => setIndexKey(e.target.value)}
+                className="font-mono border border-white/10 bg-[#05070d] px-3 py-1.5 text-[12px] text-[#dfe6f5] focus:border-[#3d5bff] focus:outline-none rounded-[2px]"
+              >
+                {shownCatalog.map((c) => (
+                  <option key={c.key} value={c.key}>
+                    {c.key} ({c.kind})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={() => void run()}
+              disabled={running}
+              className="font-mono text-[11px] uppercase tracking-[0.1em] px-4 py-1.5 bg-[#3d5bff] hover:bg-[#324dd8] text-white rounded-[2px] font-semibold transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] disabled:opacity-40 cursor-pointer ml-auto"
+            >
+              {running ? "BENCHMARKING…" : "RUN BENCHMARK"}
+            </button>
+          </div>
+
+          {activeQuery !== undefined && (
+            <div className="mt-1">
+              <SqlBlock label="Active benchmark SQL" sql={activeQuery.sql} />
+            </div>
+          )}
+
+          {/* Timing Comparison as horizontal bars (royal blue vs muted) */}
+          {result !== null && (
+            <div className="mt-4 flex flex-col gap-4">
+              <div className="border border-white/10 bg-[#05070d] p-3.5 rounded-[2px] flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                    Execution latency comparison · EXPLAIN ANALYZE
+                  </span>
+                  {speedup && (
+                    <StatusBadge
+                      status="ok"
+                      label={`${speedup}x FASTER WITH ${indexKey}`}
+                    />
+                  )}
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  {/* Before: Muted bar */}
+                  <div className="border border-white/5 bg-black/40 p-3 rounded-[2px] flex flex-col gap-2">
+                    <div className="flex items-center justify-between font-mono text-[11px]">
+                      <span className="text-[#8b96b0]">BEFORE (NO INDEX)</span>
+                      <span className="text-[#f5a524] uppercase font-semibold">
+                        {before ?? "SEQ SCAN"}
+                      </span>
+                    </div>
+                    {/* Horizontal muted bar */}
+                    <div className="h-3 w-full bg-white/[0.06] rounded-[1px] overflow-hidden">
+                      <div
+                        className="h-full bg-[#5f6f93] transition-all"
+                        style={{
+                          width: `${msB !== null ? Math.max(4, (msB / maxMs) * 100) : 4}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-baseline justify-between font-mono">
+                      <span className="font-sans text-[20px] font-light text-[#dfe6f5]">
+                        {msB !== null ? `${msB.toFixed(2)} ms` : "n/a"}
+                      </span>
+                      <span className="text-[10.5px] text-[#5f6f93]">
+                        {result.nodes_before?.join(" → ") ?? before}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* After: Royal blue bar */}
+                  <div className="border border-[#3d5bff]/30 bg-[#3d5bff]/5 p-3 rounded-[2px] flex flex-col gap-2 shadow-[0_0_12px_rgba(61,91,255,0.15)]">
+                    <div className="flex items-center justify-between font-mono text-[11px]">
+                      <span className="text-[#7fb2ff] font-semibold">
+                        AFTER (USING {indexKey})
+                      </span>
+                      <span className="text-[#7ee2b8] uppercase font-semibold">
+                        {after ?? "INDEX SCAN"}
+                      </span>
+                    </div>
+                    {/* Horizontal royal blue bar */}
+                    <div className="h-3 w-full bg-white/[0.06] rounded-[1px] overflow-hidden">
+                      <div
+                        className="h-full bg-[#3d5bff] shadow-[0_0_8px_rgba(61,91,255,0.8)] transition-all"
+                        style={{
+                          width: `${msA !== null ? Math.max(4, (msA / maxMs) * 100) : 4}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-baseline justify-between font-mono">
+                      <span className="font-sans text-[20px] font-light text-white">
+                        {msA !== null ? `${msA.toFixed(2)} ms` : "n/a"}
+                      </span>
+                      <span className="text-[10.5px] text-[#7ee2b8]">
+                        {result.nodes_after?.join(" → ") ?? after}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* EXPLAIN ANALYZE Output in Code Style */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                    EXPLAIN ANALYZE plan · Without index
+                  </span>
+                  <div className="border border-white/10 bg-[#05070d] p-3 rounded-[2px]">
+                    <PlanTree plan={result.plan_before} />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                    EXPLAIN ANALYZE plan · With {indexKey}
+                  </span>
+                  <div className="border border-white/10 bg-[#05070d] p-3 rounded-[2px]">
+                    <PlanTree plan={result.plan_after} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </Panel>
+
+      {/* 3. Partition Pruning Panel */}
+      <Card title="Telemetry partition pruning" kicker="telemetry_YYYYMMDD">
+        <div className="flex flex-col gap-2">
+          <p className="text-[13px] leading-relaxed text-[#dfe6f5]">
+            Queries bounded by short time windows touch only the relevant daily partitions. The planner prunes
+            non-matching ranges during query optimization, avoiding scanning millions of historical rows.
+          </p>
+          <SqlBlock
+            label="Partition-pruned range query"
+            sql="SELECT count(*) FROM telemetry WHERE ts >= now() - interval '6 hours';"
+          />
         </div>
       </Card>
 
-      <Card title="Lesson" kicker="read this at viva">
-        <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[13px] leading-relaxed text-[var(--text-2)]">
-          <li>BRIN is tiny and ideal for append-only time series like ts.</li>
-          <li>GIN suits JSONB containment on housekeeping.</li>
-          <li>The partial index covers only QUEUED packets, so dispatch stays small.</li>
-          <li>INCLUDE makes a covering index for index-only scans on (to_node, start_ts).</li>
-          <li>A low-selectivity 7-day range correctly stays a seq scan — the planner is right.</li>
+      {/* 4. Lesson / Viva Notes Panel */}
+      <Card title="Examiner viva summary" kicker="Index selection strategy">
+        <ul className="flex flex-col gap-2 text-[13px] leading-relaxed text-[#dfe6f5]">
+          <li className="flex items-start gap-2">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#3d5bff]" />
+            <span>
+              <strong className="text-white font-mono">BRIN:</strong> Block Range Index requires mere kilobytes for append-only timestamp telemetry columns.
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#3d5bff]" />
+            <span>
+              <strong className="text-white font-mono">GIN:</strong> Generalized Inverted Index enables accelerated JSONB containment operations on nested housekeeping payloads.
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#3d5bff]" />
+            <span>
+              <strong className="text-white font-mono">Partial Index:</strong> Filters with WHERE status = 'QUEUED' index only active dispatch rows, keeping size trivial.
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#3d5bff]" />
+            <span>
+              <strong className="text-white font-mono">Covering (INCLUDE):</strong> Stores payload columns directly in leaf pages, bypassing table heap lookups entirely (Index-Only Scan).
+            </span>
+          </li>
         </ul>
       </Card>
     </div>
@@ -260,22 +436,89 @@ function sizeFor(result: IndexRunResult, indexKey: string): string {
 
 function fallbackCatalog(): IndexCatalogEntry[] {
   return [
-    { key: "btree_cube_ts", kind: "btree", ddl: "CREATE INDEX ix_bench_tel_sat_ts ON telemetry (sat_id, ts)", purpose: "Per-sat time-range lookups." },
-    { key: "brin_ts", kind: "brin", ddl: "CREATE INDEX ix_bench_tel_brin ON telemetry USING brin (ts) WITH (pages_per_range = 16)", purpose: "Tiny index for append-only ts." },
-    { key: "gin_housekeeping", kind: "gin", ddl: "CREATE INDEX ix_bench_tel_gin ON telemetry USING gin (housekeeping jsonb_path_ops)", purpose: "JSONB containment on housekeeping." },
-    { key: "partial_queued", kind: "btree partial", ddl: "CREATE INDEX ix_bench_pkt_queued ON packet (origin_sat, created_at) WHERE status = 'QUEUED'", purpose: "Only the dispatchable queue." },
-    { key: "covering_contact", kind: "btree covering", ddl: "CREATE INDEX ix_bench_contact_cov ON contact (to_node, start_ts) INCLUDE (link_score, duration_s)", purpose: "Index-only scans of downlink windows." },
-    { key: "hash_callsign", kind: "hash", ddl: "CREATE INDEX ix_bench_node_callsign ON network_node USING hash (callsign)", purpose: "Equality lookups on callsigns." },
+    {
+      key: "btree_cube_ts",
+      kind: "btree",
+      ddl: "CREATE INDEX ix_bench_tel_sat_ts ON telemetry (sat_id, ts);",
+      purpose: "Per-satellite time-range lookups.",
+      size: "48 kB",
+    },
+    {
+      key: "brin_ts",
+      kind: "brin",
+      ddl: "CREATE INDEX ix_bench_tel_brin ON telemetry USING brin (ts) WITH (pages_per_range = 16);",
+      purpose: "Tiny index for append-only timestamp telemetry.",
+      size: "16 kB",
+    },
+    {
+      key: "gin_housekeeping",
+      kind: "gin",
+      ddl: "CREATE INDEX ix_bench_tel_gin ON telemetry USING gin (housekeeping jsonb_path_ops);",
+      purpose: "JSONB containment operations on subsystem telemetry.",
+      size: "64 kB",
+    },
+    {
+      key: "partial_queued",
+      kind: "btree partial",
+      ddl: "CREATE INDEX ix_bench_pkt_queued ON packet (origin_sat, created_at) WHERE status = 'QUEUED';",
+      purpose: "Only indexes dispatchable pending queue items.",
+      size: "16 kB",
+    },
+    {
+      key: "covering_contact",
+      kind: "btree covering",
+      ddl: "CREATE INDEX ix_bench_contact_cov ON contact (to_node, start_ts) INCLUDE (link_score, duration_s);",
+      purpose: "Index-only scan covering downlink contact windows.",
+      size: "32 kB",
+    },
+    {
+      key: "hash_callsign",
+      kind: "hash",
+      ddl: "CREATE INDEX ix_bench_node_callsign ON network_node USING hash (callsign);",
+      purpose: "O(1) exact equality lookups on callsigns.",
+      size: "32 kB",
+    },
   ];
 }
 
 function fallbackQueries(): IndexQuery[] {
   return [
-    { key: "recent_tel", title: "Recent telemetry per sat", sql: "SELECT * FROM telemetry WHERE sat_id = 'SAT-A1' AND ts >= now() - interval '1 day' ORDER BY ts DESC LIMIT 100", best_index: "btree_cube_ts" },
-    { key: "six_hour", title: "Partition pruning (6h)", sql: "SELECT count(*) FROM telemetry WHERE ts >= now() - interval '6 hours'", best_index: "brin_ts" },
-    { key: "housekeeping", title: "JSONB containment", sql: "SELECT * FROM telemetry WHERE housekeeping @> '{\"sunlit\": true}' LIMIT 100", best_index: "gin_housekeeping" },
-    { key: "queued", title: "Queued dispatch", sql: "SELECT * FROM packet WHERE origin_sat = 'SAT-A1' AND status = 'QUEUED' ORDER BY created_at LIMIT 50", best_index: "partial_queued" },
-    { key: "downlinks", title: "Downlinks by station", sql: "SELECT to_node, start_ts, link_score FROM contact WHERE to_node = 'GS-BOM' AND start_ts >= now() ORDER BY start_ts LIMIT 50", best_index: "covering_contact" },
-    { key: "callsign", title: "Callsign equality", sql: "SELECT * FROM network_node WHERE callsign = 'VU2SA1'", best_index: "hash_callsign" },
+    {
+      key: "recent_tel",
+      title: "Recent telemetry per sat",
+      sql: "SELECT * FROM telemetry WHERE sat_id = 'SAT-A1' AND ts >= now() - interval '1 day' ORDER BY ts DESC LIMIT 100;",
+      best_index: "btree_cube_ts",
+    },
+    {
+      key: "six_hour",
+      title: "Partition pruning (6h)",
+      sql: "SELECT count(*) FROM telemetry WHERE ts >= now() - interval '6 hours';",
+      best_index: "brin_ts",
+    },
+    {
+      key: "housekeeping",
+      title: "JSONB containment",
+      sql: "SELECT * FROM telemetry WHERE housekeeping @> '{\"sunlit\": true}' LIMIT 100;",
+      best_index: "gin_housekeeping",
+    },
+    {
+      key: "queued",
+      title: "Queued dispatch",
+      sql: "SELECT * FROM packet WHERE origin_sat = 'SAT-A1' AND status = 'QUEUED' ORDER BY created_at LIMIT 50;",
+      best_index: "partial_queued",
+    },
+    {
+      key: "downlinks",
+      title: "Downlinks by station",
+      sql: "SELECT to_node, start_ts, link_score FROM contact WHERE to_node = 'GS-BOM' AND start_ts >= now() ORDER BY start_ts LIMIT 50;",
+      best_index: "covering_contact",
+    },
+    {
+      key: "callsign",
+      title: "Callsign equality",
+      sql: "SELECT * FROM network_node WHERE callsign = 'VU2SA1';",
+      best_index: "hash_callsign",
+    },
   ];
 }
+

@@ -2,8 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ApiError, apiFetch } from "@/app/api";
 import { BackendOffline } from "@/app/SqlDrawer";
-import { ChapterLabel } from "@/components/story/ChapterLabel";
-import { RowCard } from "@/components/story/RowCard";
+import { Panel } from "@/components/cc/Panel";
 import {
   PODS,
   SIGNALS,
@@ -21,60 +20,153 @@ import {
   type Snapshot,
 } from "@/features/deploy/api";
 import { DiffCard } from "@/features/deploy/DiffCard";
-
-function ExpCo({ exp, co }: { exp: string; co: string }) {
-  return (
-    <span className="rounded-full bg-[var(--navy-700)] px-2 py-0.5 text-[12px] text-[var(--ice)]">
-      {exp} {co}
-    </span>
-  );
-}
+import { DashedBar } from "@/features/routing/DashedBar";
 
 function RefusedCard({ err, context }: { err: ApiError; context?: string }) {
   return (
-    <div
-      role="alert"
-      className="rounded-xl border border-[var(--line)] border-l-4 border-l-[var(--danger)] bg-[var(--navy-800)] p-4"
+    <Panel
+      cut={8}
+      borderColor="#ff3b4f"
+      glowColor="rgba(255, 59, 79, 0.25)"
+      className="w-full"
     >
-      <p className="text-[13px] font-semibold text-[var(--text)]">
-        PostgreSQL refused this <span className="ml-1 rounded-full bg-[var(--navy-700)] px-2 py-0.5 font-mono text-[10px] text-[var(--danger)]">{err.sqlstate ?? err.status}</span>
-        {context ? ` · ${context}` : ""}
-      </p>
-      <p className="mt-2 text-[13px] text-[var(--text)]">{err.message}</p>
-      {err.detail && (
-        <p className="font-mono mt-1 text-[11px] text-[var(--text-2)]">{err.detail}</p>
-      )}
-    </div>
+      <div className="p-3.5 flex flex-col gap-1.5">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 border border-[#ff3b4f]/40 bg-[#ff3b4f]/10 text-[#ff3b4f]">
+            CRITICAL REFUSAL
+          </span>
+          <span className="font-mono text-[11px] text-[#ff3b4f]">
+            {err.sqlstate ?? err.status}
+          </span>
+          {context && (
+            <span className="font-mono text-[10px] text-[#8b96b0]">· {context}</span>
+          )}
+        </div>
+        <p className="font-sans text-[13px] text-[#dfe6f5]">{err.message}</p>
+        {err.detail && (
+          <p className="font-mono text-[11px] text-[#8b96b0]">{err.detail}</p>
+        )}
+      </div>
+    </Panel>
   );
 }
 
+function stateColor(state: string | null | undefined): string {
+  switch (state) {
+    case "NOMINAL":
+      return "#7ee2b8";
+    case "SAFE":
+      return "#f5a524";
+    case "DEPLOYED":
+      return "#7fb2ff";
+    case "COMMISSIONING":
+      return "#3d5bff";
+    case "CRITICAL":
+      return "#ff3b4f";
+    case "STOWED":
+    case "ARMED":
+    default:
+      return "#8b96b0";
+  }
+}
+
 /**
- * SomaiyaPod illustration, drawn to the real 127.4 × 57.9 × 57.2 mm
- * proportions. The PocketQube sits inside while ARMED, ejects when
- * RELEASED/CONFIRMED.
+ * SomaiyaPod illustration, drawn to real 127.4 × 57.9 × 57.2 mm proportions.
  */
 function PodSvg({ status, ejected }: { status: string; ejected: boolean }) {
   const out = ejected;
   return (
-    <svg viewBox="0 0 340 150" className="w-full" role="img" aria-label={`Pod ${status}`}>
-      {/* pod tube: 127.4 long (x) — drawn 240 wide */}
-      <rect x={20} y={45} width={240} height={60} rx={8} fill="var(--navy-700)" stroke="var(--line)" strokeWidth={2} />
-      <rect x={20} y={45} width={18} height={60} rx={8} fill="var(--space)" stroke="var(--line)" strokeWidth={1.5} />
+    <svg
+      viewBox="0 0 340 150"
+      className="w-full h-auto max-h-[170px]"
+      role="img"
+      aria-label={`Pod ${status}`}
+    >
+      {/* pod tube: 127.4 long (x) */}
+      <rect
+        x={20}
+        y={45}
+        width={240}
+        height={60}
+        rx={2}
+        fill="#060b17"
+        stroke="rgba(255, 255, 255, 0.15)"
+        strokeWidth={1.5}
+      />
+      <rect
+        x={20}
+        y={45}
+        width={18}
+        height={60}
+        rx={2}
+        fill="#05070d"
+        stroke="rgba(255, 255, 255, 0.15)"
+        strokeWidth={1.2}
+      />
       {/* spring plate */}
-      <rect x={out ? 30 : 218} y={52} width={10} height={46} rx={2} fill="var(--warn)" opacity={0.9}>
-        {!out && <animate attributeName="x" values="218;214;218" dur="2s" repeatCount="indefinite" />}
+      <rect
+        x={out ? 30 : 218}
+        y={52}
+        width={10}
+        height={46}
+        rx={1}
+        fill="#f5a524"
+        opacity={0.9}
+      >
+        {!out && (
+          <animate
+            attributeName="x"
+            values="218;214;218"
+            dur="2s"
+            repeatCount="indefinite"
+          />
+        )}
       </rect>
       {/* PocketQube 1P cube */}
-      <g transform={out ? "translate(272,58)" : "translate(120,58)"} style={{ transition: "transform 800ms ease" }}>
-        <rect x={-22} y={-22} width={44} height={44} rx={4} fill={out ? "var(--ice)" : "var(--navy-800)"} stroke={out ? "var(--ice)" : "var(--text-2)"} strokeWidth={2} />
-        <rect x={-22} y={-22} width={44} height={10} rx={4} fill="var(--ice)" opacity={0.7} />
-        <circle cx={0} cy={8} r={5} fill="var(--ok)" opacity={0.9} />
+      <g
+        transform={out ? "translate(272,58)" : "translate(120,58)"}
+        style={{ transition: "transform 800ms ease" }}
+      >
+        <rect
+          x={-22}
+          y={-22}
+          width={44}
+          height={44}
+          rx={2}
+          fill={out ? "#0e172c" : "#05070d"}
+          stroke={out ? "#3d5bff" : "rgba(255, 255, 255, 0.3)"}
+          strokeWidth={1.5}
+        />
+        <rect
+          x={-22}
+          y={-22}
+          width={44}
+          height={10}
+          rx={1}
+          fill="#3d5bff"
+          opacity={0.7}
+        />
+        <circle cx={0} cy={8} r={5} fill="#7ee2b8" opacity={0.9} />
       </g>
       {out && (
-        <line x1={258} y1={80} x2={272} y2={80} stroke="var(--ice)" strokeWidth={2} strokeDasharray="4 3" />
+        <line
+          x1={258}
+          y1={80}
+          x2={272}
+          y2={80}
+          stroke="#3d5bff"
+          strokeWidth={1.5}
+          strokeDasharray="4 3"
+        />
       )}
-      <text x={20} y={128} fill="var(--text-3)" fontSize={10} fontFamily="Geist Mono, monospace">
-        SomaiyaPod · 127.4 × 57.9 × 57.2 mm · {status}
+      <text
+        x={20}
+        y={130}
+        fill="#8b96b0"
+        fontSize={9.5}
+        fontFamily="Geist Mono, monospace"
+      >
+        SOMAIYAPOD // 127.4 × 57.9 × 57.2 MM // STATUS: {status}
       </text>
     </svg>
   );
@@ -88,26 +180,37 @@ function StateDiagram({ current }: { current: string | null }) {
     ["COMMISSIONING", "SAFE"],
   ];
   return (
-    <div className="flex flex-wrap items-center gap-1.5" aria-label="Satellite state machine">
-      {STATES.map((s, i) => (
-        <span key={s} className="flex items-center gap-1.5">
-          <span
-            className={`font-mono rounded-full border px-2.5 py-1 text-[10px] tracking-[0.1em] ${
-              current === s
-                ? "border-[var(--ice)] bg-[var(--navy-700)] text-[var(--text)]"
-                : "border-[var(--line)] text-[var(--text-3)]"
-            }`}
-            style={current === s ? { boxShadow: "0 0 12px var(--ice)" } : undefined}
-          >
-            {s}
-          </span>
-          {i < STATES.length - 1 && (
-            <span className="font-mono text-[var(--text-3)]">→</span>
-          )}
-        </span>
-      ))}
-      <span className="font-mono mt-1 w-full text-[10px] text-[var(--text-3)]">
-        legal jumps: {edges.map(([a, b]) => `${a}→${b}`).join(" · ")} (+ NOMINAL⇄SAFE, →DECOMMISSIONED)
+    <div className="flex flex-col gap-2" aria-label="Satellite state machine">
+      <div className="flex flex-wrap items-center gap-2">
+        {STATES.map((s, i) => {
+          const isActive = current === s;
+          const col = stateColor(s);
+          return (
+            <span key={s} className="flex items-center gap-2">
+              <span
+                className="font-mono text-[10px] tracking-[0.1em] uppercase px-2.5 py-1 border"
+                style={{
+                  color: isActive ? col : "#8b96b0",
+                  borderColor: isActive
+                    ? `color-mix(in srgb, ${col} 60%, transparent)`
+                    : "rgba(255, 255, 255, 0.1)",
+                  backgroundColor: isActive
+                    ? `color-mix(in srgb, ${col} 15%, transparent)`
+                    : "transparent",
+                  boxShadow: isActive ? `0 0 10px ${col}44` : undefined,
+                }}
+              >
+                {s}
+              </span>
+              {i < STATES.length - 1 && (
+                <span className="font-mono text-[#5f6f93] text-[11px]">→</span>
+              )}
+            </span>
+          );
+        })}
+      </div>
+      <span className="font-mono text-[10px] text-[#5f6f93]">
+        Legal paths: {edges.map(([a, b]) => `${a}→${b}`).join(" · ")} (+ NOMINAL⇄SAFE, →DECOMMISSIONED)
       </span>
     </div>
   );
@@ -130,6 +233,7 @@ export default function Deploy() {
   const [offline, setOffline] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [illegalMsg, setIllegalMsg] = useState<string | null>(null);
+  const [illegalError, setIllegalError] = useState<ApiError | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   // Pass execution state
@@ -191,7 +295,6 @@ export default function Deploy() {
       setLastLog(ok.log ? [ok.log] : []);
       refresh(pod);
     } catch (e) {
-      // Failure path: the error envelope carries before/after in err.data.
       if (e instanceof ApiError) {
         setError(e);
         const data = (e.data ?? undefined) as ConfirmFail | undefined;
@@ -225,6 +328,7 @@ export default function Deploy() {
 
   const onIllegal = async (): Promise<void> => {
     setIllegalMsg(null);
+    setIllegalError(null);
     try {
       await apiFetch("/api/console", {
         method: "POST",
@@ -235,6 +339,7 @@ export default function Deploy() {
       setIllegalMsg("Unexpectedly allowed — the trigger should have fired.");
     } catch (e) {
       if (e instanceof ApiError) {
+        setIllegalError(e);
         setIllegalMsg(
           `Console refused (${e.sqlstate ?? e.status}): ${e.message}. ` +
             `The live trigger trg_satellite_state would raise ` +
@@ -265,249 +370,485 @@ export default function Deploy() {
     ...(passResult?.after.map((q) => q.bytes) ?? [1]),
   );
 
+  const podStatus = bundle?.pod?.status ?? "STOWED";
+  const satState = bundle?.satellite?.state ?? "STOWED";
+  const isEjected = podStatus === "RELEASED" || podStatus === "CONFIRMED";
+
+  const effectiveLog =
+    lastLog.length > 0 ? lastLog[0] : bundle && bundle.log.length > 0 ? bundle.log[0] : null;
+
   return (
-    <div className="min-h-screen bg-[var(--space)] text-[var(--text)]">
-      <main className="shell py-10">
-        <ChapterLabel index="DEPLOY" title="SomaiyaPod" />
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <h1 className="font-sans text-3xl font-bold tracking-tight sm:text-4xl">
-            Deployment &amp; transactions
-          </h1>
-          <ExpCo exp="Exp 9" co="CO4" />
+    <div className="-m-6 p-6 min-h-[calc(100vh-3.5rem)] bg-black text-[#dfe6f5] flex flex-col gap-5">
+      {/* Page Title Row */}
+      <div className="flex flex-col gap-1 border-b border-white/5 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col">
+            <h1 className="font-sans text-[28px] sm:text-[34px] font-light tracking-tight text-white leading-tight">
+              Deployment &amp; transactions
+            </h1>
+            <p className="text-[13px] text-[#8b96b0] leading-snug">
+              Two signals agree, the pod fires, the sat wakes. Every step is a transaction you can roll back on purpose.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 border border-white/15 bg-white/5 text-[#8b96b0]">
+              EXP 9 · CO4
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10 text-[#7fb2ff]">
+              TRANSACTION TIMELINE
+            </span>
+          </div>
         </div>
-        <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-[var(--text-2)]">
-          Two signals agree, the pod fires, the sat wakes. Every step is a
-          transaction you can roll back on purpose.
-        </p>
+      </div>
 
-        {offline && (
-          <div className="mt-6">
-            <BackendOffline onRetry={() => refresh(pod)} />
-          </div>
-        )}
-        {error !== null && (
-          <div className="mt-6">
-            <RefusedCard err={error} />
-          </div>
-        )}
+      {offline && (
+        <div className="w-full">
+          <BackendOffline onRetry={() => refresh(pod)} />
+        </div>
+      )}
 
-        {/* Pod selector + illustration */}
-        <section className="mt-6 grid gap-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4 lg:grid-cols-2">
-          <div>
-            <label className="font-mono text-[10px] tracking-[0.16em] text-[var(--text-3)]">
-              pod
-            </label>
-            <select
-              value={pod}
-              onChange={(e) => setPod(e.target.value)}
-              className="font-mono mt-1.5 w-full rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-2 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
-            >
-              {PODS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-            <div className="mt-3">
-              <PodSvg
-                status={bundle?.pod?.status ?? "…"}
-                ejected={
-                  bundle?.pod?.status === "RELEASED" ||
-                  bundle?.pod?.status === "CONFIRMED"
-                }
-              />
+      {error !== null && (
+        <div className="w-full">
+          <RefusedCard err={error} />
+        </div>
+      )}
+
+      {/* SomaiyaPod Sequence as a Vertical Console Timeline */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between border-b border-white/5 pb-2">
+          <span className="font-mono text-[11px] font-semibold tracking-[0.16em] uppercase text-[#dfe6f5]">
+            SomaiyaPod deployment sequence // Vertical console timeline
+          </span>
+          <span className="font-mono text-[10px] text-[#8b96b0]">
+            POD {pod}
+          </span>
+        </div>
+
+        {/* TIMELINE STEP 01: POD INSPECTION */}
+        <Panel cut={8} className="w-full">
+          <div className="p-4 flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+              <div className="flex items-center gap-2.5">
+                <span className="font-mono text-[11px] font-semibold text-[#7fb2ff] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10">
+                  STEP 01
+                </span>
+                <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white">
+                  Pod tube inspection &amp; PocketQube status
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* State Badge */}
+                <span
+                  className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border"
+                  style={{
+                    color: stateColor(podStatus),
+                    borderColor: `color-mix(in srgb, ${stateColor(podStatus)} 40%, transparent)`,
+                    backgroundColor: `color-mix(in srgb, ${stateColor(podStatus)} 10%, transparent)`,
+                  }}
+                >
+                  POD: {podStatus}
+                </span>
+
+                {/* Transaction Outcome Badge */}
+                <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-white/15 bg-white/5 text-[#8b96b0]">
+                  PRE-TRANSACTION
+                </span>
+              </div>
             </div>
-            {bundle?.pod && (
-              <RowCard
-                title={`deployer_pod · ${bundle.pod.pod_id}`}
-                rows={[
-                  ["status", bundle.pod.status],
-                  ["serial_no", bundle.pod.serial_no],
-                  ["mechanism", bundle.pod.release_mechanism],
-                  ["release_ts", bundle.pod.release_ts ?? "NULL"],
-                  ["satellite", bundle.satellite ? `${bundle.satellite.node_id} · ${bundle.satellite.state}` : "—"],
-                ]}
-              />
-            )}
-          </div>
 
-          {/* Signals + actions */}
-          <div>
-            <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
-              deploy signals · {confirmedCount} of 3 confirmed (need 2)
-            </h2>
-            <div className="mt-2 flex flex-col gap-2">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+              <div className="lg:col-span-4 flex flex-col gap-2">
+                <label className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                  Select deployer pod:
+                </label>
+                <select
+                  value={pod}
+                  onChange={(e) => setPod(e.target.value)}
+                  className="font-mono bg-[#05070d] border border-white/10 px-2.5 py-1.5 text-[12px] text-white focus:border-[#3d5bff] focus:outline-none"
+                >
+                  {PODS.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+
+                {bundle?.pod && (
+                  <div className="mt-1 flex flex-col gap-1 p-2.5 bg-[#05070d] border border-white/5 font-mono text-[11px]">
+                    <div className="flex justify-between text-[#8b96b0]">
+                      <span>Serial number:</span>
+                      <span className="text-[#dfe6f5]">{bundle.pod.serial_no}</span>
+                    </div>
+                    <div className="flex justify-between text-[#8b96b0]">
+                      <span>Mechanism:</span>
+                      <span className="text-[#dfe6f5]">{bundle.pod.release_mechanism}</span>
+                    </div>
+                    <div className="flex justify-between text-[#8b96b0]">
+                      <span>Release TS:</span>
+                      <span className="text-[#dfe6f5]">
+                        {bundle.pod.release_ts ? `${bundle.pod.release_ts.slice(11, 19)}Z` : "NULL"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-[#8b96b0]">
+                      <span>Satellite:</span>
+                      <span className="text-[#7ee2b8]">
+                        {bundle.satellite ? `${bundle.satellite.node_id} (${bundle.satellite.state})` : "—"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="lg:col-span-8 flex items-center justify-center p-2 bg-[#05070d] border border-white/5">
+                <PodSvg status={podStatus} ejected={isEjected} />
+              </div>
+            </div>
+          </div>
+        </Panel>
+
+        {/* TIMELINE STEP 02: TELEMETRY SIGNAL ARBITRATION */}
+        <Panel cut={8} className="w-full">
+          <div className="p-4 flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+              <div className="flex items-center gap-2.5">
+                <span className="font-mono text-[11px] font-semibold text-[#7fb2ff] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10">
+                  STEP 02
+                </span>
+                <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white">
+                  Telemetry sensor voting // 2-of-3 consensus required
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* State Badge */}
+                <span
+                  className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border"
+                  style={{
+                    color: confirmedCount >= 2 ? "#7ee2b8" : "#f5a524",
+                    borderColor: confirmedCount >= 2 ? "#7ee2b866" : "#f5a52466",
+                    backgroundColor: confirmedCount >= 2 ? "#7ee2b815" : "#f5a52415",
+                  }}
+                >
+                  {confirmedCount} OF 3 CONFIRMED
+                </span>
+
+                {/* Outcome Badge */}
+                <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-white/15 bg-white/5 text-[#8b96b0]">
+                  SIGNAL VALIDATION
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
               {SIGNALS.map((s) => {
                 const hits = bundle?.events.filter((e) => e.signal === s) ?? [];
                 const lit = hits.some((e) => e.ok);
                 return (
                   <div
                     key={s}
-                    className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--space)] px-3 py-2.5"
+                    className="p-3 bg-[#05070d] border border-white/5 flex flex-col gap-2 justify-between"
                   >
-                    <span
-                      aria-hidden="true"
-                      className="inline-block size-3 rounded-full"
-                      style={{
-                        background: lit ? "var(--ok)" : "var(--text-3)",
-                        boxShadow: lit ? "0 0 10px var(--ok)" : undefined,
-                      }}
-                    />
-                    <span className="font-mono text-[12px] text-[var(--text)]">{s}</span>
-                    <span className="font-mono text-[10px] text-[var(--text-3)]">
-                      {hits.length > 0 ? `${hits.length} event${hits.length > 1 ? "s" : ""}` : "no signal yet"}
-                    </span>
-                    <span className="ml-auto flex items-center gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="size-2 rounded-none"
+                          style={{
+                            backgroundColor: lit ? "#7ee2b8" : "#5f6f93",
+                            boxShadow: lit ? "0 0 6px #7ee2b8" : undefined,
+                          }}
+                        />
+                        <span className="font-mono text-[12px] font-semibold text-white">
+                          {s}
+                        </span>
+                      </div>
+                      <span className="font-mono text-[10px] text-[#8b96b0]">
+                        {hits.length} EVT
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/5">
                       <button
                         onClick={() => setOkState((p) => ({ ...p, [s]: !(p[s] ?? true) }))}
-                        aria-label={`Toggle ok for ${s}`}
-                        className="font-mono rounded-full border border-[var(--line)] px-2.5 py-1 text-[10px] tracking-[0.1em] text-[var(--text-2)]"
+                        className="font-mono text-[10px] uppercase tracking-[0.08em] px-2 py-1 border border-white/10 bg-transparent text-[#dfe6f5] hover:border-white/20 cursor-pointer"
                       >
-                        ok: {okState[s] ? "true" : "false"}
+                        OK: {okState[s] ? "TRUE" : "FALSE"}
                       </button>
+
                       <button
                         onClick={() => void onSignal(s)}
-                        className="font-mono rounded-full bg-[var(--ice)] px-3 py-1 text-[10px] font-semibold tracking-[0.1em] text-[#04122e] hover:scale-105"
+                        className="font-mono text-[10px] uppercase tracking-[0.1em] px-3 py-1 bg-[#3d5bff] hover:bg-[#4f6bff] text-white font-semibold transition-colors cursor-pointer"
                       >
-                        send
+                        SEND
                       </button>
-                    </span>
+                    </div>
                   </div>
                 );
               })}
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
+          </div>
+        </Panel>
+
+        {/* TIMELINE STEP 03: DEPLOYMENT TRANSACTION */}
+        <Panel cut={8} className="w-full">
+          <div className="p-4 flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+              <div className="flex items-center gap-2.5">
+                <span className="font-mono text-[11px] font-semibold text-[#7fb2ff] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10">
+                  STEP 03
+                </span>
+                <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white">
+                  Atomic deployment transaction // Commit vs Rollback
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* State Badge */}
+                <span
+                  className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border"
+                  style={{
+                    color: stateColor(satState),
+                    borderColor: `color-mix(in srgb, ${stateColor(satState)} 40%, transparent)`,
+                    backgroundColor: `color-mix(in srgb, ${stateColor(satState)} 10%, transparent)`,
+                  }}
+                >
+                  SAT: {satState}
+                </span>
+
+                {/* Transaction Outcome Badge */}
+                {rolledBack ? (
+                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#f5a524]/60 bg-[#f5a524]/10 text-[#f5a524]">
+                    ROLLBACK
+                  </span>
+                ) : after ? (
+                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#7ee2b8]/60 bg-[#7ee2b8]/10 text-[#7ee2b8]">
+                    COMMIT OK
+                  </span>
+                ) : (
+                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-white/15 bg-white/5 text-[#8b96b0]">
+                    TX READY
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <p className="font-sans text-[13px] leading-relaxed text-[#dfe6f5] max-w-[85ch]">
+              When deployment is confirmed, PostgreSQL opens a transaction that updates the pod to RELEASED,
+              advances the satellite from STOWED to DEPLOYED via state trigger, and records an audit log row.
+              If any step fails or is simulated as faulty, the transaction rolls back cleanly.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-2.5 pt-1">
               <button
                 onClick={() => void onConfirm(false)}
                 disabled={busy !== null}
-                className="font-mono rounded-full bg-[var(--ice)] px-4 py-2 text-[11px] font-semibold tracking-[0.14em] text-[#04122e] hover:scale-[1.02] disabled:opacity-50"
+                className="py-2 px-4 bg-[#3d5bff] hover:bg-[#4f6bff] text-white font-mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
               >
-                {busy === "confirm" ? "confirming…" : "Confirm deployment"}
+                {busy === "confirm" ? "CONFIRMING…" : "CONFIRM DEPLOYMENT"}
               </button>
+
               <button
                 onClick={() => void onConfirm(true)}
                 disabled={busy !== null}
-                className="font-mono rounded-full border border-[var(--warn)]/60 px-4 py-2 text-[11px] tracking-[0.14em] text-[var(--warn)] hover:bg-[var(--navy-700)] disabled:opacity-50"
+                className="py-2 px-4 border border-[#f5a524]/60 bg-transparent hover:bg-[#f5a524]/10 text-[#f5a524] font-mono text-[11px] uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
               >
-                {busy === "fail" ? "failing…" : "Simulate failure"}
+                {busy === "fail" ? "SIMULATING…" : "SIMULATE FAILURE (ROLLBACK)"}
               </button>
+
               <button
                 onClick={() => void onReset()}
                 disabled={busy !== null}
-                className="font-mono rounded-full border border-[var(--line)] px-4 py-2 text-[11px] tracking-[0.14em] text-[var(--text-2)] hover:text-[var(--text)] disabled:opacity-50"
+                className="py-2 px-4 border border-white/15 bg-transparent hover:border-white/30 text-[#dfe6f5] font-mono text-[11px] uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
               >
-                {busy === "reset" ? "resetting…" : "Reset demo"}
+                {busy === "reset" ? "RESETTING…" : "RESET DEMO"}
               </button>
             </div>
           </div>
-        </section>
+        </Panel>
 
-        {/* Before / after */}
+        {/* TIMELINE STEP 04: AUDIT LOG & BEFORE/AFTER DIFF */}
         {(before !== null || after !== null) && (
-          <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
-                before / after
-              </h2>
-              {rolledBack && (
-                <span className="font-mono rotate-[-2deg] rounded border-2 border-[var(--warn)] px-2 py-0.5 text-[11px] tracking-[0.14em] text-[var(--warn)]">
-                  Rolled back
-                </span>
-              )}
-            </div>
-            <p className="mt-2 max-w-[80ch] text-sm leading-relaxed text-[var(--text-2)]">
-              {rolledBack
-                ? "Identical rows: the transaction rolled back, nothing changed. The deployment_log row below still exists because it was written in a separate transaction — and deployment_log has no foreign keys, so nothing cascades it away."
-                : "Changed fields glow ice blue. The COMMITTED log row is the audit twin of the same transaction."}
-            </p>
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              {before && (
-                <DiffCard
-                  title="pod"
-                  before={(before.pod ?? {}) as unknown as Record<string, unknown>}
-                  after={(after?.pod ?? before.pod ?? {}) as unknown as Record<string, unknown>}
-                />
-              )}
-              {before && (
-                <DiffCard
-                  title="satellite"
-                  before={(before.sat ?? {}) as unknown as Record<string, unknown>}
-                  after={(after?.sat ?? before.sat ?? {}) as unknown as Record<string, unknown>}
-                />
-              )}
-            </div>
-            {lastLog.length > 0 && (
-              <div className="mt-3">
-                <RowCard
-                  title={`deployment_log #${lastLog[0].log_id} · ${lastLog[0].outcome}`}
-                  rows={[
-                    ["action", lastLog[0].action],
-                    ["outcome", lastLog[0].outcome],
-                    ["detail", (lastLog[0].detail ?? "—").slice(0, 160)],
-                    ["logged_at", lastLog[0].logged_at],
-                  ]}
-                />
-              </div>
-            )}
-            {bundle && bundle.log.length > 0 && lastLog.length === 0 && (
-              <div className="mt-3">
-                <RowCard
-                  title={`deployment_log #${bundle.log[0].log_id} · ${bundle.log[0].outcome}`}
-                  rows={[
-                    ["action", bundle.log[0].action],
-                    ["outcome", bundle.log[0].outcome],
-                    ["detail", (bundle.log[0].detail ?? "—").slice(0, 160)],
-                    ["logged_at", bundle.log[0].logged_at],
-                  ]}
-                />
-              </div>
-            )}
-          </section>
-        )}
+          <Panel cut={8} className="w-full">
+            <div className="p-4 flex flex-col gap-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
+                <div className="flex items-center gap-2.5">
+                  <span className="font-mono text-[11px] font-semibold text-[#7fb2ff] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10">
+                    STEP 04
+                  </span>
+                  <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white">
+                    Audit verification // State machine before vs after diff
+                  </span>
+                </div>
 
-        {/* State machine + illegal jump */}
-        <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-          <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
-            state machine · trg_satellite_state
-          </h2>
-          <div className="mt-3">
-            <StateDiagram current={bundle?.satellite?.state ?? null} />
+                <div className="flex items-center gap-2">
+                  {/* Transaction Outcome Badge */}
+                  {rolledBack ? (
+                    <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#f5a524]/60 bg-[#f5a524]/10 text-[#f5a524]">
+                      TRANSACTION ROLLED BACK
+                    </span>
+                  ) : (
+                    <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#7ee2b8]/60 bg-[#7ee2b8]/10 text-[#7ee2b8]">
+                      TRANSACTION COMMITTED
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <p className="font-sans text-[13px] text-[#8b96b0]">
+                {rolledBack
+                  ? "Identical rows: the transaction rolled back and no database state changed. The deployment_log row was written in an autonomous transaction audit trail."
+                  : "Changed fields are highlighted in royal blue. The COMMITTED log row confirms the atomic state transition."}
+              </p>
+
+              {/* Diff Cards Restyled as Panels */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {before && (
+                  <DiffCard
+                    title="POD"
+                    before={(before.pod ?? {}) as unknown as Record<string, unknown>}
+                    after={(after?.pod ?? before.pod ?? {}) as unknown as Record<string, unknown>}
+                  />
+                )}
+                {before && (
+                  <DiffCard
+                    title="SATELLITE"
+                    before={(before.sat ?? {}) as unknown as Record<string, unknown>}
+                    after={(after?.sat ?? before.sat ?? {}) as unknown as Record<string, unknown>}
+                  />
+                )}
+              </div>
+
+              {/* Deployment Log Audit Row */}
+              {effectiveLog && (
+                <div className="p-3 bg-[#05070d] border border-white/10 flex flex-col gap-1.5 font-mono text-[11px]">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-1">
+                    <span className="text-[#8b96b0] uppercase">
+                      AUDIT LOG // #{effectiveLog.log_id}
+                    </span>
+                    <span
+                      className="px-1.5 py-0.2 border text-[9px] uppercase tracking-wider"
+                      style={{
+                        color: effectiveLog.outcome === "COMMITTED" ? "#7ee2b8" : "#f5a524",
+                        borderColor:
+                          effectiveLog.outcome === "COMMITTED"
+                            ? "#7ee2b866"
+                            : "#f5a52466",
+                      }}
+                    >
+                      {effectiveLog.outcome}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[#dfe6f5]">
+                    <div>
+                      <span className="text-[#8b96b0]">ACTION: </span>
+                      {effectiveLog.action}
+                    </div>
+                    <div>
+                      <span className="text-[#8b96b0]">LOGGED AT: </span>
+                      {effectiveLog.logged_at}
+                    </div>
+                    <div className="sm:col-span-2">
+                      <span className="text-[#8b96b0]">DETAIL: </span>
+                      {effectiveLog.detail ?? "—"}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Panel>
+        )}
+      </div>
+
+      {/* State Machine & Illegal Jump Test Section */}
+      <Panel cut={8} className="w-full">
+        <div className="p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+              Satellite state machine // trg_satellite_state trigger
+            </span>
+            <span className="font-mono text-[10px] text-[#8b96b0]">
+              CONSTRAINT ENFORCEMENT
+            </span>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+
+          <StateDiagram current={satState} />
+
+          <div className="flex flex-wrap items-center gap-3 pt-2">
             <button
               onClick={() => void onIllegal()}
-              className="font-mono rounded-full border border-[var(--ice)]/60 px-4 py-1.5 text-[11px] tracking-[0.12em] text-[var(--text)] hover:bg-[var(--navy-700)]"
+              className="py-1.5 px-3 border border-[#ff3b4f]/40 bg-transparent hover:border-[#ff3b4f] text-[#ff3b4f] font-mono text-[11px] uppercase tracking-[0.1em] transition-colors cursor-pointer"
             >
-              Try illegal jump (STOWED → NOMINAL)
+              TRY ILLEGAL JUMP (STOWED → NOMINAL)
             </button>
             <Link
               to="/labs/transactions"
-              className="font-mono text-[11px] tracking-[0.12em] text-[var(--ice)] hover:underline"
+              className="font-mono text-[11px] tracking-[0.1em] text-[#7fb2ff] hover:underline"
             >
-              Open transactions lab
+              Open transactions lab →
             </Link>
           </div>
-          {illegalMsg && (
-            <p className="font-mono mt-2 rounded-lg border border-[var(--ice)]/50 bg-[var(--navy-700)] px-3 py-2 text-[11px] leading-relaxed text-[var(--text)]">
-              {illegalMsg}
-            </p>
-          )}
-        </section>
 
-        {/* Pass execution */}
-        <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-          <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
-            pass execution · SAVEPOINT demo · execute_pass()
-          </h2>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <label className="flex flex-col gap-1.5">
-              <span className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">
-                sat
+          {/* State-Machine Rejection Showing Red Critical Badge + Exact Postgres Error */}
+          {illegalError !== null && (
+            <Panel
+              cut={8}
+              borderColor="#ff3b4f"
+              glowColor="rgba(255, 59, 79, 0.3)"
+              className="w-full mt-2"
+            >
+              <div className="p-3.5 flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#ff3b4f]/40 bg-[#ff3b4f]/10 text-[#ff3b4f]">
+                    CRITICAL REJECTION
+                  </span>
+                  <span className="font-mono text-[11px] text-[#ff3b4f]">
+                    SQLSTATE {illegalError.sqlstate ?? illegalError.status}
+                  </span>
+                  <span className="font-mono text-[10px] text-[#8b96b0]">
+                    TRIGGER trg_satellite_state
+                  </span>
+                </div>
+                <div className="bg-[#05070d] border border-white/10 p-3 font-mono text-[12.5px] text-[#ff3b4f] leading-relaxed">
+                  ERROR: {illegalError.message}
+                </div>
+                {illegalError.detail && (
+                  <div className="font-mono text-[11px] text-[#8b96b0]">
+                    DETAIL: {illegalError.detail}
+                  </div>
+                )}
+              </div>
+            </Panel>
+          )}
+
+          {illegalMsg && !illegalError && (
+            <div className="p-3 bg-[#05070d] border border-white/10 font-mono text-[11px] text-white">
+              {illegalMsg}
+            </div>
+          )}
+        </div>
+      </Panel>
+
+      {/* Pass Execution (SAVEPOINT Demo) */}
+      <Panel cut={8} className="w-full">
+        <div className="p-4 flex flex-col gap-3.5">
+          <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+              Pass execution // SAVEPOINT demo // execute_pass()
+            </span>
+            <span className="font-mono text-[10px] text-[#8b96b0]">
+              SUB-TRANSACTION ROLLBACK
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                Select sat
               </span>
               <select
                 value={passSat}
                 onChange={(e) => setPassSat(e.target.value)}
-                className="font-mono rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-2 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
+                className="font-mono bg-[#05070d] border border-white/10 px-2.5 py-1.5 text-[12px] text-white focus:border-[#3d5bff] focus:outline-none"
               >
                 {PASS_SATS.map((s) => (
                   <option key={s} value={s}>
@@ -515,15 +856,16 @@ export default function Deploy() {
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="flex flex-col gap-1.5 sm:col-span-2">
-              <span className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">
-                downlink contact
+            </div>
+
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                Downlink contact
               </span>
               <select
                 value={passContactId ?? ""}
                 onChange={(e) => setPassContactId(Number(e.target.value))}
-                className="font-mono rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-2 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
+                className="font-mono bg-[#05070d] border border-white/10 px-2.5 py-1.5 text-[12px] text-white focus:border-[#3d5bff] focus:outline-none"
               >
                 {passContacts.length === 0 && <option value="">no downlink in window</option>}
                 {passContacts.map((c) => (
@@ -532,78 +874,92 @@ export default function Deploy() {
                   </option>
                 ))}
               </select>
-            </label>
+            </div>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
+
+          <div className="flex flex-wrap gap-2.5">
             <button
               onClick={() => void onPass(false)}
               disabled={busy !== null || passContactId === null}
-              className="font-mono rounded-full bg-[var(--ice)] px-4 py-2 text-[11px] font-semibold tracking-[0.14em] text-[#04122e] hover:scale-[1.02] disabled:opacity-50"
+              className="py-2 px-4 bg-[#3d5bff] hover:bg-[#4f6bff] text-white font-mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
             >
-              {busy === "pass" ? "executing…" : "Execute pass"}
+              {busy === "pass" ? "EXECUTING…" : "EXECUTE PASS"}
             </button>
             <button
               onClick={() => void onPass(true)}
               disabled={busy !== null || passContactId === null}
-              className="font-mono rounded-full border border-[var(--warn)]/60 px-4 py-2 text-[11px] tracking-[0.14em] text-[var(--warn)] hover:bg-[var(--navy-700)] disabled:opacity-50"
+              className="py-2 px-4 border border-[#f5a524]/60 bg-transparent hover:bg-[#f5a524]/10 text-[#f5a524] font-mono text-[11px] uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
             >
-              {busy === "pass-fail" ? "failing…" : "Execute with stage-2 failure"}
+              {busy === "pass-fail" ? "FAILING…" : "EXECUTE WITH STAGE-2 FAILURE"}
             </button>
           </div>
 
           {passResult && (
-            <div className="mt-4 grid gap-4 lg:grid-cols-2">
-              <ol className="relative ml-2 flex flex-col gap-3 border-l border-dashed border-[var(--line)] pl-5">
-                {passResult.stages.map((st, i) => {
-                  const rolled = /roll/i.test(st.status);
-                  return (
-                    <li key={i} className="relative">
-                      <span
-                        aria-hidden="true"
-                        className="absolute -left-[27px] top-1 size-2.5 rounded-full"
-                        style={{
-                          background: rolled ? "var(--warn)" : "var(--ok)",
-                          boxShadow: `0 0 8px ${rolled ? "var(--warn)" : "var(--ok)"}`,
-                        }}
-                      />
-                      <p className="font-mono text-[12px] text-[var(--text)]">
-                        {st.stage} · {rolled ? "Rolled back to savepoint" : st.status}
-                      </p>
-                      <p className="font-mono text-[11px] text-[var(--text-2)]">
-                        {st.packets} packets · {st.bytes} bytes
-                      </p>
-                    </li>
-                  );
-                })}
-              </ol>
-              <div>
-                <p className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">
-                  queued bytes by mode · before → after
-                </p>
-                <div className="mt-2 flex flex-col gap-2">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2">
+              {/* Stages List with SAVEPOINT, ROLLBACK, COMMIT badges */}
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                  Execution stages // Transaction outcome
+                </span>
+                <div className="flex flex-col gap-2">
+                  {passResult.stages.map((st, i) => {
+                    const rolled = /roll/i.test(st.status);
+                    const outcomeCol = rolled ? "#f5a524" : "#7ee2b8";
+                    const outcomeBadge = rolled ? "ROLLBACK" : "COMMIT";
+
+                    return (
+                      <Panel key={i} cut={6} className="w-full">
+                        <div className="p-3 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] text-[#8b96b0]">
+                              STAGE 0{i + 1}
+                            </span>
+                            <span className="font-mono text-[12px] font-semibold text-white">
+                              {st.stage}
+                            </span>
+                            {/* Savepoint badge if stage 1 was saved */}
+                            <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10 text-[#7fb2ff]">
+                              SAVEPOINT
+                            </span>
+                            <span
+                              className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 border"
+                              style={{
+                                color: outcomeCol,
+                                borderColor: `color-mix(in srgb, ${outcomeCol} 40%, transparent)`,
+                                backgroundColor: `color-mix(in srgb, ${outcomeCol} 10%, transparent)`,
+                              }}
+                            >
+                              {outcomeBadge}
+                            </span>
+                          </div>
+                          <div className="font-mono text-[11px] text-[#8b96b0]">
+                            {st.packets} pkts · {st.bytes} B
+                          </div>
+                        </div>
+                      </Panel>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Queue Buffer Comparison Before vs After */}
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                  Queued bytes by mode // Before vs After
+                </span>
+                <div className="flex flex-col gap-2.5 p-3 bg-[#05070d] border border-white/5">
                   {passModes.map((m) => {
                     const b = passResult.before.find((q) => q.mode === m)?.bytes ?? 0;
                     const a = passResult.after.find((q) => q.mode === m)?.bytes ?? 0;
                     return (
-                      <div key={m}>
-                        <span className="font-mono flex justify-between text-[11px]">
-                          <span className="text-[var(--text)]">{m}</span>
-                          <span className="text-[var(--text-2)]">
-                            {b} → {a} B
+                      <div key={m} className="flex flex-col gap-1">
+                        <div className="flex justify-between font-mono text-[11px]">
+                          <span className="text-white font-medium">{m}</span>
+                          <span className="text-[#8b96b0]">
+                            {b} B → <span className="text-[#7ee2b8]">{a} B</span>
                           </span>
-                        </span>
-                        <span className="mt-1 block h-2 overflow-hidden rounded-full bg-[var(--space)]">
-                          <span
-                            className="block h-full rounded-full bg-[var(--ice)]"
-                            style={{ width: `${(b / passMax) * 100}%`, opacity: 0.45 }}
-                          />
-                        </span>
-                        <span className="mt-0.5 block h-2 overflow-hidden rounded-full bg-[var(--space)]">
-                          <span
-                            className="block h-full rounded-full bg-[var(--ice)]"
-                            style={{ width: `${(a / passMax) * 100}%` }}
-                          />
-                        </span>
+                        </div>
+                        <DashedBar value={a} max={passMax} segments={24} fillColor="#3d5bff" />
                       </div>
                     );
                   })}
@@ -611,8 +967,8 @@ export default function Deploy() {
               </div>
             </div>
           )}
-        </section>
-      </main>
+        </div>
+      </Panel>
     </div>
   );
 }

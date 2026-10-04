@@ -5,29 +5,30 @@ import { cn } from "@/lib/utils"
 import { Slot } from "radix-ui"
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-2 rounded-none font-mono text-[11px] uppercase tracking-[0.1em] font-medium whitespace-nowrap transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#3d5bff] focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5 cursor-pointer",
   {
     variants: {
       variant: {
         default:
-          "h-9 border border-[var(--ice)] bg-[var(--ice)] font-semibold text-[#04122e] hover:bg-[var(--ice-strong)] active:bg-[var(--ice)]",
+          "border border-[#3d5bff] bg-[#3d5bff] text-white hover:bg-[#4d6aff] hover:border-[#4d6aff] active:bg-[#324ecc] shadow-[0_0_8px_rgba(61,91,255,0.4)]",
         destructive:
-          "border border-[var(--danger)] bg-transparent text-[var(--danger)] hover:bg-[var(--danger)]/10",
+          "border border-[#ff3b4f]/60 bg-transparent text-[#ff3b4f] hover:bg-[#ff3b4f]/10 hover:border-[#ff3b4f]",
         outline:
-          "border border-[var(--line)] bg-[var(--navy-700)] text-[var(--text)] hover:border-[var(--line-strong)]",
+          "border border-white/15 bg-transparent text-[#dfe6f5] hover:border-white/30 hover:bg-white/[0.04]",
         secondary:
-          "border border-[var(--line)] bg-[var(--navy-700)] text-[var(--text)] hover:border-[var(--line-strong)] hover:bg-[var(--navy-600)]",
-        ghost: "text-[var(--text-2)] hover:bg-[var(--navy-700)] hover:text-[var(--text)]",
-        link: "text-primary underline-offset-4 hover:underline",
+          "border border-white/15 bg-transparent text-[#dfe6f5] hover:border-white/30 hover:bg-white/[0.04] active:bg-white/[0.08]",
+        ghost:
+          "border border-transparent bg-transparent text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/[0.05]",
+        link: "border-0 bg-transparent text-[#3d5bff] underline-offset-4 hover:underline p-0 h-auto normal-case tracking-normal",
       },
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-4",
-        xs: "h-6 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-8 gap-1.5 rounded-[10px] px-3.5 text-xs has-[>svg]:px-3",
-        lg: "h-14 rounded-[12px] px-9 text-base has-[>svg]:px-7",
-        icon: "size-9",
-        "icon-xs": "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm": "size-8",
+        default: "h-8 px-3.5 py-1.5 has-[>svg]:px-3",
+        xs: "h-6 gap-1 px-2 text-[10px] has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-7 gap-1.5 px-2.5 text-[10px] has-[>svg]:px-2",
+        lg: "h-10 px-6 text-[12px] has-[>svg]:px-5",
+        icon: "size-8",
+        "icon-xs": "size-6 [&_svg:not([class*='size-'])]:size-3",
+        "icon-sm": "size-7",
         "icon-lg": "size-10",
       },
     },

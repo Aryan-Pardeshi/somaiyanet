@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ApiError } from "@/app/api";
 import { BackendOffline } from "@/app/SqlDrawer";
-import { ChapterLabel } from "@/components/story/ChapterLabel";
+import { Panel } from "@/components/cc/Panel";
 import {
   ACTION_COLORS,
   DEFAULT_WHATIF,
@@ -26,64 +26,55 @@ import { TreeSvg } from "@/features/brain/TreeSvg";
 
 const SATS = ["SAT-A1", "SAT-A2", "SAT-A3", "SAT-A4", "SAT-B1", "SAT-B2", "SAT-B3"];
 
-function ExpCo({ exp, co }: { exp: string; co: string }) {
-  return (
-    <span className="rounded-full bg-[var(--navy-700)] px-2 py-0.5 text-[12px] text-[var(--ice)]">
-      {exp} {co}
-    </span>
-  );
-}
-
 function RefusedCard({ err, context }: { err: ApiError; context?: string }) {
   return (
-    <div
-      role="alert"
-      className="rounded-xl border border-[var(--line)] border-l-4 border-l-[var(--danger)] bg-[var(--navy-800)] p-4"
+    <Panel
+      cut={8}
+      borderColor="#ff3b4f"
+      glowColor="rgba(255, 59, 79, 0.25)"
+      className="w-full"
     >
-      <p className="text-[13px] font-semibold text-[var(--text)]">
-        PostgreSQL refused this <span className="ml-1 rounded-full bg-[var(--navy-700)] px-2 py-0.5 font-mono text-[10px] text-[var(--danger)]">{err.sqlstate ?? err.status}</span>
-        {context ? ` · ${context}` : ""}
-      </p>
-      <p className="mt-2 text-[13px] text-[var(--text)]">{err.message}</p>
-      {err.detail && (
-        <p className="font-mono mt-1 text-[11px] text-[var(--text-2)]">{err.detail}</p>
-      )}
-    </div>
+      <div className="p-3.5 flex flex-col gap-1.5">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 border border-[#ff3b4f]/40 bg-[#ff3b4f]/10 text-[#ff3b4f]">
+            CRITICAL REFUSAL
+          </span>
+          <span className="font-mono text-[11px] text-[#ff3b4f]">
+            {err.sqlstate ?? err.status}
+          </span>
+          {context && (
+            <span className="font-mono text-[10px] text-[#8b96b0]">· {context}</span>
+          )}
+        </div>
+        <p className="font-sans text-[13px] text-[#dfe6f5]">{err.message}</p>
+        {err.detail && (
+          <p className="font-mono text-[11px] text-[#8b96b0]">{err.detail}</p>
+        )}
+      </div>
+    </Panel>
   );
 }
 
-function ActionCard({
-  title,
-  action,
-  extra,
-  accent,
-}: {
-  title: string;
-  action: RouterAction | null;
-  extra?: string | null;
-  accent?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-xl border bg-[var(--space)] p-4 ${
-        accent ? "border-[var(--ice)]" : "border-[var(--line)]"
-      }`}
-      style={accent ? { boxShadow: "0 0 18px #7fb2ff44" } : undefined}
-    >
-      <p className="font-mono text-[10px] tracking-[0.16em] text-[var(--text-3)]">
-        {title}
-      </p>
-      <p
-        className="font-mono mt-2 text-[15px] font-medium"
-        style={{ color: action ? ACTION_COLORS[action] : "var(--text-3)" }}
-      >
-        {action ?? "—"}
-      </p>
-      {extra !== undefined && extra !== null && extra !== "" && (
-        <p className="mt-1.5 text-[12px] leading-snug text-[var(--text-2)]">{extra}</p>
-      )}
-    </div>
-  );
+function normalizeFeatureRatio(key: string, val: number): number {
+  switch (key) {
+    case "battery_v":
+      return Math.max(0, Math.min(1, (val - 6.0) / 2.4));
+    case "link_score":
+      return Math.max(0, Math.min(1, val / 100));
+    case "contact_s":
+      return Math.max(0, Math.min(1, val / 1200));
+    case "queue_ttc_kb":
+      return Math.max(0, Math.min(1, val / 500));
+    case "queue_sstv_kb":
+      return Math.max(0, Math.min(1, val / 2000));
+    case "queue_voice_kb":
+      return Math.max(0, Math.min(1, val / 500));
+    case "sunlit":
+    case "isl_available":
+      return val > 0 ? 1 : 0;
+    default:
+      return 0.5;
+  }
 }
 
 function Slider({
@@ -102,11 +93,11 @@ function Slider({
   onChange: (v: number) => void;
 }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="font-mono flex justify-between text-[10px] tracking-[0.12em] text-[var(--text-3)]">
-        <span>{label}</span>
-        <span className="text-[var(--warn)]">{value}</span>
-      </span>
+    <div className="flex flex-col gap-1 p-2 bg-[#05070d] border border-white/5">
+      <div className="flex justify-between font-mono text-[10px] tracking-[0.1em]">
+        <span className="text-[#8b96b0] uppercase">{label}</span>
+        <span className="text-[#dfe6f5] font-semibold">{value}</span>
+      </div>
       <input
         type="range"
         min={min}
@@ -114,9 +105,9 @@ function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-[#7fb2ff]"
+        className="w-full accent-[#3d5bff] cursor-pointer"
       />
-    </label>
+    </div>
   );
 }
 
@@ -135,7 +126,11 @@ export default function Brain() {
   const [decideOk, setDecideOk] = useState<string | null>(null);
   const wiTimer = useRef<number | null>(null);
 
-  const active = models.find((m) => m.model_id === activeId) ?? models.find((m) => m.is_active) ?? models[0] ?? null;
+  const active =
+    models.find((m) => m.model_id === activeId) ??
+    models.find((m) => m.is_active) ??
+    models[0] ??
+    null;
 
   const boot = useCallback(() => {
     loadModels()
@@ -184,7 +179,7 @@ export default function Brain() {
           const d = JSON.parse((ev as MessageEvent).data) as DecisionRow;
           setDecisions((prev) => [d, ...prev].slice(0, 50));
         } catch {
-          // Malformed frame: keep the stream open.
+          // Keep stream open
         }
       });
     } catch {
@@ -207,10 +202,7 @@ export default function Brain() {
     };
   }, [wi, activeId, runWhatIf]);
 
-  const liveFeatures: Features = useMemo(
-    () => ({ ...wi }),
-    [wi],
-  );
+  const liveFeatures: Features = useMemo(() => ({ ...wi }), [wi]);
   const pathIds = useMemo(
     () => (tree.length > 0 ? walkPath(tree, liveFeatures) : []),
     [tree, liveFeatures],
@@ -221,335 +213,545 @@ export default function Brain() {
     setDecideOk(null);
     try {
       const row = await recordDecision(sat);
-      setDecideOk(`decision #${row.decision_id} recorded → ${row.final_action}`);
+      setDecideOk(`Decision #${row.decision_id} recorded → ${row.final_action}`);
       const ds = await loadDecisions().catch(() => null);
       if (ds) setDecisions(ds);
     } catch (e) {
-      // Button stays enabled for the analyst: the 403 refusal IS the demo.
       if (e instanceof ApiError) setDecideError(e);
     }
   };
 
   const forceOverride = (): void => {
-    // Try the preset, then nudge battery until the watchdog trips.
     const base = { ...OVERRIDE_PRESET };
     setWi(base);
     runWhatIf(base, activeId);
   };
 
-  const maxConf = active?.confusion?.matrix.flat().reduce((a, b) => Math.max(a, b), 1) ?? 1;
+  // Determine decisions to show in 3 side-by-side panels
+  const aiAction = preview?.preview?.ai_action ?? whatif?.ai?.action ?? null;
+  const ruleAction = preview?.preview?.rule_action ?? whatif?.rule_action ?? null;
+  const ruleReason = preview?.rule_reason ?? whatif?.rule_reason ?? null;
+  const finalAction = preview?.preview?.final_action ?? whatif?.rule_action ?? null;
+  const isOverride = Boolean(preview?.preview?.overridden || whatif?.watchdog);
+  const overrideReason = preview?.preview?.override_reason ?? whatif?.watchdog ?? null;
 
   return (
-    <div className="min-h-screen bg-[var(--space)] text-[var(--text)]">
-      <main className="shell py-10">
-        <ChapterLabel index="BRAIN" title="AI Router" />
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <h1 className="font-sans text-3xl font-bold tracking-tight sm:text-4xl">
-            The AI router
-          </h1>
-          <ExpCo exp="Exp 9" co="CO4" />
-        </div>
-        <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-[var(--text-2)]">
-          A decision tree stored as rows in dt_node, walked by SQL. The
-          watchdog always has the last word.
-        </p>
-
-        {offline && (
-          <div className="mt-6">
-            <BackendOffline onRetry={boot} />
-          </div>
-        )}
-        {error !== null && (
-          <div className="mt-6">
-            <RefusedCard err={error} />
-          </div>
-        )}
-
-        {/* Model cards */}
-        <section className="mt-6 grid gap-3 md:grid-cols-2">
-          {models.map((m) => (
-            <button
-              key={m.model_id}
-              onClick={() => setActiveId(m.model_id)}
-              aria-pressed={active?.model_id === m.model_id}
-              className={`rounded-xl border p-4 text-left ${
-                active?.model_id === m.model_id
-                  ? "border-[var(--ice)] bg-[var(--navy-700)]"
-                  : "border-[var(--line)] bg-[var(--navy-800)] hover:border-[var(--ice)]/60"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <span className="font-sans text-[15px] font-bold">
-                  {m.name} · v{m.version}
-                </span>
-                {m.is_active && (
-                  <span className="font-mono rounded-full bg-[var(--ok)] px-2 py-0.5 text-[10px] text-black">
-                    Active
-                  </span>
-                )}
-                <span className="font-mono ml-auto text-[12px] text-[var(--warn)]">
-                  {m.test_accuracy !== null ? Number(m.test_accuracy).toFixed(3) : "—"}
-                </span>
-              </span>
-              <span className="mt-2 block h-2 overflow-hidden rounded-full bg-[var(--space)]">
-                <span
-                  className="block h-full rounded-full bg-[var(--ice)]"
-                  style={{ width: `${(Number(m.test_accuracy ?? 0) * 100).toFixed(1)}%` }}
-                />
-              </span>
-              <span className="font-mono mt-1.5 block text-[10px] text-[var(--text-3)]">
-                {m.algorithm} · depth {m.max_depth ?? "?"} · {m.train_rows ?? "?"} rows
-              </span>
-              {m.confusion && (
-                <span className="mt-2 grid grid-cols-[auto_repeat(5,minmax(0,1fr))] gap-1" style={{ display: "grid" }}>
-                  <span />
-                  {m.confusion.labels.map((l) => (
-                    <span key={l} className="font-mono truncate text-center text-[8px] text-[var(--text-3)]">
-                      {l.slice(0, 4)}
-                    </span>
-                  ))}
-                  {m.confusion.matrix.map((row, i) => (
-                    <span key={m.confusion?.labels[i] ?? i} style={{ display: "contents" }}>
-                      <span className="font-mono truncate text-right text-[8px] text-[var(--text-3)]">
-                        {m.confusion?.labels[i].slice(0, 4)}
-                      </span>
-                      {row.map((v, j) => (
-                        <span
-                          key={j}
-                          className="font-mono rounded px-1 py-0.5 text-center text-[9px]"
-                          style={{
-                            background: `rgba(127,178,255,${(v / maxConf).toFixed(2)})`,
-                            color: "var(--warn)",
-                          }}
-                        >
-                          {v}
-                        </span>
-                      ))}
-                    </span>
-                  ))}
-                </span>
-              )}
-              {m.metrics.length > 0 && (
-                <span className="font-mono mt-2 block overflow-x-auto text-[10px] text-[var(--text-2)]">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="text-[var(--text-3)]">
-                        <th className="py-0.5 text-left font-normal">class</th>
-                        <th className="text-right font-normal">prec</th>
-                        <th className="text-right font-normal">rec</th>
-                        <th className="text-right font-normal">f1</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {m.metrics.map((mc) => (
-                        <tr key={mc.class_label} className="border-t border-[var(--line)]">
-                          <td className="py-0.5">{mc.class_label}</td>
-                          <td className="text-right">{mc.precision_ ?? "—"}</td>
-                          <td className="text-right">{mc.recall ?? "—"}</td>
-                          <td className="text-right">{mc.f1 ?? "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </span>
-              )}
-            </button>
-          ))}
-        </section>
-
-        {/* Tree */}
-        <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-          <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
-            tree · dt_node · wheel to zoom, drag to pan
-          </h2>
-          {tree.length === 0 ? (
-            <p className="font-mono mt-3 text-[12px] text-[var(--text-3)]">
-              No tree rows — GET /api/ai/models/{"{id}"}/tree.
+    <div className="-m-6 p-6 min-h-[calc(100vh-3.5rem)] bg-black text-[#dfe6f5] flex flex-col gap-5">
+      {/* Page Title Row */}
+      <div className="flex flex-col gap-1 border-b border-white/5 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col">
+            <h1 className="font-sans text-[28px] sm:text-[34px] font-light tracking-tight text-white leading-tight">
+              The AI router
+            </h1>
+            <p className="text-[13px] text-[#8b96b0] leading-snug">
+              A decision tree stored as rows in dt_node, walked by SQL. The watchdog always has the last word.
             </p>
-          ) : (
-            <div className="mt-3">
-              <TreeSvg nodes={tree} pathIds={pathIds} stagger />
-            </div>
-          )}
-        </section>
-
-        {/* Inference */}
-        <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
-              inference · preview
-            </h2>
-            <select
-              value={sat}
-              onChange={(e) => setSat(e.target.value)}
-              className="font-mono ml-auto rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-1.5 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
-              aria-label="Satellite"
-            >
-              {SATS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
           </div>
-
-          {preview?.features && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {FEATURE_KEYS.map((k) => (
-                <span
-                  key={k}
-                  className="font-mono rounded-full border border-[var(--line)] bg-[var(--space)] px-2.5 py-1 text-[11px] text-[var(--text-2)]"
-                >
-                  {k} <span className="text-[var(--warn)]">{preview.features[k]}</span>
-                </span>
-              ))}
-            </div>
-          )}
-
-          {preview?.preview?.ai_path && preview.preview.ai_path.length > 0 && (
-            <ol className="mt-3 flex flex-col gap-1">
-              {preview.preview.ai_path.map((step, i) => (
-                <li
-                  key={i}
-                  className="font-mono rounded-lg border border-[var(--ice)]/50 bg-[var(--navy-700)] px-3 py-1.5 text-[11px] text-[var(--text)]"
-                  style={{ animationDelay: `${i * 120}ms` }}
-                >
-                  <span className="text-[var(--ice)]">{String(i + 1).padStart(2, "0")}</span> {step}
-                </li>
-              ))}
-            </ol>
-          )}
-
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <ActionCard title="AI action" action={preview?.preview?.ai_action ?? whatif?.ai?.action ?? null} />
-            <ActionCard
-              title="Rule action"
-              action={preview?.preview?.rule_action ?? whatif?.rule_action ?? null}
-              extra={preview?.rule_reason ?? whatif?.rule_reason}
-            />
-            <div className="relative">
-              <ActionCard
-                title="Final action"
-                action={preview?.preview?.final_action ?? whatif?.rule_action ?? null}
-                extra={preview?.preview?.override_reason ?? whatif?.watchdog}
-                accent={preview?.preview?.overridden}
-              />
-              {(preview?.preview?.overridden || whatif?.watchdog) && (
-                <span className="font-mono absolute -right-1 -top-2 rotate-6 rounded border-2 border-[var(--ice)] bg-[var(--space)] px-2 py-0.5 text-[10px] tracking-[0.14em] text-[var(--ice)]">
-                  Override
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => void onRecord()}
-              className="font-mono rounded-full bg-[var(--ice)] px-4 py-2 text-[11px] font-semibold tracking-[0.14em] text-[#04122e] hover:scale-[1.02]"
-            >
-              Record decision
-            </button>
-            <span className="font-mono text-[10px] text-[var(--text-3)]">
-              works for director / operators / ai_router — analyst gets PostgreSQL refused
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 border border-white/15 bg-white/5 text-[#8b96b0]">
+              EXP 9 · CO4
+            </span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10 text-[#7fb2ff]">
+              SQL INFERENCE ENGINE
             </span>
           </div>
-          {decideOk && (
-            <p className="font-mono mt-2 text-[12px] text-[var(--ok)]">{decideOk}</p>
+        </div>
+      </div>
+
+      {offline && (
+        <div className="w-full">
+          <BackendOffline onRetry={boot} />
+        </div>
+      )}
+
+      {error !== null && (
+        <div className="w-full">
+          <RefusedCard err={error} />
+        </div>
+      )}
+
+      {/* Model Versions & Metrics Table with Big Light Accuracy Number */}
+      <Panel cut={8} className="w-full">
+        <div className="p-4 flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-3">
+            <div className="flex flex-col">
+              <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+                Active model benchmark // {active?.name ?? "Model"} v{active?.version ?? 1}
+              </span>
+              <span className="text-[12px] text-[#8b96b0]">
+                {active?.algorithm} · max_depth {active?.max_depth ?? "?"} · {active?.train_rows ?? "?"} train rows
+              </span>
+            </div>
+
+            {/* Big light accuracy number */}
+            <div className="flex items-baseline gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
+                Test accuracy:
+              </span>
+              <span className="font-sans text-[32px] sm:text-[40px] font-light tracking-tight text-white leading-none">
+                {active?.test_accuracy !== null && active?.test_accuracy !== undefined
+                  ? `${(Number(active.test_accuracy) * 100).toFixed(1)}%`
+                  : "—"}
+              </span>
+            </div>
+          </div>
+
+          {/* Model versions table in shared table style */}
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse font-mono text-[11px]">
+              <thead>
+                <tr className="border-b border-white/[0.06] text-left text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
+                  <th className="py-2 pr-3 font-normal">Model</th>
+                  <th className="py-2 pr-3 font-normal">Version</th>
+                  <th className="py-2 pr-3 font-normal">Status</th>
+                  <th className="py-2 pr-3 font-normal">Algorithm</th>
+                  <th className="py-2 pr-3 font-normal">Max Depth</th>
+                  <th className="py-2 pr-3 text-right font-normal">Train Rows</th>
+                  <th className="py-2 text-right font-normal">Test Accuracy</th>
+                </tr>
+              </thead>
+              <tbody>
+                {models.map((m) => {
+                  const isCurrent = active?.model_id === m.model_id;
+                  return (
+                    <tr
+                      key={m.model_id}
+                      onClick={() => setActiveId(m.model_id)}
+                      className={`border-b border-white/[0.06] cursor-pointer transition-colors ${
+                        isCurrent
+                          ? "bg-[#3d5bff]/15 text-white"
+                          : "hover:bg-white/[0.03] text-[#dfe6f5]"
+                      }`}
+                    >
+                      <td className="py-2 pr-3 font-semibold">
+                        {isCurrent ? "▶ " : ""}
+                        {m.name}
+                      </td>
+                      <td className="py-2 pr-3 text-[#8b96b0]">v{m.version}</td>
+                      <td className="py-2 pr-3">
+                        {m.is_active ? (
+                          <span className="px-1.5 py-0.5 border border-[#7ee2b8]/40 bg-[#7ee2b8]/10 text-[#7ee2b8] text-[9px] uppercase tracking-wider">
+                            ACTIVE
+                          </span>
+                        ) : (
+                          <span className="text-[#8b96b0] text-[10px]">STANDBY</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-3 text-[#8b96b0]">{m.algorithm}</td>
+                      <td className="py-2 pr-3 text-[#8b96b0]">{m.max_depth ?? "—"}</td>
+                      <td className="py-2 pr-3 text-right text-[#8b96b0]">
+                        {m.train_rows ?? "—"}
+                      </td>
+                      <td className="py-2 text-right font-semibold text-[#7ee2b8]">
+                        {m.test_accuracy !== null
+                          ? `${(Number(m.test_accuracy) * 100).toFixed(1)}%`
+                          : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Per-class metrics table if available */}
+          {active && active.metrics && active.metrics.length > 0 && (
+            <div className="pt-2 flex flex-col gap-2">
+              <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                Per-class performance metrics // {active.name} v{active.version}
+              </span>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse font-mono text-[11px]">
+                  <thead>
+                    <tr className="border-b border-white/[0.06] text-left text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
+                      <th className="py-1.5 pr-3 font-normal">Action Class</th>
+                      <th className="py-1.5 pr-3 text-right font-normal">Precision</th>
+                      <th className="py-1.5 pr-3 text-right font-normal">Recall</th>
+                      <th className="py-1.5 text-right font-normal">F1 Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {active.metrics.map((mc) => (
+                      <tr
+                        key={mc.class_label}
+                        className="border-b border-white/[0.06] text-[#dfe6f5]"
+                      >
+                        <td className="py-1.5 pr-3 flex items-center gap-2">
+                          <span
+                            className="inline-block size-2 rounded-none"
+                            style={{
+                              backgroundColor:
+                                ACTION_COLORS[mc.class_label as RouterAction] ?? "#8b96b0",
+                            }}
+                          />
+                          <span>{mc.class_label}</span>
+                        </td>
+                        <td className="py-1.5 pr-3 text-right text-[#8b96b0]">
+                          {mc.precision_ ?? "—"}
+                        </td>
+                        <td className="py-1.5 pr-3 text-right text-[#8b96b0]">
+                          {mc.recall ?? "—"}
+                        </td>
+                        <td className="py-1.5 text-right font-semibold text-[#7fb2ff]">
+                          {mc.f1 ?? "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
+        </div>
+      </Panel>
+
+      {/* Decision Tree View in Large Panel with HUD label */}
+      <Panel cut={8} className="w-full">
+        <div className="p-4 flex flex-col gap-2">
+          {tree.length === 0 ? (
+            <div className="p-6 font-mono text-[12px] text-[#8b96b0]">
+              Loading decision tree rows from /api/ai/models/{active?.model_id ?? 1}/tree…
+            </div>
+          ) : (
+            <TreeSvg
+              nodes={tree}
+              pathIds={pathIds}
+              stagger
+              modelVersion={active?.version ?? 1}
+            />
+          )}
+        </div>
+      </Panel>
+
+      {/* AI vs Rule vs Final Decision as Three Panels Side-by-Side */}
+      <div className="flex flex-col gap-2">
+        <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+          Arbitration decision matrix // AI vs Safety Rules vs Final
+        </span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Panel 1: AI Decision */}
+          <Panel cut={8} className="w-full">
+            <div className="p-4 flex flex-col gap-2 min-h-[140px] justify-between">
+              <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+                AI decision
+              </span>
+              <div
+                className="font-mono text-[18px] font-semibold tracking-tight"
+                style={{
+                  color: aiAction ? ACTION_COLORS[aiAction] : "#8b96b0",
+                }}
+              >
+                {aiAction ?? "—"}
+              </div>
+              <div className="font-mono text-[11px] text-[#8b96b0] leading-snug">
+                {whatif?.ai?.path && whatif.ai.path.length > 0
+                  ? `Inference path: ${whatif.ai.path.length} steps traversed`
+                  : "Postgres recursive graph traversal"}
+              </div>
+            </div>
+          </Panel>
+
+          {/* Panel 2: Rule-Based Action */}
+          <Panel cut={8} className="w-full">
+            <div className="p-4 flex flex-col gap-2 min-h-[140px] justify-between">
+              <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+                Rule action
+              </span>
+              <div
+                className="font-mono text-[18px] font-semibold tracking-tight"
+                style={{
+                  color: ruleAction ? ACTION_COLORS[ruleAction] : "#8b96b0",
+                }}
+              >
+                {ruleAction ?? "—"}
+              </div>
+              <div className="font-mono text-[11px] text-[#8b96b0] leading-snug">
+                {ruleReason ?? "Standard power and queue boundary conditions"}
+              </div>
+            </div>
+          </Panel>
+
+          {/* Panel 3: Final Arbitrated Decision with amber glow on override */}
+          <Panel
+            cut={8}
+            selected={isOverride}
+            borderColor={isOverride ? "#f5a524" : undefined}
+            glowColor={isOverride ? "rgba(245, 165, 36, 0.45)" : undefined}
+            className="w-full"
+          >
+            <div className="p-4 flex flex-col gap-2 min-h-[140px] justify-between">
+              <div className="flex items-center justify-between gap-1">
+                <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+                  Final action
+                </span>
+                {isOverride && (
+                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 border border-[#f5a524]/60 bg-[#f5a524]/10 text-[#f5a524]">
+                    WATCHDOG OVERRIDE
+                  </span>
+                )}
+              </div>
+              <div
+                className="font-mono text-[18px] font-semibold tracking-tight"
+                style={{
+                  color: finalAction ? ACTION_COLORS[finalAction] : "#8b96b0",
+                }}
+              >
+                {finalAction ?? "—"}
+              </div>
+              <div
+                className="font-mono text-[11px] leading-snug"
+                style={{ color: isOverride ? "#f5a524" : "#8b96b0" }}
+              >
+                {overrideReason ?? "No violation — AI decision committed"}
+              </div>
+            </div>
+          </Panel>
+        </div>
+      </div>
+
+      {/* Feature Inputs as a Panel of Mono Key/Value Rows with Thin Bars */}
+      <Panel cut={8} className="w-full">
+        <div className="p-4 flex flex-col gap-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-2.5">
+            <div className="flex flex-col">
+              <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+                Feature inputs // Telemetry vectors
+              </span>
+              <span className="text-[12px] text-[#8b96b0]">
+                Live values fed into SQL decision tree evaluator
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] uppercase text-[#8b96b0]">
+                Telemetry source:
+              </span>
+              <select
+                value={sat}
+                onChange={(e) => setSat(e.target.value)}
+                className="font-mono bg-[#05070d] border border-white/10 px-2 py-1 text-[12px] text-white focus:border-[#3d5bff] focus:outline-none"
+                aria-label="Satellite"
+              >
+                {SATS.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Key/Value Rows with Thin Bars */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            {FEATURE_KEYS.map((k) => {
+              const val = liveFeatures[k] ?? 0;
+              const ratio = normalizeFeatureRatio(k, val);
+              return (
+                <div
+                  key={k}
+                  className="flex flex-col gap-1 p-2.5 bg-[#05070d] border border-white/5"
+                >
+                  <div className="flex items-center justify-between font-mono text-[11px]">
+                    <span className="text-[#8b96b0] uppercase tracking-wider">{k}</span>
+                    <span className="text-white font-semibold tabular-nums">{val}</span>
+                  </div>
+                  <div className="h-1 w-full bg-white/10 overflow-hidden">
+                    <div
+                      className="h-full transition-all duration-200"
+                      style={{
+                        width: `${Math.max(0, Math.min(100, ratio * 100))}%`,
+                        backgroundColor: "#3d5bff",
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Record Decision Action Row */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/5">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => void onRecord()}
+                className="px-4 py-2 bg-[#3d5bff] hover:bg-[#4f6bff] text-white font-mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors cursor-pointer"
+              >
+                RECORD DECISION
+              </button>
+              <span className="font-mono text-[10px] text-[#8b96b0]">
+                POST /api/ai/decide/{sat} (directors/operators only)
+              </span>
+            </div>
+
+            {decideOk && (
+              <span className="font-mono text-[11px] text-[#7ee2b8]">{decideOk}</span>
+            )}
+          </div>
+
           {decideError !== null && (
-            <div className="mt-2">
+            <div className="pt-2">
               <RefusedCard err={decideError} context={`POST /api/ai/decide/${sat}`} />
             </div>
           )}
-        </section>
+        </div>
+      </Panel>
 
-        {/* What-if */}
-        <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
-              what-if · POST /api/ai/whatif · 250ms debounce
-            </h2>
+      {/* What-If Scenario Modeling Panel */}
+      <Panel cut={8} className="w-full">
+        <div className="p-4 flex flex-col gap-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-2.5">
+            <div className="flex flex-col">
+              <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+                What-if scenario modeling // POST /api/ai/whatif
+              </span>
+              <span className="text-[12px] text-[#8b96b0]">
+                Adjust live variables to test watchdog intervention rules (250ms debounce)
+              </span>
+            </div>
             <button
               onClick={forceOverride}
-              className="font-mono ml-auto rounded-full border border-[var(--ice)]/60 px-3 py-1.5 text-[10px] tracking-[0.12em] text-[var(--text)] hover:bg-[var(--navy-700)]"
+              className="font-mono px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] border border-[#f5a524]/60 bg-[#f5a524]/10 text-[#f5a524] hover:bg-[#f5a524]/20 transition-colors cursor-pointer"
             >
-              Force a watchdog override
+              FORCE WATCHDOG OVERRIDE
             </button>
           </div>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Slider label="battery_v" value={wi.battery_v} min={6.0} max={8.4} step={0.05} onChange={(v) => setWi((p) => ({ ...p, battery_v: v }))} />
-            <Slider label="link_score" value={wi.link_score} min={0} max={100} step={1} onChange={(v) => setWi((p) => ({ ...p, link_score: v }))} />
-            <Slider label="contact_s" value={wi.contact_s} min={0} max={1200} step={10} onChange={(v) => setWi((p) => ({ ...p, contact_s: v }))} />
-            <Slider label="queue_ttc_kb" value={wi.queue_ttc_kb} min={0} max={500} step={1} onChange={(v) => setWi((p) => ({ ...p, queue_ttc_kb: v }))} />
-            <Slider label="queue_sstv_kb" value={wi.queue_sstv_kb} min={0} max={2000} step={5} onChange={(v) => setWi((p) => ({ ...p, queue_sstv_kb: v }))} />
-            <Slider label="queue_voice_kb" value={wi.queue_voice_kb} min={0} max={500} step={1} onChange={(v) => setWi((p) => ({ ...p, queue_voice_kb: v }))} />
-            <Slider label="sunlit 0/1" value={wi.sunlit} min={0} max={1} step={1} onChange={(v) => setWi((p) => ({ ...p, sunlit: v }))} />
-            <Slider label="isl_available 0/1" value={wi.isl_available} min={0} max={1} step={1} onChange={(v) => setWi((p) => ({ ...p, isl_available: v }))} />
-          </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            <ActionCard title="AI action" action={whatif?.ai?.action ?? null} extra={whatif?.ai?.path.join(" · ")} />
-            <ActionCard title="Rule action" action={whatif?.rule_action ?? null} extra={whatif?.rule_reason} />
-            <ActionCard
-              title="Watchdog"
-              action={null}
-              extra={whatif?.watchdog ?? whatif?.watchdog_full ?? "no violation — AI stands"}
-              accent={Boolean(whatif?.watchdog)}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            <Slider
+              label="battery_v"
+              value={wi.battery_v}
+              min={6.0}
+              max={8.4}
+              step={0.05}
+              onChange={(v) => setWi((p) => ({ ...p, battery_v: v }))}
+            />
+            <Slider
+              label="link_score"
+              value={wi.link_score}
+              min={0}
+              max={100}
+              step={1}
+              onChange={(v) => setWi((p) => ({ ...p, link_score: v }))}
+            />
+            <Slider
+              label="contact_s"
+              value={wi.contact_s}
+              min={0}
+              max={1200}
+              step={10}
+              onChange={(v) => setWi((p) => ({ ...p, contact_s: v }))}
+            />
+            <Slider
+              label="queue_ttc_kb"
+              value={wi.queue_ttc_kb}
+              min={0}
+              max={500}
+              step={1}
+              onChange={(v) => setWi((p) => ({ ...p, queue_ttc_kb: v }))}
+            />
+            <Slider
+              label="queue_sstv_kb"
+              value={wi.queue_sstv_kb}
+              min={0}
+              max={2000}
+              step={5}
+              onChange={(v) => setWi((p) => ({ ...p, queue_sstv_kb: v }))}
+            />
+            <Slider
+              label="queue_voice_kb"
+              value={wi.queue_voice_kb}
+              min={0}
+              max={500}
+              step={1}
+              onChange={(v) => setWi((p) => ({ ...p, queue_voice_kb: v }))}
+            />
+            <Slider
+              label="sunlit 0/1"
+              value={wi.sunlit}
+              min={0}
+              max={1}
+              step={1}
+              onChange={(v) => setWi((p) => ({ ...p, sunlit: v }))}
+            />
+            <Slider
+              label="isl_available 0/1"
+              value={wi.isl_available}
+              min={0}
+              max={1}
+              step={1}
+              onChange={(v) => setWi((p) => ({ ...p, isl_available: v }))}
             />
           </div>
-          {whatif?.ai?.path && whatif.ai.path.length > 0 && (
-            <ol className="mt-3 flex flex-col gap-1">
-              {whatif.ai.path.map((step, i) => (
-                <li
-                  key={i}
-                  className="font-mono rounded-lg border border-[var(--line)] bg-[var(--space)] px-3 py-1.5 text-[11px] text-[var(--text-2)]"
-                >
-                  <span className="text-[var(--ice)]">{String(i + 1).padStart(2, "0")}</span> {step}
-                </li>
-              ))}
-            </ol>
-          )}
-        </section>
+        </div>
+      </Panel>
 
-        {/* Decision log */}
-        <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-          <h2 className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-2)]">
-            decision log · live from /api/stream
-          </h2>
-          <div className="mt-3 overflow-x-auto">
-            <table className="font-mono w-full min-w-[640px] border-collapse text-[11px]">
+      {/* Decision Audit Log (Live from /api/stream) */}
+      <Panel cut={8} className="w-full">
+        <div className="p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between border-b border-white/5 pb-2">
+            <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+              Decision audit log // Live SSE stream (/api/stream)
+            </span>
+            <span className="font-mono text-[10px] text-[#8b96b0]">
+              {decisions.length} RECORDED EVENTS
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse font-mono text-[11px]">
               <thead>
-                <tr className="text-left text-[var(--text-3)]">
-                  <th className="py-1 pr-2 font-normal">time</th>
-                  <th className="py-1 pr-2 font-normal">sat</th>
-                  <th className="py-1 pr-2 font-normal">ai</th>
-                  <th className="py-1 pr-2 font-normal">rule</th>
-                  <th className="py-1 pr-2 font-normal">final</th>
-                  <th className="py-1 pr-2 font-normal">ovr</th>
-                  <th className="py-1 font-normal">src</th>
+                <tr className="border-b border-white/[0.06] text-left text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
+                  <th className="py-2 pr-3 font-normal">Time</th>
+                  <th className="py-2 pr-3 font-normal">Sat ID</th>
+                  <th className="py-2 pr-3 font-normal">AI Action</th>
+                  <th className="py-2 pr-3 font-normal">Rule Action</th>
+                  <th className="py-2 pr-3 font-normal">Final Action</th>
+                  <th className="py-2 pr-3 font-normal">Override</th>
+                  <th className="py-2 text-right font-normal">Source</th>
                 </tr>
               </thead>
               <tbody>
                 {decisions.map((d) => (
                   <tr
                     key={d.decision_id ?? `${d.sat_id}-${d.decided_at}`}
-                    className={`border-t border-[var(--line)] ${d.overridden ? "bg-[var(--navy-700)]" : ""}`}
+                    className={`border-b border-white/[0.06] ${
+                      d.overridden ? "bg-[#f5a524]/10 text-white" : "text-[#dfe6f5]"
+                    }`}
                   >
-                    <td className="py-1 pr-2 text-[var(--text-2)]">
-                      {String(d.decided_at ?? "").slice(11, 19)}
+                    <td className="py-2 pr-3 text-[#8b96b0]">
+                      {String(d.decided_at ?? "").slice(11, 19)} UTC
                     </td>
-                    <td className="py-1 pr-2 text-[var(--text)]">{d.sat_id}</td>
-                    <td className="py-1 pr-2 text-[var(--text-2)]">{d.ai_action ?? "—"}</td>
-                    <td className="py-1 pr-2 text-[var(--text-2)]">{d.rule_action}</td>
-                    <td className="py-1 pr-2 text-[var(--warn)]">{d.final_action}</td>
-                    <td className="py-1 pr-2">{d.overridden ? "●" : ""}</td>
-                    <td className="py-1 text-[var(--text-3)]">{d.source}</td>
+                    <td className="py-2 pr-3 font-semibold text-white">{d.sat_id}</td>
+                    <td className="py-2 pr-3 text-[#8b96b0]">{d.ai_action ?? "—"}</td>
+                    <td className="py-2 pr-3 text-[#8b96b0]">{d.rule_action}</td>
+                    <td
+                      className="py-2 pr-3 font-semibold"
+                      style={{
+                        color: d.final_action
+                          ? ACTION_COLORS[d.final_action]
+                          : "#dfe6f5",
+                      }}
+                    >
+                      {d.final_action}
+                    </td>
+                    <td className="py-2 pr-3">
+                      {d.overridden ? (
+                        <span className="px-1 py-0.5 border border-[#f5a524]/40 bg-[#f5a524]/20 text-[#f5a524] text-[9px] uppercase">
+                          OVR
+                        </span>
+                      ) : (
+                        <span className="text-[#5f6f93]">—</span>
+                      )}
+                    </td>
+                    <td className="py-2 text-right text-[#8b96b0]">{d.source}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </section>
-      </main>
+        </div>
+      </Panel>
     </div>
   );
 }

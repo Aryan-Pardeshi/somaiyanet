@@ -28,4 +28,16 @@
 
   --font-sans: "Geist Sans", system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Brief 16 & 16a: Command Center tokens */
+  --cc-black: #000000;
+  --cc-royal: #3d5bff;
+  --cc-text: #dfe6f5;
+  --cc-muted: #8b96b0;
+  --cc-faint: #5f6f93;
+  --cc-ok: #7ee2b8;
+  --cc-warn: #f5a524;
+  --cc-critical: #ff3b4f;
+  --cc-code-bg: #05070d;
 }
+

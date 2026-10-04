@@ -5,19 +5,21 @@ import { cn } from "@/lib/utils"
 import { Slot } from "radix-ui"
 
 const badgeVariants = cva(
-  "inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-[6px] border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.16em] whitespace-nowrap transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3",
+  "inline-flex w-fit shrink-0 items-center justify-center gap-1 rounded-none border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] whitespace-nowrap transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#3d5bff] [&>svg]:pointer-events-none [&>svg]:size-3",
   {
     variants: {
       variant: {
         default:
-          "border-[var(--ice)]/50 bg-[var(--navy-700)] text-[var(--text)] [a&]:hover:bg-[var(--ice)]/30",
+          "border-[#3d5bff]/40 bg-[#3d5bff]/10 text-[#7fb2ff] [a&]:hover:bg-[#3d5bff]/20",
         secondary:
-          "border-white/[0.12] bg-white/[0.05] text-white [a&]:hover:bg-white/[0.09]",
+          "border-white/15 bg-white/[0.04] text-[#dfe6f5] [a&]:hover:bg-white/[0.08]",
         destructive:
-          "bg-destructive text-white focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40 [a&]:hover:bg-destructive/90",
-        outline: "border-white/[0.12] text-[#8a8f98] [a&]:hover:text-white",
-        ghost: "[a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 [a&]:hover:underline",
+          "border-[#ff3b4f]/40 bg-[#ff3b4f]/10 text-[#ff3b4f] [a&]:hover:bg-[#ff3b4f]/20",
+        outline:
+          "border-white/15 bg-transparent text-[#8b96b0] [a&]:hover:text-white [a&]:hover:border-white/30",
+        ghost:
+          "border-transparent bg-transparent text-[#8b96b0] [a&]:hover:text-white [a&]:hover:bg-white/[0.05]",
+        link: "border-transparent text-[#3d5bff] underline-offset-4 [a&]:hover:underline",
       },
     },
     defaultVariants: {

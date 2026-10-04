@@ -1,52 +1,87 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch, ApiError } from "@/app/api";
 import { highlightSql } from "@/app/sql";
-import { Card, DataGrid, OfflineOrEmpty, SqlBlock } from "./common";
+import { Card, DataGrid, OfflineOrEmpty, Panel, SqlBlock, StatusBadge } from "./common";
 import type { TxExecResult, TxLabState, TxScenario, TxSessionState, TxStep } from "./types";
 
 const FALLBACK_SCENARIOS: TxScenario[] = [
-  { key: "lost_update", title: "Lost update", description: "READ COMMITTED read-modify-write loses A's update; FOR UPDATE fixes it.", steps: [
-    { session: "A", sql: "BEGIN; SELECT power_credits FROM lab_account WHERE id = 1;", expect: "ok", explain: "A reads 100." },
-    { session: "B", sql: "BEGIN; SELECT power_credits FROM lab_account WHERE id = 1;", expect: "ok", explain: "B reads the same 100." },
-    { session: "A", sql: "UPDATE lab_account SET power_credits = 90 WHERE id = 1; COMMIT;", expect: "ok", explain: "A writes 90 and commits." },
-    { session: "B", sql: "UPDATE lab_account SET power_credits = 80 WHERE id = 1; COMMIT;", expect: "ok", explain: "B overwrites with 80 — A's update is lost." },
-  ]},
-  { key: "non_repeatable_read", title: "Non-repeatable read", description: "READ COMMITTED sees B's commit mid-transaction; REPEATABLE READ pins a snapshot.", steps: [
-    { session: "A", sql: "BEGIN ISOLATION LEVEL READ COMMITTED; SELECT power_credits FROM lab_account WHERE id = 1;", expect: "ok", explain: "A reads first value." },
-    { session: "B", sql: "UPDATE lab_account SET power_credits = 70 WHERE id = 1; COMMIT;", expect: "ok", explain: "B commits a change." },
-    { session: "A", sql: "SELECT power_credits FROM lab_account WHERE id = 1; COMMIT;", expect: "ok", explain: "A re-reads: different value." },
-  ]},
-  { key: "phantom_or_write_skew", title: "Write skew (SERIALIZABLE)", description: "Both read the sum then update different rows — one gets 40001.", steps: [
-    { session: "A", sql: "BEGIN ISOLATION LEVEL SERIALIZABLE; SELECT SUM(power_credits) FROM lab_account;", expect: "ok", explain: "A reads the sum." },
-    { session: "B", sql: "BEGIN ISOLATION LEVEL SERIALIZABLE; SELECT SUM(power_credits) FROM lab_account;", expect: "ok", explain: "B reads the same sum." },
-    { session: "A", sql: "UPDATE lab_account SET power_credits = power_credits - 10 WHERE id = 1;", expect: "ok", explain: "A debits row 1." },
-    { session: "B", sql: "UPDATE lab_account SET power_credits = power_credits - 10 WHERE id = 2;", expect: "ok", explain: "B debits row 2." },
-    { session: "A", sql: "COMMIT;", expect: "ok", explain: "A commits first." },
-    { session: "B", sql: "COMMIT;", expect: "error:40001", explain: "B gets SERIALIZATION FAILURE 40001 — retry." },
-  ]},
-  { key: "deadlock", title: "Deadlock", description: "A locks 1, B locks 2, then each wants the other — 40P01 aborts a victim.", steps: [
-    { session: "A", sql: "BEGIN; SELECT * FROM lab_account WHERE id = 1 FOR UPDATE;", expect: "ok", explain: "A locks row 1." },
-    { session: "B", sql: "BEGIN; SELECT * FROM lab_account WHERE id = 2 FOR UPDATE;", expect: "ok", explain: "B locks row 2." },
-    { session: "A", sql: "SELECT * FROM lab_account WHERE id = 2 FOR UPDATE;", expect: "waits", explain: "A waits on B." },
-    { session: "B", sql: "SELECT * FROM lab_account WHERE id = 1 FOR UPDATE;", expect: "error:40P01", explain: "Cycle: Postgres aborts a victim with 40P01." },
-  ]},
-  { key: "skip_locked", title: "SKIP LOCKED dispatch", description: "Two router workers claim disjoint packet sets.", steps: [
-    { session: "A", sql: "BEGIN; SELECT * FROM dispatch_packets('SAT-A1', 'worker-A', 20000);", expect: "ok", explain: "Worker A claims its batch." },
-    { session: "B", sql: "BEGIN; SELECT * FROM dispatch_packets('SAT-A1', 'worker-B', 20000);", expect: "ok", explain: "Worker B skips A's locked rows — disjoint ids." },
-    { session: "A", sql: "COMMIT;", expect: "ok", explain: "A commits." },
-    { session: "B", sql: "COMMIT;", expect: "ok", explain: "B commits." },
-  ]},
-  { key: "mvcc", title: "MVCC row versions", description: "Uncommitted UPDATE shows xmin/xmax/ctid divergence between sessions.", steps: [
-    { session: "A", sql: "BEGIN; UPDATE deployer_pod SET temperature_c = temperature_c + 1 WHERE pod_id = 'POD-A1';", expect: "ok", explain: "A updates without committing." },
-    { session: "A", sql: "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-A1';", expect: "ok", explain: "A sees the new version." },
-    { session: "B", sql: "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-A1'; SELECT txid_current();", expect: "ok", explain: "B still sees the old version." },
-    { session: "A", sql: "COMMIT;", expect: "ok", explain: "A commits; B now sees the new ctid." },
-  ]},
-  { key: "wal", title: "WAL / LSN", description: "Bulk telemetry insert moves pg_current_wal_lsn forward.", steps: [
-    { session: "A", sql: "SELECT pg_current_wal_lsn() AS lsn_before;", expect: "ok", explain: "Record the LSN." },
-    { session: "A", sql: "BEGIN; INSERT INTO telemetry SELECT now(), 'SAT-A1', 7.5, 22.0, 100, NULL, '{}' FROM generate_series(1, 1000); COMMIT;", expect: "ok", explain: "Write 1000 rows in one transaction." },
-    { session: "A", sql: "SELECT pg_current_wal_lsn() AS lsn_after;", expect: "ok", explain: "LSN advanced; diff is the WAL bytes." },
-  ]},
+  {
+    key: "lost_update",
+    title: "Lost update",
+    description: "READ COMMITTED read-modify-write loses A's update; FOR UPDATE fixes it.",
+    steps: [
+      { session: "A", sql: "BEGIN; SELECT power_credits FROM lab_account WHERE id = 1;", expect: "ok", explain: "A reads 100." },
+      { session: "B", sql: "BEGIN; SELECT power_credits FROM lab_account WHERE id = 1;", expect: "ok", explain: "B reads the same 100." },
+      { session: "A", sql: "UPDATE lab_account SET power_credits = 90 WHERE id = 1; COMMIT;", expect: "ok", explain: "A writes 90 and commits." },
+      { session: "B", sql: "UPDATE lab_account SET power_credits = 80 WHERE id = 1; COMMIT;", expect: "ok", explain: "B overwrites with 80 — A's update is lost." },
+    ],
+  },
+  {
+    key: "non_repeatable_read",
+    title: "Non-repeatable read",
+    description: "READ COMMITTED sees B's commit mid-transaction; REPEATABLE READ pins a snapshot.",
+    steps: [
+      { session: "A", sql: "BEGIN ISOLATION LEVEL READ COMMITTED; SELECT power_credits FROM lab_account WHERE id = 1;", expect: "ok", explain: "A reads first value." },
+      { session: "B", sql: "UPDATE lab_account SET power_credits = 70 WHERE id = 1; COMMIT;", expect: "ok", explain: "B commits a change." },
+      { session: "A", sql: "SELECT power_credits FROM lab_account WHERE id = 1; COMMIT;", expect: "ok", explain: "A re-reads: different value." },
+    ],
+  },
+  {
+    key: "phantom_or_write_skew",
+    title: "Write skew (SERIALIZABLE)",
+    description: "Both read the sum then update different rows — one gets 40001.",
+    steps: [
+      { session: "A", sql: "BEGIN ISOLATION LEVEL SERIALIZABLE; SELECT SUM(power_credits) FROM lab_account;", expect: "ok", explain: "A reads the sum." },
+      { session: "B", sql: "BEGIN ISOLATION LEVEL SERIALIZABLE; SELECT SUM(power_credits) FROM lab_account;", expect: "ok", explain: "B reads the same sum." },
+      { session: "A", sql: "UPDATE lab_account SET power_credits = power_credits - 10 WHERE id = 1;", expect: "ok", explain: "A debits row 1." },
+      { session: "B", sql: "UPDATE lab_account SET power_credits = power_credits - 10 WHERE id = 2;", expect: "ok", explain: "B debits row 2." },
+      { session: "A", sql: "COMMIT;", expect: "ok", explain: "A commits first." },
+      { session: "B", sql: "COMMIT;", expect: "error:40001", explain: "B gets SERIALIZATION FAILURE 40001 — retry." },
+    ],
+  },
+  {
+    key: "deadlock",
+    title: "Deadlock",
+    description: "A locks 1, B locks 2, then each wants the other — 40P01 aborts a victim.",
+    steps: [
+      { session: "A", sql: "BEGIN; SELECT * FROM lab_account WHERE id = 1 FOR UPDATE;", expect: "ok", explain: "A locks row 1." },
+      { session: "B", sql: "BEGIN; SELECT * FROM lab_account WHERE id = 2 FOR UPDATE;", expect: "ok", explain: "B locks row 2." },
+      { session: "A", sql: "SELECT * FROM lab_account WHERE id = 2 FOR UPDATE;", expect: "waits", explain: "A waits on B." },
+      { session: "B", sql: "SELECT * FROM lab_account WHERE id = 1 FOR UPDATE;", expect: "error:40P01", explain: "Cycle: Postgres aborts a victim with 40P01." },
+    ],
+  },
+  {
+    key: "skip_locked",
+    title: "SKIP LOCKED dispatch",
+    description: "Two router workers claim disjoint packet sets.",
+    steps: [
+      { session: "A", sql: "BEGIN; SELECT * FROM dispatch_packets('SAT-A1', 'worker-A', 20000);", expect: "ok", explain: "Worker A claims its batch." },
+      { session: "B", sql: "BEGIN; SELECT * FROM dispatch_packets('SAT-A1', 'worker-B', 20000);", expect: "ok", explain: "Worker B skips A's locked rows — disjoint ids." },
+      { session: "A", sql: "COMMIT;", expect: "ok", explain: "A commits." },
+      { session: "B", sql: "COMMIT;", expect: "ok", explain: "B commits." },
+    ],
+  },
+  {
+    key: "mvcc",
+    title: "MVCC row versions",
+    description: "Uncommitted UPDATE shows xmin/xmax/ctid divergence between sessions.",
+    steps: [
+      { session: "A", sql: "BEGIN; UPDATE deployer_pod SET temperature_c = temperature_c + 1 WHERE pod_id = 'POD-A1';", expect: "ok", explain: "A updates without committing." },
+      { session: "A", sql: "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-A1';", expect: "ok", explain: "A sees the new version." },
+      { session: "B", sql: "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-A1'; SELECT txid_current();", expect: "ok", explain: "B still sees the old version." },
+      { session: "A", sql: "COMMIT;", expect: "ok", explain: "A commits; B now sees the new ctid." },
+    ],
+  },
+  {
+    key: "wal",
+    title: "WAL / LSN",
+    description: "Bulk telemetry insert moves pg_current_wal_lsn forward.",
+    steps: [
+      { session: "A", sql: "SELECT pg_current_wal_lsn() AS lsn_before;", expect: "ok", explain: "Record the LSN." },
+      { session: "A", sql: "BEGIN; INSERT INTO telemetry SELECT now(), 'SAT-A1', 7.5, 22.0, 100, NULL, '{}' FROM generate_series(1, 1000); COMMIT;", expect: "ok", explain: "Write 1000 rows in one transaction." },
+      { session: "A", sql: "SELECT pg_current_wal_lsn() AS lsn_after;", expect: "ok", explain: "LSN advanced; diff is the WAL bytes." },
+    ],
+  },
 ];
 
 type SessKey = "A" | "B";
@@ -57,13 +92,6 @@ interface LogEntry {
   sql: string;
   status: string;
   detail: string;
-}
-
-function pill(status: string): string {
-  if (status === "waiting") return "border-[var(--warn)] text-[var(--warn)] animate-pulse";
-  if (status.startsWith("error")) return "border-[var(--ice)] text-[var(--ice)]";
-  if (status === "in transaction" || status === "in-transaction") return "border-[var(--ice)] text-[var(--ice)]";
-  return "border-[var(--line)] text-[var(--text-2)]";
 }
 
 function matchExpect(expect: string, res: TxExecResult): boolean {
@@ -97,7 +125,6 @@ export function TxLab() {
 
   const loadScenarios = useCallback(async () => {
     try {
-      // Backend returns a dict {key: {title, steps}}; normalize to an array.
       const r = await apiFetch<Record<string, { title?: string; description?: string; steps?: TxStep[] }>>(
         "/api/labs/tx/scenarios",
       );
@@ -140,7 +167,6 @@ export function TxLab() {
     };
   }, [loadScenarios, openSession]);
 
-  // DELETE the lab session on unmount so no backend conns leak.
   useEffect(() => {
     return () => {
       if (labId !== null) {
@@ -155,7 +181,6 @@ export function TxLab() {
   const refreshState = useCallback(async () => {
     if (labId === null) return;
     try {
-      // Backend shape: {lab_id, A: {pid, result, activity, locks, xact}, B: {...}}.
       const r = await apiFetch<{
         A?: Record<string, unknown>;
         B?: Record<string, unknown>;
@@ -179,14 +204,14 @@ export function TxLab() {
         locks: [...aLocks, ...bLocks],
       });
     } catch {
-      // Poll failures are transient; keep the last snapshot.
+      // Poll failures are transient.
     }
   }, [labId]);
 
-  // Auto-poll every 400 ms only while something is waiting.
   const waiting =
     state?.session_a?.result?.status === "waiting" ||
     state?.session_b?.result?.status === "waiting";
+
   useEffect(() => {
     if (pollRef.current !== null) {
       window.clearInterval(pollRef.current);
@@ -218,7 +243,6 @@ export function TxLab() {
           `/api/labs/tx/${encodeURIComponent(labId)}/exec`,
           { method: "POST", body: JSON.stringify({ session, sql }) },
         );
-        // Backend error shape nests the failure: {status:"error",error:{sqlstate,message}}.
         const raw = r.data as Record<string, unknown> & {
           status?: string;
           error?: { sqlstate?: string; message?: string };
@@ -281,7 +305,7 @@ export function TxLab() {
     try {
       await apiFetch(`/api/labs/tx/${encodeURIComponent(labId)}/reset`, { method: "POST", body: JSON.stringify({}) });
     } catch {
-      // Reset is best-effort on a pending backend.
+      // Best-effort.
     }
     setStepIdx(0);
     setVerdicts([]);
@@ -295,7 +319,7 @@ export function TxLab() {
       try {
         await fetch(`/api/labs/tx/${encodeURIComponent(labId)}`, { method: "DELETE", credentials: "same-origin" });
       } catch {
-        // Ignore teardown errors; a fresh session is still opened below.
+        // Ignore teardown error.
       }
     }
     setStepIdx(0);
@@ -326,195 +350,330 @@ export function TxLab() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Card
-        title="Scenario script"
-        kicker="Exp 9 · CO1/CO4"
-        aside={
-          <div className="flex gap-2">
-            <button onClick={() => void reset()} className="font-mono rounded-full border border-[var(--line)] px-3 py-1 text-[10px] tracking-[0.14em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]">
-              reset
-            </button>
-            <button onClick={() => void newSession()} className="font-mono rounded-full bg-[var(--ice)] px-3 py-1 text-[10px] font-semibold tracking-[0.14em] text-[#04122e] hover:scale-105">
-              new lab session
-            </button>
+      {/* Top Console Grid: Scenario Picker (vertical list of chamfered chips) + Script Workbench */}
+      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+        {/* Left: Scenario picker as a vertical list of chamfered chips (selected = royal blue left bar) */}
+        <Panel cut={8} className="w-full">
+          <div className="p-3.5 flex flex-col gap-2">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
+              <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                Scenario picker
+              </span>
+              <span className="font-mono text-[10px] text-[#5f6f93]">
+                {scenarios.length} SCRIPTS
+              </span>
+            </div>
+            {usingFallback && (
+              <span className="font-mono text-[9px] uppercase tracking-wider text-[#f5a524] bg-[#f5a524]/10 border border-[#f5a524]/30 px-2 py-0.5 rounded-[2px]">
+                Script preview · offline
+              </span>
+            )}
+            <div className="flex flex-col gap-1.5 mt-1">
+              {scenarios.map((s) => {
+                const isSel = s.key === scenarioKey;
+                return (
+                  <button
+                    key={s.key}
+                    onClick={() => {
+                      setScenarioKey(s.key);
+                      setStepIdx(0);
+                      setVerdicts([]);
+                    }}
+                    className={`flex flex-col gap-0.5 text-left p-2.5 rounded-[2px] transition-all cursor-pointer ${
+                      isSel
+                        ? "bg-[#3d5bff]/15 text-white border-l-[3px] border-l-[#3d5bff] border-t border-r border-b border-white/10 shadow-[0_0_10px_rgba(61,91,255,0.25)]"
+                        : "bg-white/[0.02] text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/[0.05] border-l-[3px] border-l-transparent border-t border-r border-b border-white/5"
+                    }`}
+                  >
+                    <span className="font-mono text-[11px] font-semibold tracking-wide">
+                      {s.title}
+                    </span>
+                    <span className="text-[11px] text-[#5f6f93] line-clamp-1">
+                      {s.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        }
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          <label htmlFor="tx-scenario" className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">
-            Scenario
-          </label>
-          <select
-            id="tx-scenario"
-            value={scenarioKey}
-            onChange={(e) => { setScenarioKey(e.target.value); setStepIdx(0); setVerdicts([]); }}
-            className="font-mono rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-1.5 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
-          >
-            {scenarios.map((s) => (
-              <option key={s.key} value={s.key}>{s.title ?? s.key}</option>
-            ))}
-          </select>
-          {usingFallback && (
-            <span className="font-mono text-[10px] tracking-[0.12em] text-[var(--warn)]">
-              script preview · backend offline
-            </span>
-          )}
-        </div>
-        <p className="mt-2 text-[13px] text-[var(--text-2)]">{scenario.description}</p>
-        <ol className="mt-3 flex flex-col gap-2">
-          {scenario.steps.map((s, i) => {
-            const done = i < stepIdx;
-            const current = i === stepIdx;
-            const ok = done ? verdicts[i] : null;
-            return (
-              <li
-                key={i}
-                className={`rounded-lg border p-2.5 ${
-                  current ? "border-[var(--ice)] bg-[var(--navy-700)]" : "border-[var(--line)] bg-[var(--space)]"
-                }`}
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-[11px] text-[var(--text)]">
-                    {i + 1}. [{s.session}]
-                  </span>
-                  <span className="font-mono text-[10px] text-[var(--text-3)]">expect {s.expect}</span>
-                  {ok === true && <span className="font-mono text-[11px] text-[var(--ok)]">✓</span>}
-                  {ok === false && <span className="font-mono text-[11px] text-[var(--ice)]">✗</span>}
-                </div>
-                <pre className="font-mono mt-1 overflow-x-auto whitespace-pre-wrap text-[11px] text-[var(--text-2)]">
-                  {highlightSql(s.sql)}
-                </pre>
-                <p className="mt-1 text-[12px] text-[var(--text-3)]">{s.explain}</p>
-              </li>
-            );
-          })}
-        </ol>
-        <div className="mt-3">
-          <button
-            onClick={nextStep}
-            disabled={busy || doneSteps || labId === null}
-            className="font-mono rounded-full bg-[var(--ice)] px-4 py-1.5 text-[11px] font-semibold tracking-[0.14em] text-[#04122e] hover:scale-105 disabled:opacity-40"
-          >
-            {doneSteps ? "script complete" : busy ? "running…" : `next step (${stepIdx + 1}/${scenario.steps.length})`}
-          </button>
-        </div>
-      </Card>
+        </Panel>
 
-      <div className="grid gap-6 md:grid-cols-2">
+        {/* Right: Scenario script workbench */}
+        <Panel cut={8} className="w-full">
+          <div className="p-3.5 sm:p-4 flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#5f6f93]">
+                  Exp 9 · CO1/CO4
+                </span>
+                <span className="text-[#5f6f93] text-[10px]">·</span>
+                <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b96b0]">
+                  {scenario.title}
+                </h2>
+              </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  onClick={() => void reset()}
+                  className="font-mono text-[11px] uppercase tracking-[0.1em] px-3 py-1 border border-white/15 text-[#dfe6f5] hover:border-white/40 hover:bg-white/5 rounded-[2px] transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] cursor-pointer"
+                >
+                  RESET
+                </button>
+                <button
+                  onClick={() => void newSession()}
+                  className="font-mono text-[11px] uppercase tracking-[0.1em] px-3 py-1 border border-white/15 text-[#dfe6f5] hover:border-white/40 hover:bg-white/5 rounded-[2px] transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] cursor-pointer"
+                >
+                  NEW SESSION
+                </button>
+              </div>
+            </div>
+
+            <p className="text-[13px] text-[#8b96b0]">{scenario.description}</p>
+
+            <ol className="flex flex-col gap-2 mt-1">
+              {scenario.steps.map((s, i) => {
+                const done = i < stepIdx;
+                const current = i === stepIdx;
+                const ok = done ? verdicts[i] : null;
+                return (
+                  <li
+                    key={i}
+                    className={`border p-3 rounded-[2px] transition-all ${
+                      current
+                        ? "border-[#3d5bff] bg-[#3d5bff]/10 shadow-[0_0_10px_rgba(61,91,255,0.2)]"
+                        : "border-white/10 bg-[#05070d]"
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[11px] text-white font-semibold">
+                          STEP {i + 1}
+                        </span>
+                        <StatusBadge
+                          status={s.session === "A" ? "info" : "nominal"}
+                          label={`SESSION ${s.session}`}
+                        />
+                        <span className="font-mono text-[10px] text-[#5f6f93]">
+                          EXPECT: {s.expect}
+                        </span>
+                      </div>
+                      {ok === true && (
+                        <StatusBadge status="ok" label="PASSED ✓" />
+                      )}
+                      {ok === false && (
+                        <StatusBadge status="critical" label="VERDICT ✗" />
+                      )}
+                    </div>
+                    <pre className="font-mono overflow-x-auto whitespace-pre-wrap text-[12px] text-[#dfe6f5] bg-black/60 p-2 border border-white/5">
+                      {highlightSql(s.sql)}
+                    </pre>
+                    <p className="mt-1 text-[11px] font-mono text-[#8b96b0]">
+                      {s.explain}
+                    </p>
+                  </li>
+                );
+              })}
+            </ol>
+
+            <div className="pt-2">
+              <button
+                onClick={nextStep}
+                disabled={busy || doneSteps || labId === null}
+                className="font-mono text-[11px] uppercase tracking-[0.1em] px-4 py-2 bg-[#3d5bff] hover:bg-[#324dd8] text-white rounded-[2px] font-semibold transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+              >
+                {doneSteps
+                  ? "SCRIPT COMPLETE"
+                  : busy
+                    ? "RUNNING…"
+                    : `NEXT STEP (${stepIdx + 1}/${scenario.steps.length})`}
+              </button>
+            </div>
+          </div>
+        </Panel>
+      </div>
+
+      {/* The two sessions side by side as two Panels headed "SESSION A" / "SESSION B" in mono */}
+      <div className="grid gap-4 md:grid-cols-2">
         {(["A", "B"] as SessKey[]).map((s) => {
           const sess = s === "A" ? state?.session_a : state?.session_b;
           const st = (sess?.status ?? "idle") as string;
           const waitingSess = sess?.result?.status === "waiting";
-          const statusLabel = waitingSess ? "waiting" : st;
+          const statusLabel = waitingSess ? "WAITING" : st.toUpperCase();
+          const pid = s === "A" ? pids.a : pids.b;
+
           return (
-            <Card
-              key={s}
-              title={`Session ${s}`}
-              kicker={s === "A" ? `pid ${pids.a ?? "…"}` : `pid ${pids.b ?? "…"}`}
-              aside={
-                <span className={`font-mono rounded-full border px-2.5 py-0.5 text-[10px] tracking-[0.14em] ${pill(statusLabel)}`}>
-                  {statusLabel}
-                </span>
-              }
-            >
-              <div className="flex flex-col gap-2">
-                <label htmlFor={`tx-sql-${s}`} className="font-mono text-[10px] tracking-[0.14em] text-[var(--text-3)]">
-                  Ad-hoc SQL · ctrl+enter runs
-                </label>
-                <textarea
-                  id={`tx-sql-${s}`}
-                  value={inputs[s]}
-                  onChange={(e) => setInputs((p) => ({ ...p, [s]: e.target.value }))}
-                  onKeyDown={(e) => {
-                    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                      e.preventDefault();
-                      void exec(s, inputs[s], null);
-                      setInputs((p) => ({ ...p, [s]: "" }));
-                    }
-                  }}
-                  rows={3}
-                  spellCheck={false}
-                  placeholder="SELECT … | BEGIN; …"
-                  className="font-mono min-h-[72px] rounded-lg border border-[var(--line)] bg-[var(--space)] p-2.5 text-[12px] text-[var(--text)]"
-                />
-                <div>
-                  <button
-                    onClick={() => { void exec(s, inputs[s], null); setInputs((p) => ({ ...p, [s]: "" })); }}
-                    disabled={busy || labId === null || inputs[s].trim() === ""}
-                    className="font-mono rounded-full border border-[var(--line)] px-3 py-1 text-[10px] tracking-[0.14em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)] disabled:opacity-40"
-                  >
-                    run
-                  </button>
+            <Panel key={s} cut={8} className="w-full">
+              <div className="p-3.5 sm:p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#5f6f93]">
+                      PID {pid ?? "…"}
+                    </span>
+                    <span className="text-[#5f6f93] text-[10px]">·</span>
+                    <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b96b0] font-bold">
+                      SESSION {s}
+                    </h2>
+                  </div>
+                  <StatusBadge
+                    status={waitingSess ? "warn" : st.includes("xact") ? "info" : "nominal"}
+                    label={statusLabel}
+                    className={waitingSess ? "animate-pulse" : ""}
+                  />
                 </div>
-                <div className="flex max-h-56 flex-col gap-1.5 overflow-y-auto">
-                  {logs.filter((l) => l.session === s).length === 0 && (
-                    <p className="font-mono text-[11px] text-[var(--text-3)]">No statements yet.</p>
-                  )}
-                  {logs.filter((l) => l.session === s).map((l) => (
-                    <div key={l.n} className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-2">
-                      <p className="font-mono text-[10px] text-[var(--text-3)]">
-                        #{l.n} · <span className={l.status.startsWith("error") ? "text-[var(--ice)]" : l.status === "waiting" ? "text-[var(--warn)]" : "text-[var(--ok)]"}>{l.status}</span>
+
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <label
+                      htmlFor={`tx-sql-${s}`}
+                      className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]"
+                    >
+                      Ad-hoc SQL · Ctrl+Enter runs
+                    </label>
+                  </div>
+                  <textarea
+                    id={`tx-sql-${s}`}
+                    value={inputs[s]}
+                    onChange={(e) => setInputs((p) => ({ ...p, [s]: e.target.value }))}
+                    onKeyDown={(e) => {
+                      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                        e.preventDefault();
+                        void exec(s, inputs[s], null);
+                        setInputs((p) => ({ ...p, [s]: "" }));
+                      }
+                    }}
+                    rows={3}
+                    spellCheck={false}
+                    placeholder="SELECT … | BEGIN; …"
+                    className="font-mono min-h-[72px] border border-white/10 bg-[#05070d] p-2.5 text-[12.5px] text-[#dfe6f5] focus:border-[#3d5bff] focus:outline-none rounded-[2px]"
+                  />
+                  <div>
+                    <button
+                      onClick={() => {
+                        void exec(s, inputs[s], null);
+                        setInputs((p) => ({ ...p, [s]: "" }));
+                      }}
+                      disabled={busy || labId === null || inputs[s].trim() === ""}
+                      className="font-mono text-[11px] uppercase tracking-[0.1em] px-3.5 py-1.5 border border-white/15 text-[#dfe6f5] hover:border-white/40 hover:bg-white/5 rounded-[2px] transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                    >
+                      EXECUTE
+                    </button>
+                  </div>
+
+                  {/* Statement history list: each step a row with SQL in code style and result */}
+                  <div className="flex max-h-64 flex-col gap-2 overflow-y-auto mt-2">
+                    {logs.filter((l) => l.session === s).length === 0 && (
+                      <p className="font-mono text-[11px] text-[#5f6f93] p-2 border border-dashed border-white/5 text-center">
+                        No statements dispatched yet.
                       </p>
-                      <pre className="font-mono mt-1 overflow-x-auto whitespace-pre-wrap text-[11px] text-[var(--text)]">{l.sql}</pre>
-                      <p className="font-mono mt-1 text-[10.5px] text-[var(--text-2)]">{l.detail}</p>
-                    </div>
-                  ))}
+                    )}
+                    {logs
+                      .filter((l) => l.session === s)
+                      .map((l) => {
+                        const isErr = l.status.startsWith("error");
+                        const isWait = l.status === "waiting";
+                        return (
+                          <div
+                            key={l.n}
+                            className="border border-white/10 bg-[#05070d] p-2.5 rounded-[2px] flex flex-col gap-1"
+                          >
+                            <div className="flex items-center justify-between font-mono text-[10px]">
+                              <span className="text-[#5f6f93]">STATEMENT #{l.n}</span>
+                              <StatusBadge
+                                status={isErr ? "critical" : isWait ? "warn" : "ok"}
+                                label={l.status.toUpperCase()}
+                              />
+                            </div>
+                            <pre className="font-mono overflow-x-auto whitespace-pre-wrap text-[11.5px] text-[#dfe6f5] bg-black/50 p-1.5 border border-white/5 mt-0.5">
+                              {l.sql}
+                            </pre>
+                            <p className="font-mono text-[10.5px] text-[#8b96b0]">
+                              {l.detail}
+                            </p>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               </div>
-            </Card>
+            </Panel>
           );
         })}
       </div>
 
+      {/* Outcome Callouts: critical 40001, 40P01, skip_locked, MVCC, and WAL tables */}
       <OutcomeCallouts scenarioKey={scenarioKey} logs={logs} />
 
-      <Card title="Locks + wait-for graph" kicker="pg_locks · pg_blocking_pids">
-        <div className="flex flex-col gap-3">
-          <WaitGraph
-            pidA={pids.a}
-            pidB={pids.b}
-            aBlocked={aBlockedBy.length > 0}
-            bBlocked={bBlockedBy.length > 0}
-            cycle={cycle}
-          />
-          {locks.length === 0 ? (
-            <p className="font-mono text-[11px] text-[var(--text-3)]">
-              No lock rows yet — run a scenario step, then poll every 400 ms while waiting.
-            </p>
-          ) : (
-            <div className="overflow-x-auto rounded-lg border border-[var(--line)]">
-              <table className="w-full border-collapse text-left">
-                <thead className="bg-[var(--navy-700)]">
-                  <tr>
-                    {["pid", "locktype", "mode", "granted", "relation"].map((c) => (
-                      <th key={c} className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] tracking-[0.1em] text-[var(--text-2)]">{c}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {locks.map((l, i) => (
-                    <tr key={i} className="odd:bg-[var(--space)] even:bg-[var(--navy-800)]">
+      {/* Locks and wait-for graph: pg_locks · pg_blocking_pids */}
+      <Card title="Lock table & wait-for graph" kicker="pg_locks · pg_blocking_pids">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+              Wait-for dependency graph
+            </span>
+            <WaitGraph
+              pidA={pids.a}
+              pidB={pids.b}
+              aBlocked={aBlockedBy.length > 0}
+              bBlocked={bBlockedBy.length > 0}
+              cycle={cycle}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+              Active locks (pg_locks)
+            </span>
+            {locks.length === 0 ? (
+              <p className="font-mono text-[11px] text-[#5f6f93] p-3 border border-white/10 bg-[#05070d]">
+                No row locks held — run a scenario step, then poll will refresh lock state while waiting.
+              </p>
+            ) : (
+              <div className="overflow-x-auto border border-white/10 bg-[#05070d]">
+                <table className="w-full border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-white/[0.08] bg-[#05070d]">
                       {["pid", "locktype", "mode", "granted", "relation"].map((c) => (
-                        <td
+                        <th
                           key={c}
-                          className={`font-mono px-2.5 py-1.5 text-[11.5px] ${
-                            c === "granted" && l[c] === false ? "text-[var(--warn)]" : "text-[var(--text)]"
-                          }`}
+                          className="font-mono px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[#8b96b0] font-normal"
                         >
-                          {String(l[c] ?? "—")}
-                        </td>
+                          {c}
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody>
+                    {locks.map((l, i) => (
+                      <tr
+                        key={i}
+                        className="border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors"
+                      >
+                        {["pid", "locktype", "mode", "granted", "relation"].map((c) => (
+                          <td
+                            key={c}
+                            className={`font-mono px-3 py-2 text-[11.5px] ${
+                              c === "pid" ? "tabular-nums text-right" : ""
+                            } ${
+                              c === "granted" && l[c] === false
+                                ? "text-[#f5a524] font-semibold"
+                                : "text-[#dfe6f5]"
+                            }`}
+                          >
+                            {String(l[c] ?? "—")}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
           {state?.lab_table !== undefined && state.lab_table !== null && state.lab_table.length > 0 && (
-            <div>
-              <p className="font-mono mb-1 text-[10px] tracking-[0.14em] text-[var(--text-3)]">
-                lab_account
-              </p>
+            <div className="flex flex-col gap-2">
+              <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                Live state: lab_account
+              </span>
               <DataGrid rows={state.lab_table as Array<Record<string, unknown>>} />
             </div>
           )}
@@ -524,23 +683,58 @@ export function TxLab() {
   );
 }
 
-function WaitGraph({ pidA, pidB, aBlocked, bBlocked, cycle }: {
+function WaitGraph({
+  pidA,
+  pidB,
+  aBlocked,
+  bBlocked,
+  cycle,
+}: {
   pidA: number | null;
   pidB: number | null;
   aBlocked: boolean;
   bBlocked: boolean;
   cycle: boolean;
 }) {
-  const color = cycle ? "var(--danger)" : "var(--ice)";
+  const color = cycle ? "#ff3b4f" : "#f5a524";
   return (
-    <svg viewBox="0 0 360 84" role="img" aria-label="wait-for graph" className="w-full max-w-[420px] rounded-lg border border-[var(--line)] bg-[var(--space)] p-2">
+    <svg
+      viewBox="0 0 360 84"
+      role="img"
+      aria-label="wait-for graph"
+      className="w-full max-w-[420px] border border-white/10 bg-[#05070d] p-2"
+    >
       <g fontFamily="Geist Mono, monospace" fontSize="11">
-        <circle cx="60" cy="42" r="22" fill="none" stroke={aBlocked ? color : "var(--line)"} strokeWidth="2" />
-        <text x="60" y="46" textAnchor="middle" fill="var(--text)">A</text>
-        <text x="60" y="78" textAnchor="middle" fill="var(--text-3)" fontSize="9">{pidA ?? "…"}</text>
-        <circle cx="300" cy="42" r="22" fill="none" stroke={bBlocked ? color : "var(--line)"} strokeWidth="2" />
-        <text x="300" y="46" textAnchor="middle" fill="var(--text)">B</text>
-        <text x="300" y="78" textAnchor="middle" fill="var(--text-3)" fontSize="9">{pidB ?? "…"}</text>
+        <circle
+          cx="60"
+          cy="42"
+          r="22"
+          fill="#05070d"
+          stroke={aBlocked ? color : "rgba(255,255,255,0.15)"}
+          strokeWidth="2"
+        />
+        <text x="60" y="46" textAnchor="middle" fill="#dfe6f5" fontWeight="bold">
+          A
+        </text>
+        <text x="60" y="78" textAnchor="middle" fill="#8b96b0" fontSize="9">
+          PID {pidA ?? "…"}
+        </text>
+
+        <circle
+          cx="300"
+          cy="42"
+          r="22"
+          fill="#05070d"
+          stroke={bBlocked ? color : "rgba(255,255,255,0.15)"}
+          strokeWidth="2"
+        />
+        <text x="300" y="46" textAnchor="middle" fill="#dfe6f5" fontWeight="bold">
+          B
+        </text>
+        <text x="300" y="78" textAnchor="middle" fill="#8b96b0" fontSize="9">
+          PID {pidB ?? "…"}
+        </text>
+
         {aBlocked && (
           <g stroke={color} strokeWidth="1.6" strokeDasharray="5 4">
             <line x1="84" y1="34" x2="274" y2="34" />
@@ -554,10 +748,14 @@ function WaitGraph({ pidA, pidB, aBlocked, bBlocked, cycle }: {
           </g>
         )}
         {!aBlocked && !bBlocked && (
-          <text x="180" y="46" textAnchor="middle" fill="var(--text-3)">no waits</text>
+          <text x="180" y="46" textAnchor="middle" fill="#5f6f93">
+            no waits
+          </text>
         )}
         {cycle && (
-          <text x="180" y="20" textAnchor="middle" fill="var(--danger)">Deadlock cycle</text>
+          <text x="180" y="20" textAnchor="middle" fill="#ff3b4f" fontWeight="bold">
+            DEADLOCK CYCLE DETECTED
+          </text>
         )}
       </g>
     </svg>
@@ -567,62 +765,138 @@ function WaitGraph({ pidA, pidB, aBlocked, bBlocked, cycle }: {
 function OutcomeCallouts({ scenarioKey, logs }: { scenarioKey: string; logs: LogEntry[] }) {
   const has40001 = logs.some((l) => l.detail.includes("40001") || l.status.includes("40001"));
   const has40P01 = logs.some((l) => l.detail.includes("40P01") || l.status.includes("40P01"));
+
   if (scenarioKey === "phantom_or_write_skew" && has40001) {
     return (
-      <div role="alert" className="rounded-xl border border-[var(--ice)] bg-[var(--navy-800)] p-4">
-        <p className="font-mono text-[12px] tracking-[0.16em] text-[var(--ice)]">
-          Serialization failure · 40001 — retry the transaction
-        </p>
-        <p className="mt-1 text-[13px] text-[var(--text-2)]">
-          SERIALIZABLE saw a read/write cycle between A and B. One committer wins; the other must retry from BEGIN.
-        </p>
-      </div>
+      <Panel
+        cut={8}
+        borderColor="rgba(255, 59, 79, 0.45)"
+        glowColor="rgba(255, 59, 79, 0.15)"
+        className="w-full"
+      >
+        <div role="alert" className="p-4 flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#ff3b4f] font-semibold">
+              Serialization failure · 40001
+            </span>
+            <StatusBadge status="critical" label="CRITICAL · RETRY" />
+          </div>
+          <p className="text-[13px] text-[#dfe6f5] leading-relaxed">
+            SERIALIZABLE transaction saw a concurrent read/write dependency cycle between Session A and Session B.
+            One committer wins; PostgreSQL aborts the other with SQLSTATE 40001. The client must retry from BEGIN.
+          </p>
+        </div>
+      </Panel>
     );
   }
+
   if (scenarioKey === "deadlock" && has40P01) {
     return (
-      <div role="alert" className="rounded-xl border border-[var(--ice)] bg-[var(--navy-800)] p-4">
-        <p className="font-mono text-[12px] tracking-[0.16em] text-[var(--ice)]">
-          Deadlock detected · 40P01 — Postgres aborted one victim
-        </p>
-        <p className="mt-1 text-[13px] text-[var(--text-2)]">
-          A → B and B → A formed a wait cycle. After deadlock_timeout Postgres picks a victim; retry it.
-        </p>
-      </div>
+      <Panel
+        cut={8}
+        borderColor="rgba(255, 59, 79, 0.45)"
+        glowColor="rgba(255, 59, 79, 0.15)"
+        className="w-full"
+      >
+        <div role="alert" className="p-4 flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#ff3b4f] font-semibold">
+              Deadlock detected · 40P01
+            </span>
+            <StatusBadge status="critical" label="DEADLOCK VICTIM ABORTED" />
+          </div>
+          <p className="text-[13px] text-[#dfe6f5] leading-relaxed">
+            Mutual wait cycle: Session A waiting on row held by Session B, and Session B waiting on row held by Session A.
+            Postgres deadlock detector detected the cycle and rolled back the victim transaction to release all held locks.
+          </p>
+        </div>
+      </Panel>
     );
   }
+
   if (scenarioKey === "skip_locked") {
     const idsA = extractIds(logs.filter((l) => l.session === "A").at(-1)?.detail ?? "");
     const idsB = extractIds(logs.filter((l) => l.session === "B").at(-1)?.detail ?? "");
     if (idsA.length > 0 || idsB.length > 0) {
       const overlap = idsA.filter((x) => idsB.includes(x));
+      const disjoint = overlap.length === 0;
       return (
-        <div className="rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-          <p className="font-mono text-[11px] tracking-[0.16em] text-[var(--ok)]">
-            Skip locked — {overlap.length === 0 ? "disjoint ✓" : `overlap ✗ (${overlap.length})`}
-          </p>
-          <p className="font-mono mt-2 text-[11px] text-[var(--text-2)]">A: [{idsA.slice(0, 12).join(", ")}]{idsA.length > 12 ? "…" : ""}</p>
-          <p className="font-mono mt-1 text-[11px] text-[var(--text-2)]">B: [{idsB.slice(0, 12).join(", ")}]{idsB.length > 12 ? "…" : ""}</p>
-        </div>
+        <Card
+          title="SKIP LOCKED Dispatch Isolation"
+          kicker={disjoint ? "DISJOINT QUEUES" : "QUEUE OVERLAP"}
+          aside={
+            <StatusBadge
+              status={disjoint ? "ok" : "critical"}
+              label={disjoint ? "DISJOINT ✓" : `OVERLAP ✗ (${overlap.length})`}
+            />
+          }
+        >
+          <div className="flex flex-col gap-2 font-mono text-[12px]">
+            <p className="text-[#8b96b0]">
+              Worker A packet IDs: [{idsA.slice(0, 12).join(", ")}{idsA.length > 12 ? "…" : ""}]
+            </p>
+            <p className="text-[#8b96b0]">
+              Worker B packet IDs: [{idsB.slice(0, 12).join(", ")}{idsB.length > 12 ? "…" : ""}]
+            </p>
+            <p className="text-[12px] text-[#dfe6f5] font-sans pt-1">
+              {disjoint
+                ? "Disjoint sets confirmed: Worker B skipped Worker A's locked tuples without blocking."
+                : "Concurrency collision detected."}
+            </p>
+          </div>
+        </Card>
       );
     }
   }
+
   if (scenarioKey === "mvcc") {
     return (
-      <div className="rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-        <p className="font-mono text-[11px] tracking-[0.16em] text-[var(--ice)]">MVCC</p>
-        <p className="mt-1 text-[13px] text-[var(--text-2)]">
-          A updated without committing: A reads the new tuple (new xmax/ctid), B still reads the old committed
-          version. Compare xmin, xmax and ctid in both result logs; after COMMIT, B sees the new ctid.
-        </p>
-      </div>
+      <Card title="Multi-Version Concurrency Control (MVCC)" kicker="xmin / xmax / ctid">
+        <div className="flex flex-col gap-3">
+          <p className="text-[13px] text-[#dfe6f5] leading-relaxed">
+            Postgres does not overwrite tuples in-place. An uncommitted UPDATE creates a new version with the
+            modifying transaction's xmin, while the old version is tagged with xmax. Session A reads the uncommitted
+            tuple, while Session B's snapshot still reads the prior version until Session A issues COMMIT.
+          </p>
+          {/* MVCC tuple inspection mono table */}
+          <div className="overflow-x-auto border border-white/10 bg-[#05070d]">
+            <table className="w-full border-collapse text-left font-mono text-[12px]">
+              <thead>
+                <tr className="border-b border-white/[0.08] bg-[#05070d]">
+                  <th className="px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">Session</th>
+                  <th className="px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">Tuple ctid</th>
+                  <th className="px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[#8b96b0] text-right">xmin</th>
+                  <th className="px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[#8b96b0] text-right">xmax</th>
+                  <th className="px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">Visibility state</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-white/[0.06]">
+                  <td className="px-3 py-2 text-[#7fb2ff]">SESSION A</td>
+                  <td className="px-3 py-2 text-[#dfe6f5]">(0, 2)</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-[#7ee2b8]">txid_current()</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-[#5f6f93]">0 (active)</td>
+                  <td className="px-3 py-2 text-[#7ee2b8]">New uncommitted version</td>
+                </tr>
+                <tr className="border-b border-white/[0.06]">
+                  <td className="px-3 py-2 text-[#7ee2b8]">SESSION B</td>
+                  <td className="px-3 py-2 text-[#dfe6f5]">(0, 1)</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-[#dfe6f5]">initial_xid</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-[#f5a524]">txid_A (uncommitted)</td>
+                  <td className="px-3 py-2 text-[#8b96b0]">Snapshot pinned to old tuple</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Card>
     );
   }
+
   if (scenarioKey === "wal") {
-    return (
-      <WALBar logs={logs} />
-    );
+    return <WALBar logs={logs} />;
   }
+
   return null;
 }
 
@@ -636,15 +910,49 @@ function WALBar({ logs }: { logs: LogEntry[] }) {
     const m = l.sql.match(/pg_current_wal_lsn|lsn/i) ? [l.detail] : [];
     return m;
   });
-  void lsns;
+
   return (
-    <div className="rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
-      <p className="font-mono text-[11px] tracking-[0.16em] text-[var(--warn)]">WAL</p>
-      <p className="mt-1 text-[13px] text-[var(--text-2)]">
-        Every write goes to the write-ahead log before the heap. Take LSN before/after the 1000-row insert and
-        diff with pg_wal_lsn_diff — the bar is the WAL bytes that make crash recovery possible.
-      </p>
-      <SqlBlock sql="SELECT pg_wal_lsn_diff(pg_current_wal_lsn(), '0/0') AS wal_bytes;" />
-    </div>
+    <Card title="Write-Ahead Logging (WAL) & Log Sequence Numbers" kicker="pg_current_wal_lsn">
+      <div className="flex flex-col gap-3">
+        <p className="text-[13px] text-[#dfe6f5] leading-relaxed">
+          PostgreSQL ensures durability (ACID 'D') through write-ahead logging. Changes are flushed to the WAL
+          before the data heap pages. The Log Sequence Number (LSN) marks the byte offset in the WAL stream.
+        </p>
+        {/* WAL LSN mono table */}
+        <div className="overflow-x-auto border border-white/10 bg-[#05070d]">
+          <table className="w-full border-collapse text-left font-mono text-[12px]">
+            <thead>
+              <tr className="border-b border-white/[0.08] bg-[#05070d]">
+                <th className="px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">Execution checkpoint</th>
+                <th className="px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">LSN Address</th>
+                <th className="px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[#8b96b0] text-right">WAL Stream Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-white/[0.06]">
+                <td className="px-3 py-2 text-[#dfe6f5]">Pre-insert baseline</td>
+                <td className="px-3 py-2 text-[#7fb2ff]">pg_current_wal_lsn() [Step 1]</td>
+                <td className="px-3 py-2 text-right text-[#8b96b0]">lsn_before recorded</td>
+              </tr>
+              <tr className="border-b border-white/[0.06]">
+                <td className="px-3 py-2 text-[#dfe6f5]">Post-1000 row batch commit</td>
+                <td className="px-3 py-2 text-[#7fb2ff]">pg_current_wal_lsn() [Step 3]</td>
+                <td className="px-3 py-2 text-right text-[#7ee2b8]">lsn_after advanced</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <SqlBlock
+          label="WAL byte difference query"
+          sql="SELECT pg_wal_lsn_diff(pg_current_wal_lsn(), '0/0') AS wal_bytes;"
+        />
+        {lsns.length > 0 && (
+          <p className="font-mono text-[11px] text-[#8b96b0]">
+            Recorded LSN points in log: {lsns.join(" → ")}
+          </p>
+        )}
+      </div>
+    </Card>
   );
 }
+

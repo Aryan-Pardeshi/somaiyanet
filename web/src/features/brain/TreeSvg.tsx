@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type WheelEvent } from "react";
 import { ACTION_COLORS, type DtNode, type RouterAction } from "./api";
 
 interface Pos {
@@ -6,24 +6,27 @@ interface Pos {
   y: number;
 }
 
-const X_GAP = 96;
+const X_GAP = 100;
 const Y_GAP = 110;
-const NODE_W = 84;
+const NODE_W = 88;
 const NODE_H = 46;
+const CUT = 5;
 
-/**
- * Top-down tidy layout computed locally: leaves are ordered left to right,
- * internal nodes sit above the midpoint of their children. Wheel zooms,
- * drag pans. Off-path branches collapse to a ▸ stub by default.
- */
+/** Generates SVG polygon points for a chamfered rectangle */
+function chamferPolygon(w: number, h: number, c: number): string {
+  return `${c},0 ${w - c},0 ${w},${c} ${w},${h - c} ${w - c},${h} ${c},${h} 0,${h - c} 0,${c}`;
+}
+
 export function TreeSvg({
   nodes,
   pathIds,
   stagger,
+  modelVersion = 1,
 }: {
   nodes: DtNode[];
   pathIds: number[];
   stagger: boolean;
+  modelVersion?: number;
 }) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -87,49 +90,65 @@ export function TreeSvg({
   const maxX = Math.max(1, ...[...pos.values()].map((p) => p.x)) + X_GAP;
   const maxY = Math.max(1, ...[...pos.values()].map((p) => p.y)) + NODE_H + 40;
 
-  const onWheel = (e: React.WheelEvent): void => {
+  const onWheel = (e: WheelEvent): void => {
     e.preventDefault();
     setZoom((z) => Math.min(3, Math.max(0.3, z * (e.deltaY < 0 ? 1.1 : 0.9))));
   };
 
+  const polyPoints = useMemo(() => chamferPolygon(NODE_W, NODE_H, CUT), []);
+
   return (
-    <div>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
-          {nodes.length} nodes · {visible.size} shown
-        </span>
-        <button
-          onClick={() => setShowFull((v) => !v)}
-          className="font-mono rounded-full border border-[var(--line)] px-3 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]"
-        >
-          {showFull ? "collapse off-path" : "expand full tree"}
-        </button>
-        <span className="font-mono ml-auto flex gap-1 text-[10px]">
+    <div className="flex flex-col gap-2.5">
+      {/* HUD Header Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] font-semibold tracking-[0.14em] uppercase text-[#dfe6f5]">
+            DECISION TREE / MODEL v{modelVersion} / {nodes.length} NODES
+          </span>
+          <span className="font-mono text-[10px] text-[#8b96b0]">
+            [{visible.size} ACTIVE IN VIEW]
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setZoom((z) => Math.min(3, z * 1.2))}
-            className="rounded border border-[var(--line)] px-2 py-0.5 text-[var(--text-2)]"
-            aria-label="Zoom in"
+            onClick={() => setShowFull((v) => !v)}
+            className="font-mono px-2.5 py-1 text-[10px] uppercase tracking-[0.1em] border border-white/15 bg-transparent text-[#dfe6f5] hover:border-white/30 transition-colors cursor-pointer"
           >
-            +
+            {showFull ? "COLLAPSE OFF-PATH" : "EXPAND FULL TREE"}
           </button>
-          <button
-            onClick={() => setZoom(1)}
-            className="rounded border border-[var(--line)] px-2 py-0.5 text-[var(--text-2)]"
-          >
-            1×
-          </button>
-          <button
-            onClick={() => setZoom((z) => Math.max(0.3, z / 1.2))}
-            className="rounded border border-[var(--line)] px-2 py-0.5 text-[var(--text-2)]"
-            aria-label="Zoom out"
-          >
-            −
-          </button>
-        </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setZoom((z) => Math.min(3, z * 1.2))}
+              className="font-mono px-2 py-0.5 text-[10px] border border-white/15 bg-transparent text-[#dfe6f5] hover:border-white/30 cursor-pointer"
+              aria-label="Zoom in"
+            >
+              +
+            </button>
+            <button
+              onClick={() => {
+                setZoom(1);
+                setPan({ x: 0, y: 0 });
+              }}
+              className="font-mono px-2 py-0.5 text-[10px] border border-white/15 bg-transparent text-[#dfe6f5] hover:border-white/30 cursor-pointer"
+            >
+              1×
+            </button>
+            <button
+              onClick={() => setZoom((z) => Math.max(0.3, z / 1.2))}
+              className="font-mono px-2 py-0.5 text-[10px] border border-white/15 bg-transparent text-[#dfe6f5] hover:border-white/30 cursor-pointer"
+              aria-label="Zoom out"
+            >
+              −
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* SVG Canvas with HUD corner brackets */}
       <div
-        className="mt-2 cursor-grab overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--space)] active:cursor-grabbing"
-        style={{ height: 420 }}
+        className="relative cursor-grab overflow-hidden border border-white/10 bg-[#05070d] active:cursor-grabbing"
+        style={{ height: 440 }}
         onWheel={onWheel}
         onMouseDown={(e) =>
           (drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y })
@@ -145,14 +164,29 @@ export function TreeSvg({
         onMouseUp={() => (drag.current = null)}
         onMouseLeave={() => (drag.current = null)}
       >
+        {/* HUD labels */}
+        <div className="pointer-events-none absolute left-2.5 top-2 z-10 font-mono text-[9px] uppercase tracking-wider text-[#8b96b0]/70">
+          ┌ PATH INFERENCE ENGINE // ROYAL BLUE ACTIVE
+        </div>
+        <div className="pointer-events-none absolute right-2.5 top-2 z-10 font-mono text-[9px] uppercase tracking-wider text-[#8b96b0]/70">
+          WHEEL TO ZOOM · DRAG TO PAN ┐
+        </div>
+        <div className="pointer-events-none absolute left-2.5 bottom-2 z-10 font-mono text-[9px] uppercase tracking-wider text-[#8b96b0]/70">
+          └ DT_NODE POSTGRES VIRTUAL GRAPH
+        </div>
+        <div className="pointer-events-none absolute right-2.5 bottom-2 z-10 font-mono text-[9px] uppercase tracking-wider text-[#8b96b0]/70">
+          DIM: {Math.round(maxX)}×{Math.round(maxY)} ┘
+        </div>
+
         <svg
           width="100%"
-          height="420"
+          height="440"
           role="img"
           aria-label="Decision tree"
           style={{ display: "block" }}
         >
-          <g transform={`translate(${pan.x + 16},${pan.y + 16}) scale(${zoom})`}>
+          <g transform={`translate(${pan.x + 30},${pan.y + 30}) scale(${zoom})`}>
+            {/* Connection lines */}
             {order.map((n) => {
               const p = pos.get(n.node_id);
               if (!p) return null;
@@ -169,21 +203,40 @@ export function TreeSvg({
                       y1={p.y}
                       x2={q.x}
                       y2={q.y}
-                      stroke={hot ? "var(--ice)" : "var(--line)"}
-                      strokeWidth={hot ? 2.4 : 1.2}
+                      stroke={hot ? "#3d5bff" : "rgba(255, 255, 255, 0.12)"}
+                      strokeWidth={hot ? 2.4 : 1}
+                      style={
+                        hot
+                          ? { filter: "drop-shadow(0 0 4px rgba(61, 91, 255, 0.7))" }
+                          : undefined
+                      }
                     />
                   );
                 });
             })}
-            {order.map((n, drawIdx) => {
+
+            {/* Tree nodes as chamfered boxes */}
+            {order.map((n) => {
               const p = pos.get(n.node_id);
               if (!p) return null;
               const hot = onPath.has(n.node_id);
               const leaf = n.leaf_action !== null;
-              const fill = leaf
-                ? (ACTION_COLORS[n.leaf_action as RouterAction] ?? "#5f6f93")
-                : "var(--navy-700)";
+              const leafColor = leaf
+                ? (ACTION_COLORS[n.leaf_action as RouterAction] ?? "#8b96b0")
+                : "#8b96b0";
+
+              const strokeColor = hot
+                ? "#3d5bff"
+                : leaf
+                  ? leafColor
+                  : "rgba(255, 255, 255, 0.15)";
+              const fillColor = hot
+                ? "rgba(61, 91, 255, 0.18)"
+                : leaf
+                  ? "rgba(6, 11, 23, 0.9)"
+                  : "rgba(10, 16, 30, 0.85)";
               const step = pathIds.indexOf(n.node_id);
+
               return (
                 <g
                   key={n.node_id}
@@ -191,71 +244,78 @@ export function TreeSvg({
                   style={
                     stagger && hot && step >= 0
                       ? {
-                        transition: "opacity 300ms ease",
-                        transitionDelay: `${step * 120}ms`,
-                        opacity: 1,
-                      }
+                          transition: "opacity 300ms ease",
+                          transitionDelay: `${step * 100}ms`,
+                          opacity: 1,
+                        }
                       : undefined
                   }
                 >
-                  <rect
-                    width={NODE_W}
-                    height={NODE_H}
-                    rx={leaf ? NODE_H / 2 : 8}
-                    fill={hot ? "var(--navy-700)" : "var(--navy-800)"}
-                    stroke={hot ? "var(--ice)" : fill}
-                    strokeWidth={hot ? 2.2 : 1.2}
+                  {/* Chamfered Box */}
+                  <polygon
+                    points={polyPoints}
+                    fill={fillColor}
+                    stroke={strokeColor}
+                    strokeWidth={hot ? 2 : 1}
                     style={
                       hot
-                        ? { filter: "drop-shadow(0 0 6px var(--ice))" }
+                        ? {
+                            filter: "drop-shadow(0 0 6px rgba(61, 91, 255, 0.6))",
+                          }
                         : undefined
                     }
                   />
+
+                  {/* Leaf / Feature text */}
                   <text
                     x={NODE_W / 2}
                     y={leaf ? 18 : 17}
                     textAnchor="middle"
-                    fill="var(--text)"
-                    fontSize={9}
+                    fill={hot ? "#ffffff" : leaf ? leafColor : "#dfe6f5"}
+                    fontSize={8.5}
+                    fontWeight={hot || leaf ? 600 : 400}
                     fontFamily="Geist Mono, monospace"
                   >
                     {leaf ? n.leaf_action : n.feature}
                   </text>
+
+                  {/* Threshold / samples text */}
                   <text
                     x={NODE_W / 2}
-                    y={leaf ? 32 : 31}
+                    y={leaf ? 31 : 31}
                     textAnchor="middle"
-                    fill="var(--text-2)"
-                    fontSize={8.5}
+                    fill={hot ? "#7fb2ff" : "#8b96b0"}
+                    fontSize={8}
                     fontFamily="Geist Mono, monospace"
                   >
                     {leaf
                       ? `n=${n.samples}`
-                      : `≤ ${Number(n.threshold).toFixed(2)} · n=${n.samples}`}
+                      : `≤${Number(n.threshold).toFixed(1)} · n=${n.samples}`}
                   </text>
-                  {drawIdx === 0 && <title>drag to pan · wheel to zoom</title>}
                 </g>
               );
             })}
           </g>
         </svg>
       </div>
-      <div className="mt-2 flex max-w-full flex-wrap gap-2 overflow-x-auto">
+
+      {/* Action Colors Legend */}
+      <div className="flex max-w-full flex-wrap items-center gap-3 pt-1 border-t border-white/5">
+        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8b96b0]">
+          ACTION LABELS:
+        </span>
         {(Object.keys(ACTION_COLORS) as RouterAction[]).map((a) => (
           <span
             key={a}
-            className="font-mono inline-flex items-center gap-1.5 text-[10px] tracking-[0.08em] text-[var(--text-2)]"
+            className="font-mono inline-flex items-center gap-1.5 text-[10px] tracking-[0.08em] text-[#dfe6f5]"
           >
             <span
-              className="inline-block size-2.5 rounded-full"
+              className="inline-block size-2 rounded-none"
               style={{ background: ACTION_COLORS[a] }}
             />
             {a}
           </span>
         ))}
-        <span className="font-mono ml-auto hidden text-[10px] text-[var(--text-3)] sm:inline">
-          canvas {Math.round(maxX)}×{Math.round(maxY)}
-        </span>
       </div>
     </div>
   );

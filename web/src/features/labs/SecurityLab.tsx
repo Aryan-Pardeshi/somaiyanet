@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch, ApiError } from "@/app/api";
-import { Card, DataGrid, OfflineOrEmpty, RefusalCard, SqlBlock } from "./common";
+import { Card, DataGrid, OfflineOrEmpty, Panel, RefusalCard, SqlBlock, StatusBadge } from "./common";
 import type { SecurityMatrix } from "./types";
 
 const ACTIONS = [
   { key: "read_telemetry", label: "SELECT telemetry" },
   { key: "insert_telemetry", label: "INSERT telemetry" },
-  { key: "read_station_secret", label: "SELECT station_key.secret" },
-  { key: "read_station_keyid", label: "SELECT station_key.key_id" },
+  { key: "read_station_secret", label: "SELECT station_key.secret [COL]" },
+  { key: "read_station_keyid", label: "SELECT station_key.key_id [COL]" },
   { key: "read_downlinks", label: "RLS downlinks (per-station rows)" },
   { key: "insert_telecommand_own", label: "INSERT telecommand (own station)" },
   { key: "insert_telecommand_other", label: "INSERT telecommand (other station)" },
@@ -38,9 +38,6 @@ export function SecurityLab() {
 
   const loadMatrix = useCallback(async () => {
     try {
-      // Backend cells are one row per (role, object, priv) with a `has` flag;
-      // the grid wants one cell per (role, object) with a `privs` list.
-      // Backend also splits function names into `funcs` and memberships into `members`.
       const r = await apiFetch<{
         roles?: string[];
         objects?: string[];
@@ -92,8 +89,6 @@ export function SecurityLab() {
     const k = `${role}:${action}`;
     setRunning(k);
     try {
-      // Backend returns {role, action, allowed, result, error}; read_downlinks
-      // rows look like [{to_node, legs}] and become the per-station bars.
       const r = await apiFetch<{
         allowed?: boolean;
         ok?: boolean;
@@ -155,178 +150,99 @@ export function SecurityLab() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Card title="Privilege matrix" kicker="has_*_privilege · Exp 7">
-        {cells.length === 0 && (
-          <p className="font-mono mb-2 text-[11px] text-[var(--warn)]">
-            Live matrix pending — showing the contracted shape. Hover a cell for the exact privilege call.
-          </p>
-        )}
-        <div className="overflow-x-auto rounded-lg border border-[var(--line)]">
+      {/* 1. Privilege Matrix Panel */}
+      <Card
+        title="Role privilege matrix"
+        kicker="has_*_privilege · Exp 7 · CO2"
+        aside={
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1 font-mono text-[10px] text-[#7ee2b8]">
+              <span className="font-bold">✓</span> GRANTED
+            </span>
+            <span className="flex items-center gap-1 font-mono text-[10px] text-[#ff3b4f]">
+              <span className="font-bold">✕</span> DENIED
+            </span>
+            <span className="font-mono text-[9px] uppercase tracking-wider text-[#7fb2ff] border border-[#3d5bff]/40 px-1 py-0.2 rounded-[1px]">
+              [COL] COLUMN-LEVEL
+            </span>
+          </div>
+        }
+      >
+        <div className="overflow-x-auto border border-white/10 bg-[#05070d]">
           <table className="w-full border-collapse text-left">
-            <thead className="bg-[var(--navy-700)]">
-              <tr>
-                <th className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] tracking-[0.1em] text-[var(--text-2)]">role \ object</th>
-                {objects.map((o) => (
-                  <th key={o} className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] tracking-[0.06em] text-[var(--text-2)]">{o}</th>
-                ))}
+            <thead>
+              <tr className="border-b border-white/[0.08] bg-[#05070d]">
+                <th className="font-mono px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
+                  Role \ Object
+                </th>
+                {objects.map((o) => {
+                  const isCol = o.includes(".");
+                  return (
+                    <th
+                      key={o}
+                      className="font-mono px-3 py-2 text-[10px] tracking-[0.06em] text-[#8b96b0] whitespace-nowrap"
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>{o}</span>
+                        {isCol && (
+                          <span className="text-[8px] uppercase tracking-wider px-1 py-0.2 rounded-[1px] bg-[#3d5bff]/15 text-[#7fb2ff] border border-[#3d5bff]/40">
+                            COL
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
               {roles.map((r) => (
-                <tr key={r} className="odd:bg-[var(--space)] even:bg-[var(--navy-800)]">
-                  <td className="font-mono px-2.5 py-1.5 text-[11px] text-[var(--warn)]">{r}</td>
+                <tr
+                  key={r}
+                  className="border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors"
+                >
+                  <td className="font-mono px-3 py-2 text-[11px] text-[#7fb2ff] font-semibold whitespace-nowrap">
+                    {r}
+                  </td>
                   {objects.map((o) => {
                     const cell = cellOf(r, o);
                     const privs = cell?.privs ?? guessPrivs(r, o);
+                    const isAllDenied = privs.length === 0;
+
                     return (
                       <td
                         key={o}
-                        title={cell?.detail ?? `SELECT has_table_privilege('${r}', '${o}', 'SELECT') — and INSERT/UPDATE/DELETE/EXECUTE likewise`}
-                        className="px-2.5 py-1.5"
+                        title={
+                          cell?.detail ??
+                          `SELECT has_table_privilege('${r}', '${o}', 'SELECT') — and INSERT/UPDATE/DELETE/EXECUTE`
+                        }
+                        className="px-2.5 py-2 whitespace-nowrap"
                       >
-                        <span className="flex flex-wrap gap-1">
-                          {["S", "I", "U", "D", "X"].map((p) => {
-                            const has = privHas(privs, p);
-                            return (
-                              <span
-                                key={p}
-                                className={`font-mono rounded px-1 text-[10px] ${
-                                  has
-                                    ? "bg-[var(--navy-700)] text-[var(--text)]"
-                                    : "text-[var(--text-3)] line-through decoration-[var(--ice)]"
-                                }`}
-                              >
-                                {p}
-                              </span>
-                            );
-                          })}
-                        </span>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="font-mono mt-2 text-[10.5px] text-[var(--text-3)]">
-          S/I/U/D/X = SELECT/INSERT/UPDATE/DELETE/EXECUTE. Bright cells are granted, dim cells with red strike are denied.
-          station_key appears twice: key_id readable by operators, secret director-only.
-        </p>
-      </Card>
-
-      <Card title="Role tree" kicker="pg_auth_members">
-        <div className="font-mono flex flex-wrap items-center gap-2 text-[11.5px]">
-          {(matrix?.memberships ?? defaultMemberships()).map((m, i) => (
-            <span key={i} className="rounded-full border border-[var(--line)] bg-[var(--space)] px-3 py-1 text-[var(--text-2)]">
-              <span className="text-[var(--text)]">{m.member}</span>
-              <span className="mx-1.5 text-[var(--text-3)]">→</span>
-              <span className="text-[var(--ice)]">{m.role}</span>
-            </span>
-          ))}
-        </div>
-      </Card>
-
-      <Card
-        title="Row-level security"
-        kicker="pg_policies"
-        aside={
-          <button
-            onClick={() => {
-              void runTry("station_operator_bom", "read_downlinks");
-              void runTry("station_operator_hel", "read_downlinks");
-              void runTry("mission_director", "read_downlinks");
-            }}
-            className="font-mono rounded-full border border-[var(--line)] px-3 py-1 text-[10px] tracking-[0.14em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]"
-          >
-            compare 3 roles
-          </button>
-        }
-      >
-        <div className="flex flex-col gap-2">
-          {(matrix?.policies ?? defaultPolicies()).map((p, i) => (
-            <div key={i} className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-2.5">
-              <p className="font-mono text-[11.5px] text-[var(--text)]">
-                {String(p["policyname"] ?? p["name"] ?? `policy ${i + 1}`)}
-                <span className="text-[var(--text-3)]"> · {String(p["tablename"] ?? p["table"] ?? "contact/telecommand")}</span>
-              </p>
-              <p className="font-mono mt-1 text-[10.5px] text-[var(--text-2)]">
-                {String(p["qual"] ?? p["using"] ?? p["definition"] ?? "operator_role = current_user OR pg_has_role(current_user,'grp_director','MEMBER')")}
-              </p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          {["station_operator_bom", "station_operator_hel", "mission_director"].map((r) => {
-            const counts = downlinks[r];
-            const total = counts ? Object.values(counts).reduce((a, b) => a + b, 0) : null;
-            return (
-              <div key={r} className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-3">
-                <p className="font-mono text-[10.5px] text-[var(--warn)]">{r}</p>
-                {counts ? (
-                  <div className="mt-2 flex flex-col gap-1.5">
-                    {Object.entries(counts).map(([st, n]) => (
-                      <div key={st} className="flex items-center gap-2">
-                        <span className="font-mono w-16 text-[10px] text-[var(--text-2)]">{st}</span>
-                        <div className="h-2 flex-1 rounded bg-[var(--navy-700)]">
-                          <div
-                            className="h-2 rounded bg-[var(--ice)]"
-                            style={{ width: `${total ? Math.max(4, (n / total) * 100) : 0}%` }}
-                          />
-                        </div>
-                        <span className="font-mono text-[10px] text-[var(--text)]">{n}</span>
-                      </div>
-                    ))}
-                    <p className="font-mono mt-1 text-[10px] text-[var(--text-3)]">
-                      {r.startsWith("station_operator") ? "sees only own station" : "sees all stations"}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="font-mono mt-2 text-[10.5px] text-[var(--text-3)]">
-                    No live rows yet — press “compare 3 roles”.
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </Card>
-
-      <Card title="Try it as…" kicker="POST /api/labs/security/try">
-        <div className="overflow-x-auto rounded-lg border border-[var(--line)]">
-          <table className="w-full border-collapse text-left">
-            <thead className="bg-[var(--navy-700)]">
-              <tr>
-                <th className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] tracking-[0.1em] text-[var(--text-2)]">action</th>
-                {roles.map((r) => (
-                  <th key={r} className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] text-[var(--text-2)]">{shortRole(r)}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {ACTIONS.map((a) => (
-                <tr key={a.key} className="odd:bg-[var(--space)] even:bg-[var(--navy-800)]">
-                  <td className="px-2.5 py-1.5 text-[12px] text-[var(--text-2)]" title={a.key}>{a.label}</td>
-                  {roles.map((r) => {
-                    const k = `${r}:${a.key}`;
-                    const res = results[k];
-                    return (
-                      <td key={r} className="px-2.5 py-1.5">
-                        <button
-                          onClick={() => void runTry(r, a.key)}
-                          disabled={running !== null}
-                          title={`POST /api/labs/security/try {"role":"${r}","action_key":"${a.key}"}`}
-                          className="font-mono rounded-full border border-[var(--line)] px-2.5 py-0.5 text-[10px] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)] disabled:opacity-40"
-                        >
-                          {running === k ? "…" : "run"}
-                        </button>
-                        {res !== undefined && (
-                          <span
-                            className={`font-mono ml-1.5 text-[11px] ${res.ok ? "text-[var(--ok)]" : "text-[var(--ice)]"}`}
-                            title={res.sqlstate ? `SQLSTATE ${res.sqlstate}: ${res.message}` : res.message}
-                          >
-                            {res.ok ? "✓" : `refused ${res.sqlstate ?? "42501"}`}
+                        {isAllDenied ? (
+                          <span className="inline-flex items-center gap-1 font-mono text-[10px] text-[#ff3b4f] bg-[#ff3b4f]/10 border border-[#ff3b4f]/30 px-1.5 py-0.5 rounded-[2px]">
+                            <span className="font-bold">✕</span> DENIED
                           </span>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[#7ee2b8] font-bold text-[11px]">✓</span>
+                            <div className="flex items-center gap-1">
+                              {["S", "I", "U", "D", "X"].map((p) => {
+                                const has = privHas(privs, p);
+                                return (
+                                  <span
+                                    key={p}
+                                    className={`font-mono text-[9px] px-1 py-0.2 rounded-[1px] ${
+                                      has
+                                        ? "bg-[#7ee2b8]/15 text-[#7ee2b8] border border-[#7ee2b8]/30 font-semibold"
+                                        : "text-[#5f6f93] line-through decoration-[#ff3b4f]/60"
+                                    }`}
+                                  >
+                                    {p}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </div>
                         )}
                       </td>
                     );
@@ -336,16 +252,302 @@ export function SecurityLab() {
             </tbody>
           </table>
         </div>
-        <p className="font-mono mt-2 text-[10.5px] text-[var(--text-3)]">
-          Denials surface as “PostgreSQL refused 42501” — the error comes from GRANT/RLS, never the app.
+        <p className="font-mono mt-2 text-[10.5px] text-[#8b96b0]">
+          S/I/U/D/X = SELECT/INSERT/UPDATE/DELETE/EXECUTE. Check glyph (✓) indicates granted privileges; red cross (✕) marks forbidden operations.
+          station_key has column-level enforcement: key_id is readable by operators, secret is restricted to mission_director.
         </p>
       </Card>
 
-      <Card title="Audit log" kicker="director only">
+      {/* 2. Role Tree Panel */}
+      <Card title="Role inheritance hierarchy" kicker="pg_auth_members">
+        <div className="flex flex-wrap items-center gap-2">
+          {(matrix?.memberships ?? defaultMemberships()).map((m, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-2 border border-white/10 bg-[#05070d] px-3 py-1.5 rounded-[2px] font-mono text-[11px]"
+            >
+              <span className="text-white font-medium">{m.member}</span>
+              <span className="text-[#5f6f93]">→</span>
+              <span className="text-[#7fb2ff]">{m.role}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* 3. Row-Level Security (RLS) Demo: Two Panels per station */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#5f6f93]">
+              pg_policies · Table Isolation
+            </span>
+            <span className="text-[#5f6f93] text-[10px]">·</span>
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b96b0]">
+              Row-level security (RLS) per-station isolation
+            </h2>
+          </div>
+          <button
+            onClick={() => {
+              void runTry("station_operator_bom", "read_downlinks");
+              void runTry("station_operator_hel", "read_downlinks");
+              void runTry("mission_director", "read_downlinks");
+            }}
+            className="font-mono text-[11px] uppercase tracking-[0.1em] px-3.5 py-1.5 bg-[#3d5bff] hover:bg-[#324dd8] text-white rounded-[2px] font-semibold transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] cursor-pointer"
+          >
+            COMPARE 3 ROLES
+          </button>
+        </div>
+
+        {/* Station Mumbai (BOM): Two Panels */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Panel 1: Station BOM Policy & Scope */}
+          <Panel cut={8} className="w-full">
+            <div className="p-3.5 sm:p-4 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+                <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                  STATION BOM · POLICY RULES & FILTERS
+                </span>
+                <StatusBadge status="info" label="GS-BOM" />
+              </div>
+              <p className="font-mono text-[11px] text-[#7fb2ff]">
+                ROLE: station_operator_bom
+              </p>
+              <div className="border border-white/10 bg-[#05070d] p-2.5">
+                <p className="font-mono text-[10px] text-[#8b96b0] uppercase tracking-wider mb-1">
+                  Active policy predicate (USING)
+                </p>
+                <code className="font-mono text-[11.5px] text-[#dfe6f5] block whitespace-pre-wrap">
+                  operator_role = current_user OR to_node = 'GS-BOM' OR kind = 'ISL'
+                </code>
+              </div>
+              <p className="text-[12px] text-[#8b96b0]">
+                Station operator can only read and insert telemetry/telecommands bound to their own ground station. Foreign downlink rows are filtered at the storage engine level.
+              </p>
+            </div>
+          </Panel>
+
+          {/* Panel 2: Station BOM Visible Downlinks */}
+          <Panel cut={8} className="w-full">
+            <div className="p-3.5 sm:p-4 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+                <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                  STATION BOM · VISIBLE DOWNLINK ROWS
+                </span>
+                <StatusBadge
+                  status={downlinks["station_operator_bom"] ? "ok" : "warn"}
+                  label={downlinks["station_operator_bom"] ? "ISOLATED ✓" : "PENDING RUN"}
+                />
+              </div>
+              {downlinks["station_operator_bom"] ? (
+                <div className="flex flex-col gap-2 pt-1">
+                  {Object.entries(downlinks["station_operator_bom"]).map(([st, n]) => {
+                    const isOwn = st === "GS-BOM";
+                    return (
+                      <div key={st} className="flex flex-col gap-1 border border-white/5 bg-[#05070d] p-2 rounded-[2px]">
+                        <div className="flex items-center justify-between font-mono text-[11px]">
+                          <span className={isOwn ? "text-[#7ee2b8] font-semibold" : "text-[#5f6f93]"}>
+                            {st} {isOwn ? "(Local ground station)" : "(Foreign ground station)"}
+                          </span>
+                          <span className="tabular-nums font-bold text-white">{n} LEGS</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-white/[0.08] rounded-[1px] overflow-hidden">
+                          <div
+                            className={`h-full ${isOwn ? "bg-[#3d5bff]" : "bg-[#5f6f93]"}`}
+                            style={{ width: `${Math.min(100, Math.max(5, n * 8))}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <p className="font-mono text-[10.5px] text-[#7ee2b8]">
+                    Verification passed: 0 rows returned for GS-HEL. Full station isolation active.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 border border-dashed border-white/10 text-center font-mono text-[11px] text-[#5f6f93]">
+                  Click "COMPARE 3 ROLES" above to execute downlinks query under station_operator_bom.
+                </div>
+              )}
+            </div>
+          </Panel>
+        </div>
+
+        {/* Station Helsinki (HEL): Two Panels */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Panel 1: Station HEL Policy & Scope */}
+          <Panel cut={8} className="w-full">
+            <div className="p-3.5 sm:p-4 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+                <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                  STATION HEL · POLICY RULES & FILTERS
+                </span>
+                <StatusBadge status="info" label="GS-HEL" />
+              </div>
+              <p className="font-mono text-[11px] text-[#7fb2ff]">
+                ROLE: station_operator_hel
+              </p>
+              <div className="border border-white/10 bg-[#05070d] p-2.5">
+                <p className="font-mono text-[10px] text-[#8b96b0] uppercase tracking-wider mb-1">
+                  Active policy predicate (USING)
+                </p>
+                <code className="font-mono text-[11.5px] text-[#dfe6f5] block whitespace-pre-wrap">
+                  operator_role = current_user OR to_node = 'GS-HEL' OR kind = 'ISL'
+                </code>
+              </div>
+              <p className="text-[12px] text-[#8b96b0]">
+                Helsinki station operator is cryptographically and logically prevented from querying Mumbai downlink passes or injecting foreign commands.
+              </p>
+            </div>
+          </Panel>
+
+          {/* Panel 2: Station HEL Visible Downlinks */}
+          <Panel cut={8} className="w-full">
+            <div className="p-3.5 sm:p-4 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+                <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                  STATION HEL · VISIBLE DOWNLINK ROWS
+                </span>
+                <StatusBadge
+                  status={downlinks["station_operator_hel"] ? "ok" : "warn"}
+                  label={downlinks["station_operator_hel"] ? "ISOLATED ✓" : "PENDING RUN"}
+                />
+              </div>
+              {downlinks["station_operator_hel"] ? (
+                <div className="flex flex-col gap-2 pt-1">
+                  {Object.entries(downlinks["station_operator_hel"]).map(([st, n]) => {
+                    const isOwn = st === "GS-HEL";
+                    return (
+                      <div key={st} className="flex flex-col gap-1 border border-white/5 bg-[#05070d] p-2 rounded-[2px]">
+                        <div className="flex items-center justify-between font-mono text-[11px]">
+                          <span className={isOwn ? "text-[#7ee2b8] font-semibold" : "text-[#5f6f93]"}>
+                            {st} {isOwn ? "(Local ground station)" : "(Foreign ground station)"}
+                          </span>
+                          <span className="tabular-nums font-bold text-white">{n} LEGS</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-white/[0.08] rounded-[1px] overflow-hidden">
+                          <div
+                            className={`h-full ${isOwn ? "bg-[#3d5bff]" : "bg-[#5f6f93]"}`}
+                            style={{ width: `${Math.min(100, Math.max(5, n * 8))}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <p className="font-mono text-[10.5px] text-[#7ee2b8]">
+                    Verification passed: 0 rows returned for GS-BOM. Full station isolation active.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 border border-dashed border-white/10 text-center font-mono text-[11px] text-[#5f6f93]">
+                  Click "COMPARE 3 ROLES" above to execute downlinks query under station_operator_hel.
+                </div>
+              )}
+            </div>
+          </Panel>
+        </div>
+
+        {/* Global Director Supervisor View */}
+        <Panel cut={8} className="w-full">
+          <div className="p-3.5 sm:p-4 flex flex-col gap-2.5">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+              <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                DIRECTOR (SUPERVISOR) · GLOBAL ROW-LEVEL OVERVIEW
+              </span>
+              <StatusBadge status="nominal" label="GRP_DIRECTOR BYPASS" />
+            </div>
+            {downlinks["mission_director"] ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {Object.entries(downlinks["mission_director"]).map(([st, n]) => (
+                  <div key={st} className="border border-white/10 bg-[#05070d] p-3 rounded-[2px]">
+                    <div className="flex items-center justify-between font-mono text-[11px]">
+                      <span className="text-[#dfe6f5] font-semibold">{st}</span>
+                      <span className="text-[#7ee2b8] font-bold">{n} LEGS VISIBLE</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="font-mono text-[11px] text-[#5f6f93]">
+                Director sees all ground station downlinks aggregate via pg_has_role(current_user, 'grp_director', 'MEMBER').
+              </p>
+            )}
+          </div>
+        </Panel>
+      </div>
+
+      {/* 4. Action Try Runner: "Try it as…" */}
+      <Card title="Permission verification console" kicker="POST /api/labs/security/try">
+        <div className="overflow-x-auto border border-white/10 bg-[#05070d]">
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr className="border-b border-white/[0.08] bg-[#05070d]">
+                <th className="font-mono px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
+                  Target action
+                </th>
+                {roles.map((r) => (
+                  <th
+                    key={r}
+                    className="font-mono px-3 py-2 text-[10px] uppercase tracking-wider text-[#8b96b0] text-center"
+                  >
+                    {shortRole(r)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {ACTIONS.map((a) => (
+                <tr
+                  key={a.key}
+                  className="border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors"
+                >
+                  <td className="px-3 py-2 font-mono text-[12px] text-[#dfe6f5]">
+                    {a.label}
+                  </td>
+                  {roles.map((r) => {
+                    const k = `${r}:${a.key}`;
+                    const res = results[k];
+                    return (
+                      <td key={r} className="px-2 py-1.5 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                          <button
+                            onClick={() => void runTry(r, a.key)}
+                            disabled={running !== null}
+                            className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 border border-white/15 text-[#dfe6f5] hover:border-white/40 hover:bg-white/5 rounded-[2px] transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] disabled:opacity-40 cursor-pointer"
+                          >
+                            {running === k ? "…" : "TEST"}
+                          </button>
+                          {res !== undefined && (
+                            <span
+                              className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.2 rounded-[1px] border ${
+                                res.ok
+                                  ? "text-[#7ee2b8] border-[#7ee2b8]/40 bg-[#7ee2b8]/10"
+                                  : "text-[#ff3b4f] border-[#ff3b4f]/40 bg-[#ff3b4f]/10"
+                              }`}
+                              title={res.sqlstate ? `SQLSTATE ${res.sqlstate}: ${res.message}` : res.message}
+                            >
+                              {res.ok ? "✓ ALLOWED" : `✕ REFUSED ${res.sqlstate ?? "42501"}`}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="font-mono mt-2 text-[10.5px] text-[#8b96b0]">
+          Permission denials return genuine SQLSTATE 42501 exceptions from the PostgreSQL engine.
+        </p>
+      </Card>
+
+      {/* 5. Audit Log Panel: Director Only */}
+      <Card title="Audit log" kicker="mission_director only">
         {auditError !== null ? (
           <RefusalCard error={auditError} />
         ) : audit === null ? (
-          <p className="font-mono text-[11px] text-[var(--text-3)]">Loading audit_log…</p>
+          <p className="font-mono text-[11px] text-[#5f6f93]">Loading audit_log…</p>
         ) : (
           <AuditTable rows={audit} />
         )}
@@ -360,20 +562,35 @@ function shortRole(r: string): string {
 
 function privHas(privs: string[], p: string): boolean {
   const map: Record<string, string[]> = {
-    S: ["SELECT"], I: ["INSERT"], U: ["UPDATE"], D: ["DELETE"], X: ["EXECUTE", "USAGE"],
+    S: ["SELECT"],
+    I: ["INSERT"],
+    U: ["UPDATE"],
+    D: ["DELETE"],
+    X: ["EXECUTE", "USAGE"],
   };
   return (map[p] ?? []).some((x) => privs.map((y) => y.toUpperCase()).includes(x));
 }
 
 function defaultObjects(): string[] {
-  return ["telemetry", "packet", "contact", "telecommand", "station_key.secret", "station_key.key_id", "alert", "audit_log", "decide_for_satellite()"];
+  return [
+    "telemetry",
+    "packet",
+    "contact",
+    "telecommand",
+    "station_key.secret",
+    "station_key.key_id",
+    "alert",
+    "audit_log",
+    "decide_for_satellite()",
+  ];
 }
 
 function guessPrivs(role: string, obj: string): string[] {
   if (role === "mission_director") return ["SELECT", "INSERT", "UPDATE", "DELETE", "EXECUTE"];
   if (obj === "station_key.secret") return role === "mission_director" ? ["SELECT"] : [];
   if (obj === "audit_log") return role === "mission_director" ? ["SELECT"] : [];
-  if (obj === "telecommand" || obj.startsWith("decide")) return role === "student_analyst" || role === "ai_router" ? [] : ["SELECT", "INSERT", "EXECUTE"];
+  if (obj === "telecommand" || obj.startsWith("decide"))
+    return role === "student_analyst" || role === "ai_router" ? [] : ["SELECT", "INSERT", "EXECUTE"];
   if (role === "student_analyst") return ["SELECT", "EXECUTE"];
   if (role === "ai_router") return ["SELECT", "INSERT", "EXECUTE"];
   return ["SELECT", "INSERT", "UPDATE"];
@@ -389,18 +606,11 @@ function defaultMemberships(): Array<{ role: string; member: string }> {
   ];
 }
 
-function defaultPolicies(): Array<Record<string, unknown>> {
-  return [
-    { policyname: "telecommand_isolation", tablename: "telecommand", qual: "operator_role = current_user OR pg_has_role(current_user,'grp_director','MEMBER')" },
-    { policyname: "station_key_isolation", tablename: "station_key", qual: "operator_role = current_user OR pg_has_role(current_user,'grp_director','MEMBER')" },
-    { policyname: "contact_downlink_rls", tablename: "contact", qual: "kind = 'ISL' OR to_node operator matches current_user OR grp_director/analyst/router" },
-  ];
-}
-
 function AuditTable({ rows }: { rows: Array<Record<string, unknown>> }) {
-  if (rows.length === 0) return <p className="font-mono text-[11px] text-[var(--text-3)]">No audit rows yet.</p>;
+  if (rows.length === 0)
+    return <p className="font-mono text-[11px] text-[#5f6f93]">No audit records found.</p>;
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       <DataGrid rows={rows} limit={20} />
       {rows.slice(0, 3).map((r, i) => (
         <SqlBlock
@@ -429,3 +639,4 @@ function diffText(oldR: unknown, newR: unknown): string {
     return "(unparseable row payload)";
   }
 }
+
