@@ -1,0 +1,35 @@
+/* SomaiyaNet design tokens — the single source (§9 of docs/spec.md).
+   Deep ink navy + cream + Somaiya-red primary. Nothing here is the
+   friend's black + electric blue. */
+
+:root {
+  --ink: #0b1020;
+  --ink-2: #111833;
+  --ink-3: #1a2346;
+  --rule: #26305a;
+
+  --cream: #f3ead8;
+  --cream-dim: #b9b09e;
+  --mute: #7d7a73;
+
+  --somaiya: #d7263d;
+  --somaiya-soft: #d7263d22;
+
+  --amber: #ffb020;
+  --signal: #4cc38a;
+  --sky: #6ea8ff;
+
+  --radius: 0.75rem;
+
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Faint 24px mission-planning grid paper behind sections. */
+.grid-paper {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--rule) 35%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--rule) 35%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+}

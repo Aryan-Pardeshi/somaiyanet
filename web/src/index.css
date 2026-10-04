@@ -1,52 +1,40 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
 
 /* Local fonts (npm @fontsource) — no CDN, works offline. */
-@import "@fontsource/inter/latin-400.css";
-@import "@fontsource/inter/latin-500.css";
-@import "@fontsource/inter/latin-600.css";
-@import "@fontsource/inter/latin-700.css";
-@import "@fontsource/jetbrains-mono/latin-400.css";
-@import "@fontsource/jetbrains-mono/latin-500.css";
+@import "@fontsource/space-grotesk/latin-500.css";
+@import "@fontsource/space-grotesk/latin-700.css";
+@import "@fontsource/ibm-plex-sans/latin-400.css";
+@import "@fontsource/ibm-plex-sans/latin-500.css";
+@import "@fontsource/ibm-plex-sans/latin-600.css";
+@import "@fontsource/ibm-plex-mono/latin-400.css";
+@import "@fontsource/ibm-plex-mono/latin-500.css";
 
 @custom-variant dark (&:is(.dark *));
 
-/* ==========================================================================
-   SomaiyaNet — design tokens
-   Pure black, white text, one accent. Shared with the Streamlit dashboard.
-   ========================================================================== */
 :root {
-  --radius: 0.75rem; /* 12px */
+  --radius: 0.75rem;
 
-  --ss-black: #000000;
-  --ss-accent: #3d6bff;
-  --ss-muted: #8a8a93;
-  --somaiya-red: #d7263d;
-  --ss-line: #1f1f24;
-
-  --ss-good: #3ddc97;
-  --ss-fair: #ffb547;
-  --ss-poor: #ff5c7a;
-
-  /* shadcn variables, overridden to the mission palette */
-  --background: #000000;
-  --foreground: #f5f5f7;
-  --card: rgba(255, 255, 255, 0.03);
-  --card-foreground: #ffffff;
-  --popover: #08080a;
-  --popover-foreground: #ffffff;
-  --primary: #3d6bff;
-  --primary-foreground: #ffffff;
-  --secondary: rgba(255, 255, 255, 0.06);
-  --secondary-foreground: #ffffff;
-  --muted: rgba(255, 255, 255, 0.05);
-  --muted-foreground: #8a8f98;
-  --accent: rgba(61, 107, 255, 0.14);
-  --accent-foreground: #ffffff;
-  --destructive: #ff5c7a;
-  --destructive-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.12);
-  --input: rgba(255, 255, 255, 0.12);
-  --ring: #3d6bff;
+  /* shadcn variables, mapped onto the SomaiyaNet tokens */
+  --background: var(--ink);
+  --foreground: var(--cream);
+  --card: var(--ink-2);
+  --card-foreground: var(--cream);
+  --popover: var(--ink-2);
+  --popover-foreground: var(--cream);
+  --primary: var(--somaiya);
+  --primary-foreground: #fff;
+  --secondary: var(--ink-3);
+  --secondary-foreground: var(--cream);
+  --muted: var(--ink-3);
+  --muted-foreground: var(--cream-dim);
+  --accent: var(--somaiya-soft);
+  --accent-foreground: var(--cream);
+  --destructive: var(--somaiya);
+  --destructive-foreground: #fff;
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--somaiya);
 }
 
 @theme inline {
@@ -70,14 +58,18 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --color-ss-accent: var(--ss-accent);
-  --color-ss-muted: var(--ss-muted);
-  --color-ss-good: var(--ss-good);
-  --color-ss-fair: var(--ss-fair);
-  --color-ss-poor: var(--ss-poor);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-cream: var(--cream);
+  --color-somaiya: var(--somaiya);
+  --color-amber: var(--amber);
+  --color-signal: var(--signal);
+  --color-sky: var(--sky);
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -91,7 +83,7 @@
   }
 
   html {
-    background: #000;
+    background: var(--ink);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -99,21 +91,21 @@
 
   body {
     margin: 0;
-    background: #000;
-    color: #fff;
-    font-family: var(--font-sans);
+    background: var(--ink);
+    color: var(--cream);
+    font-family: var(--font-body);
     overflow-x: hidden;
     font-synthesis-weight: none;
   }
 
-  /* Lenis owns the scroll; html.lenis-stopped is used by the loader. */
+  /* Lenis owns the scroll; html.lenis-stopped is used while pinned. */
   html.lenis-stopped,
   body.no-scroll {
     overflow: hidden;
   }
 
   ::selection {
-    background: rgba(61, 107, 255, 0.35);
+    background: var(--somaiya);
     color: #fff;
   }
 
@@ -122,14 +114,14 @@
     height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #000;
+    background: var(--ink);
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.14);
+    background: color-mix(in srgb, var(--cream-dim) 30%, transparent);
     border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.24);
+    background: color-mix(in srgb, var(--cream-dim) 50%, transparent);
   }
 
   canvas {
@@ -139,32 +131,6 @@
 }
 
 @layer utilities {
-  /* The shared glass surface. */
-  .glass {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .hairline {
-    border-color: rgba(255, 255, 255, 0.12);
-  }
-
-  /* Small mono label, used for [ SECTION ] tags and readouts. */
-  .mono-label {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    line-height: 1;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-  }
-
-  .text-balance {
-    text-wrap: balance;
-  }
-
-  /* Page gutter, consistent across every section. */
   .shell {
     width: 100%;
     max-width: 1440px;
@@ -182,10 +148,21 @@
     }
   }
 
-  /* SplitText lines are clipped to their own box so the reveal reads cleanly. */
-  .split-line-mask {
-    overflow: hidden;
-    display: block;
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  /* Small mono label used by the ops console readouts. */
+  .mono-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .text-balance {
+    text-wrap: balance;
   }
 
   .fade-edges-x {
@@ -206,14 +183,7 @@
   }
 }
 
-/* Intro gate: the scroll cue's travelling tick. */
-@keyframes introCue {
-  0%   { transform: translateY(-100%); opacity: 0; }
-  35%  { opacity: 1; }
-  100% { transform: translateY(300%); opacity: 0; }
-}
-
-/* Reduced motion: no pinning, no scrub, no drifting. Everything just fades. */
+/* Reduced motion: no pinning, no scrub, no drifting. Everything just reads. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

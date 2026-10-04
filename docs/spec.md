@@ -681,26 +681,27 @@ Group roles are NOLOGIN: `grp_director`, `grp_station_operator`, `grp_analyst`, 
 - SECURITY DEFINER functions are owned by the superuser that runs setup, so they bypass RLS. That is intentional and documented in comments.
 - End the file with a verification `SELECT` over `information_schema.role_table_grants` for the five login roles.
 
-## 9. Design language (for web tasks)
+## 9. Design language (REVISED: our own identity, not the friend's)
 
-- **Palette:**
+The friend's site is pure black + electric blue + Inter. **Ours must not look like it.** Nothing from `reference/landing/src/sections` or its layout components may be reused; only generic helpers (GSAP/Lenis setup, the land-mask loader) and the Earth textures may be.
 
-  | role | colour |
-  |---|---|
-  | background | pure black `#000` |
-  | panels | `#0a0a0c` / `#111114` |
-  | hairlines | `#1f1f24` |
-  | text | `#f5f5f7` |
-  | muted text | `#8a8a93` |
-  | **primary accent** | electric blue `#3d6bff` |
-  | success | `#3ddc97` |
-  | warning | amber `#ffb020` |
-  | **Somaiya red** | `#d7263d` |
-
-- Somaiya red is used sparingly and only for: the brand mark, CRITICAL alerts, AI overrides, and permission-denied errors.
-- **Fonts:** Inter for text and JetBrains Mono for labels and numbers, both local woff2 (copied from `reference/landing/public/assets/fonts`). No CDN fonts.
-- Section labels follow the friend's `[ SECTION ]` mono style, but our copy is original.
-- Every data page has a collapsible **"SQL under the hood"** drawer showing the exact SQL that ran, plus Exp/CO chips.
+- **Palette tokens** (CSS variables in `web/src/styles/tokens.css`, the single source):
+  - `--ink` `#0b1020` (page background, deep ink navy), `--ink-2` `#111833` (panels), `--ink-3` `#1a2346` (raised), `--rule` `#26305a` (hairlines)
+  - `--cream` `#f3ead8` (primary text), `--cream-dim` `#b9b09e` (secondary), `--mute` `#7d7a73`
+  - **`--somaiya` `#d7263d` (PRIMARY accent: CTAs, the active hop, highlights, the brand)**, `--somaiya-soft` `#d7263d22`
+  - `--amber` `#ffb020` (data values, warnings), `--signal` `#4cc38a` (success/downlink), `--sky` `#6ea8ff` (used *small*: ISL lines, links only)
+- **Type** (local via @fontsource, no CDN):
+  - **Space Grotesk** for display and headings: big, tight tracking, weights 500/700
+  - **IBM Plex Sans** for body text
+  - **IBM Plex Mono** for data, SQL, labels and numbers
+- **Signature motifs** (use them consistently, so the site reads as one system):
+  - **Packet tag:** a small pill like `PKT#0412 · SSTV · 41.2 KB` in Plex Mono on a `--somaiya-soft` background. The story follows this one packet.
+  - **SQL ribbon:** a strip of real SQL in mono, typed out with a caret, with keywords in `--amber` and identifiers in cream.
+  - **Hop rail:** a horizontal or vertical rail of nodes (circles for SATs, squares for stations) connected by dashed segments, where the active hop glows Somaiya red.
+  - **Grid paper:** a faint 24 px grid (`--rule` at 35% opacity) behind the sections, like mission-planning paper.
+  - Section labels are written `01 / CAPTURED` (number, slash, word) in Plex Mono, **not** `[ SECTION ]` brackets.
+- The globe on `/ops` reuses the orbit math and textures but is re-themed to these tokens: Somaiya-red selection, amber satellites, sky ISL chords, signal-green downlinks, and ink panels.
+- Every data page has a collapsible **"SQL under the hood"** drawer showing the exact SQL that ran, with Exp/CO chips.
 
 ## 10. Role picker instead of a login form (user decision)
 

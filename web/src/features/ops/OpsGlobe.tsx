@@ -62,7 +62,7 @@ interface PathDatum {
   stroke: number;
 }
 
-const PLANE_A = "#3d6bff";
+const PLANE_A = "#6ea8ff";
 const PLANE_B = "#8fa8ff";
 const SAFE_RED = "#d7263d";
 const DOWNLINK_GREEN = "#3ddc97";
@@ -677,7 +677,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
           .ops-sat .ops-halo{position:absolute;inset:7px;border-radius:50%;border:1px solid currentColor;opacity:.34;animation:ops-sonar 2.6s ease-out infinite}
           @keyframes ops-sonar{0%{transform:scale(.55);opacity:.55}100%{transform:scale(1.5);opacity:0}}
           .ops-sat .ops-body{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:3px;background:currentColor;box-shadow:0 0 10px currentColor}
-          .ops-sat .ops-tag{position:absolute;left:28px;top:12px;font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.1em;white-space:nowrap;color:#fff;background:rgba(0,0,0,.55);border:1px solid #1f1f24;border-radius:6px;padding:1px 5px}
+          .ops-sat .ops-tag{position:absolute;left:28px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.1em;white-space:nowrap;color:#fff;background:rgba(0,0,0,.55);border:1px solid #1f1f24;border-radius:6px;padding:1px 5px}
           .ops-sat:hover .ops-tag,.ops-sat.ops-selected .ops-tag{border-color:currentColor}
           .ops-sat.ops-safe .ops-body{animation:ops-blink 1.1s ease-in-out infinite}
           @keyframes ops-blink{0%,100%{opacity:1}50%{opacity:.35}}
@@ -727,7 +727,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
               <button
                 onClick={() => props.onSelect(null)}
                 aria-label="Close panel"
-                className="ml-auto rounded-md border border-white/10 px-2 py-0.5 text-[#8a8a93] hover:border-[#3d6bff]/60 hover:text-white"
+                className="ml-auto rounded-md border border-white/10 px-2 py-0.5 text-[#8a8a93] hover:border-[#6ea8ff]/60 hover:text-white"
               >
                 ×
               </button>
@@ -790,7 +790,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
               onClick={() => setSpeedBoth(v)}
               className={`mono-label rounded-full border px-2 py-1 transition-colors ${
                 speed === v
-                  ? "border-[#3d6bff]/80 bg-[#3d6bff]/20 text-white"
+                  ? "border-[#6ea8ff]/80 bg-[#6ea8ff]/20 text-white"
                   : "border-white/10 text-[#8a8a93] hover:text-white"
               }`}
             >
@@ -808,7 +808,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
             <span className="h-[3px] w-4 rounded" style={{ background: DOWNLINK_GREEN }} /> downlink beam
           </div>
           <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[#8a8a93]">
-            <span className="h-[3px] w-4 rounded" style={{ background: "#3d6bff" }} /> ISL · score→alpha
+            <span className="h-[3px] w-4 rounded" style={{ background: "#6ea8ff" }} /> ISL · score→alpha
           </div>
           <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[#8a8a93]">
             <span className="h-2 w-2 rounded-[2px]" style={{ background: PLANE_A }} /> plane A
@@ -825,7 +825,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         {import.meta.env.DEV && (
           <button
             onClick={demoRoute}
-            className="mono-label absolute bottom-4 right-4 z-30 rounded-full border border-dashed border-white/20 bg-black/60 px-3 py-1.5 text-[#8a8a93] hover:border-[#3d6bff]/60 hover:text-white"
+            className="mono-label absolute bottom-4 right-4 z-30 rounded-full border border-dashed border-white/20 bg-black/60 px-3 py-1.5 text-[#8a8a93] hover:border-[#6ea8ff]/60 hover:text-white"
           >
             ▶ demo 3-hop route
           </button>

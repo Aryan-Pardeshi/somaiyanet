@@ -42,7 +42,7 @@ export default function Ops() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black px-6">
         <div className="w-full max-w-md rounded-2xl border border-[#1f1f24] bg-[#0a0a0c] p-8 text-center">
-          <p className="mono-label text-[#3d6bff]">[ console ]</p>
+          <p className="mono-label text-[#6ea8ff]">[ console ]</p>
           <h1 className="mt-4 text-xl font-semibold text-white">
             Pick a console profile first
           </h1>
@@ -52,7 +52,7 @@ export default function Ops() {
           </p>
           <Link
             to="/console"
-            className="mono-label mt-6 inline-block rounded-full bg-[#3d6bff] px-5 py-2.5 text-white"
+            className="mono-label mt-6 inline-block rounded-full bg-[#6ea8ff] px-5 py-2.5 text-white"
           >
             who&apos;s on console? →
           </Link>
@@ -92,12 +92,12 @@ export default function Ops() {
               [ sql under the hood ]
             </summary>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              <span className="mono-label rounded-full bg-[#3d6bff]/15 px-2 py-0.5 text-[#8fa8ff]">exp · ops</span>
+              <span className="mono-label rounded-full bg-[#6ea8ff]/15 px-2 py-0.5 text-[#8fa8ff]">exp · ops</span>
               <span className="mono-label rounded-full bg-white/5 px-2 py-0.5 text-[#8a8a93]">role: {data.role}</span>
             </div>
             {Object.entries(data.sql).map(([k, v]) => (
               <div key={k} className="mt-2">
-                <p className="mono-label text-[#3d6bff]">{k}</p>
+                <p className="mono-label text-[#6ea8ff]">{k}</p>
                 <pre className="mt-1 overflow-x-auto whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-[#8a8a93]">
                   {v}
                 </pre>
