@@ -220,7 +220,7 @@ export default function Routing() {
               EXP 6 · CO3
             </span>
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10 text-[#7fb2ff]">
-              LEO CGR v2.4
+              RECURSIVE CTE
             </span>
           </div>
         </div>
