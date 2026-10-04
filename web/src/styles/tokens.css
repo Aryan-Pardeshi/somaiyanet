@@ -1,35 +1,30 @@
-/* SomaiyaNet design tokens — the single source (§9 of docs/spec.md).
-   Deep ink navy + cream + Somaiya-red primary. Nothing here is the
-   friend's black + electric blue. */
+/* SomaiyaNet design tokens — black + navy (Brief 11, replaces spec §9). */
 
 :root {
-  --ink: #0b1020;
-  --ink-2: #111833;
-  --ink-3: #1a2346;
-  --rule: #26305a;
+  --space: #02040a;
+  --navy-900: #060d1f;
+  --navy-800: #0a1630;
+  --navy-700: #0f2147;
+  --navy-600: #16306a;
+  --line: #1b2d55;
+  --line-strong: #28427a;
 
-  --cream: #f3ead8;
-  --cream-dim: #b9b09e;
-  --mute: #7d7a73;
+  --text: #e6ecf8;
+  --text-2: #93a3c4;
+  --text-3: #5f6f93;
 
+  --ice: #7fb2ff;
+  --ice-strong: #a9caff;
+
+  --ok: #3ecf8e;
+  --warn: #f5b142;
+  --danger: #e5484d;
+
+  /* Only the brand dot in the logo and the travelling packet dot. */
   --somaiya: #d7263d;
-  --somaiya-soft: #d7263d22;
-
-  --amber: #ffb020;
-  --signal: #4cc38a;
-  --sky: #6ea8ff;
 
   --radius: 0.75rem;
 
-  --font-display: "Space Grotesk", system-ui, sans-serif;
-  --font-body: "IBM Plex Sans", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-/* Faint 24px mission-planning grid paper behind sections. */
-.grid-paper {
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--rule) 35%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--rule) 35%, transparent) 1px, transparent 1px);
-  background-size: 24px 24px;
+  --font-sans: "Geist Sans", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }

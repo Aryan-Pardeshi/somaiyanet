@@ -57,8 +57,8 @@ export default function Landing() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[var(--ink)] text-[var(--cream)]">
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--rule)] bg-[var(--ink)]/85 backdrop-blur-md">
+    <div className="min-h-screen bg-[var(--space)] text-[var(--text)]">
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-[var(--line)] bg-[var(--space)]/85 backdrop-blur-md">
         <div className="shell flex h-14 items-center gap-6">
           <Link to="/" aria-label="SomaiyaNet home">
             <Brand className="text-lg" />
@@ -68,7 +68,7 @@ export default function Landing() {
               <a
                 key={id}
                 href={`#${id}`}
-                className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--mute)] transition-colors hover:text-[var(--cream)]"
+                className="text-[13px] text-[var(--text-2)] transition-colors hover:text-[var(--text)]"
               >
                 {label}
               </a>
@@ -78,9 +78,9 @@ export default function Landing() {
             <PacketTag status={status} className="hidden sm:inline-flex" />
             <Link
               to="/console"
-              className="font-mono rounded-full bg-[var(--somaiya)] px-4 py-1.5 text-[11px] uppercase tracking-[0.14em] text-white transition-transform hover:scale-105"
+              className="h-9 rounded-lg bg-[var(--ice)] px-4 py-2 text-[13px] font-semibold text-[#04122e] hover:bg-[var(--ice-strong)]"
             >
-              Console →
+              Take the console
             </Link>
           </div>
         </div>
@@ -91,7 +91,7 @@ export default function Landing() {
         <PacketTag status={status} />
       </div>
 
-      <main>
+      <main className="[&>section:nth-child(even)]:bg-[var(--navy-900)]">
         <HeroChapter />
         <CapturedChapter />
         <ReleasedChapter />

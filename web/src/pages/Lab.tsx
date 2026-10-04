@@ -39,8 +39,8 @@ const META: Record<string, { title: string; chips: string[]; notice: string[] }>
     title: "Normalization",
     chips: ["CO3", "UNF → BCNF"],
     notice: [
-      "Amber columns are the duplicated facts that each normal form removes.",
-      "Red FD arrows name the exact form they violate and the fix applied next.",
+      "Highlighted columns are the duplicated facts that each normal form removes.",
+      "FD arrows name the exact form they violate and the fix applied next.",
       "Every decomposition step in the lossless proof rejoins with 0 missing/spurious.",
     ],
   },
@@ -48,7 +48,7 @@ const META: Record<string, { title: string; chips: string[]; notice: string[] }>
     title: "Schema",
     chips: ["Exp 1–3", "CO1", "CO2"],
     notice: [
-      "Amber d-circles are the disjoint EER splits: node and packet hierarchies.",
+      "Ice d-circles are the disjoint EER splits: node and packet hierarchies.",
       "Double borders are weak entities; ▤ is the RANGE-partitioned telemetry.",
       "Click any table for its comment, columns and constraint list.",
     ],

@@ -60,10 +60,10 @@ interface LogEntry {
 }
 
 function pill(status: string): string {
-  if (status === "waiting") return "border-[var(--amber)] text-[var(--amber)] animate-pulse";
-  if (status.startsWith("error")) return "border-[var(--somaiya)] text-[var(--somaiya)]";
-  if (status === "in transaction" || status === "in-transaction") return "border-[var(--sky)] text-[var(--sky)]";
-  return "border-[var(--rule)] text-[var(--cream-dim)]";
+  if (status === "waiting") return "border-[var(--warn)] text-[var(--warn)] animate-pulse";
+  if (status.startsWith("error")) return "border-[var(--ice)] text-[var(--ice)]";
+  if (status === "in transaction" || status === "in-transaction") return "border-[var(--ice)] text-[var(--ice)]";
+  return "border-[var(--line)] text-[var(--text-2)]";
 }
 
 function matchExpect(expect: string, res: TxExecResult): boolean {
@@ -280,36 +280,36 @@ export function TxLab() {
         kicker="Exp 9 · CO1/CO4"
         aside={
           <div className="flex gap-2">
-            <button onClick={() => void reset()} className="font-mono rounded-full border border-[var(--rule)] px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--cream-dim)] hover:border-[var(--somaiya)] hover:text-[var(--cream)]">
+            <button onClick={() => void reset()} className="font-mono rounded-full border border-[var(--line)] px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]">
               reset
             </button>
-            <button onClick={() => void newSession()} className="font-mono rounded-full bg-[var(--somaiya)] px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-white hover:scale-105">
+            <button onClick={() => void newSession()} className="font-mono rounded-full bg-[var(--ice)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#04122e] hover:scale-105">
               new lab session
             </button>
           </div>
         }
       >
         <div className="flex flex-wrap items-center gap-2">
-          <label htmlFor="tx-scenario" className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--mute)]">
+          <label htmlFor="tx-scenario" className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
             Scenario
           </label>
           <select
             id="tx-scenario"
             value={scenarioKey}
             onChange={(e) => { setScenarioKey(e.target.value); setStepIdx(0); setVerdicts([]); }}
-            className="font-mono rounded-lg border border-[var(--rule)] bg-[var(--ink)] px-2.5 py-1.5 text-[12px] text-[var(--cream)]"
+            className="font-mono rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-1.5 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
           >
             {scenarios.map((s) => (
               <option key={s.key} value={s.key}>{s.title ?? s.key}</option>
             ))}
           </select>
           {usingFallback && (
-            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--amber)]">
+            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-[var(--warn)]">
               script preview · backend offline
             </span>
           )}
         </div>
-        <p className="mt-2 text-[13px] text-[var(--cream-dim)]">{scenario.description}</p>
+        <p className="mt-2 text-[13px] text-[var(--text-2)]">{scenario.description}</p>
         <ol className="mt-3 flex flex-col gap-2">
           {scenario.steps.map((s, i) => {
             const done = i < stepIdx;
@@ -319,21 +319,21 @@ export function TxLab() {
               <li
                 key={i}
                 className={`rounded-lg border p-2.5 ${
-                  current ? "border-[var(--somaiya)] bg-[var(--somaiya-soft)]" : "border-[var(--rule)] bg-[var(--ink)]"
+                  current ? "border-[var(--ice)] bg-[var(--navy-700)]" : "border-[var(--line)] bg-[var(--space)]"
                 }`}
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-[11px] text-[var(--cream)]">
+                  <span className="font-mono text-[11px] text-[var(--text)]">
                     {i + 1}. [{s.session}]
                   </span>
-                  <span className="font-mono text-[10px] text-[var(--mute)]">expect {s.expect}</span>
-                  {ok === true && <span className="font-mono text-[11px] text-[var(--signal)]">✓</span>}
-                  {ok === false && <span className="font-mono text-[11px] text-[var(--somaiya)]">✗</span>}
+                  <span className="font-mono text-[10px] text-[var(--text-3)]">expect {s.expect}</span>
+                  {ok === true && <span className="font-mono text-[11px] text-[var(--ok)]">✓</span>}
+                  {ok === false && <span className="font-mono text-[11px] text-[var(--ice)]">✗</span>}
                 </div>
-                <pre className="font-mono mt-1 overflow-x-auto whitespace-pre-wrap text-[11px] text-[var(--cream-dim)]">
+                <pre className="font-mono mt-1 overflow-x-auto whitespace-pre-wrap text-[11px] text-[var(--text-2)]">
                   {highlightSql(s.sql)}
                 </pre>
-                <p className="mt-1 text-[12px] text-[var(--mute)]">{s.explain}</p>
+                <p className="mt-1 text-[12px] text-[var(--text-3)]">{s.explain}</p>
               </li>
             );
           })}
@@ -342,7 +342,7 @@ export function TxLab() {
           <button
             onClick={nextStep}
             disabled={busy || doneSteps || labId === null}
-            className="font-mono rounded-full bg-[var(--somaiya)] px-4 py-1.5 text-[11px] uppercase tracking-[0.14em] text-white hover:scale-105 disabled:opacity-40"
+            className="font-mono rounded-full bg-[var(--ice)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#04122e] hover:scale-105 disabled:opacity-40"
           >
             {doneSteps ? "script complete" : busy ? "running…" : `next step (${stepIdx + 1}/${scenario.steps.length})`}
           </button>
@@ -367,7 +367,7 @@ export function TxLab() {
               }
             >
               <div className="flex flex-col gap-2">
-                <label htmlFor={`tx-sql-${s}`} className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--mute)]">
+                <label htmlFor={`tx-sql-${s}`} className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
                   Ad-hoc SQL · ctrl+enter runs
                 </label>
                 <textarea
@@ -384,28 +384,28 @@ export function TxLab() {
                   rows={3}
                   spellCheck={false}
                   placeholder="SELECT … | BEGIN; …"
-                  className="font-mono min-h-[72px] rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-2.5 text-[12px] text-[var(--cream)]"
+                  className="font-mono min-h-[72px] rounded-lg border border-[var(--line)] bg-[var(--space)] p-2.5 text-[12px] text-[var(--text)]"
                 />
                 <div>
                   <button
                     onClick={() => { void exec(s, inputs[s], null); setInputs((p) => ({ ...p, [s]: "" })); }}
                     disabled={busy || labId === null || inputs[s].trim() === ""}
-                    className="font-mono rounded-full border border-[var(--rule)] px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--cream-dim)] hover:border-[var(--somaiya)] hover:text-[var(--cream)] disabled:opacity-40"
+                    className="font-mono rounded-full border border-[var(--line)] px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)] disabled:opacity-40"
                   >
                     run
                   </button>
                 </div>
                 <div className="flex max-h-56 flex-col gap-1.5 overflow-y-auto">
                   {logs.filter((l) => l.session === s).length === 0 && (
-                    <p className="font-mono text-[11px] text-[var(--mute)]">No statements yet.</p>
+                    <p className="font-mono text-[11px] text-[var(--text-3)]">No statements yet.</p>
                   )}
                   {logs.filter((l) => l.session === s).map((l) => (
-                    <div key={l.n} className="rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-2">
-                      <p className="font-mono text-[10px] text-[var(--mute)]">
-                        #{l.n} · <span className={l.status.startsWith("error") ? "text-[var(--somaiya)]" : l.status === "waiting" ? "text-[var(--amber)]" : "text-[var(--signal)]"}>{l.status}</span>
+                    <div key={l.n} className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-2">
+                      <p className="font-mono text-[10px] text-[var(--text-3)]">
+                        #{l.n} · <span className={l.status.startsWith("error") ? "text-[var(--ice)]" : l.status === "waiting" ? "text-[var(--warn)]" : "text-[var(--ok)]"}>{l.status}</span>
                       </p>
-                      <pre className="font-mono mt-1 overflow-x-auto whitespace-pre-wrap text-[11px] text-[var(--cream)]">{l.sql}</pre>
-                      <p className="font-mono mt-1 text-[10.5px] text-[var(--cream-dim)]">{l.detail}</p>
+                      <pre className="font-mono mt-1 overflow-x-auto whitespace-pre-wrap text-[11px] text-[var(--text)]">{l.sql}</pre>
+                      <p className="font-mono mt-1 text-[10.5px] text-[var(--text-2)]">{l.detail}</p>
                     </div>
                   ))}
                 </div>
@@ -427,27 +427,27 @@ export function TxLab() {
             cycle={cycle}
           />
           {locks.length === 0 ? (
-            <p className="font-mono text-[11px] text-[var(--mute)]">
+            <p className="font-mono text-[11px] text-[var(--text-3)]">
               No lock rows yet — run a scenario step, then poll every 400 ms while waiting.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-[var(--rule)]">
+            <div className="overflow-x-auto rounded-lg border border-[var(--line)]">
               <table className="w-full border-collapse text-left">
-                <thead className="bg-[var(--ink-3)]">
+                <thead className="bg-[var(--navy-700)]">
                   <tr>
                     {["pid", "locktype", "mode", "granted", "relation"].map((c) => (
-                      <th key={c} className="font-mono border-b border-[var(--rule)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--cream-dim)]">{c}</th>
+                      <th key={c} className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--text-2)]">{c}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {locks.map((l, i) => (
-                    <tr key={i} className="odd:bg-[var(--ink)] even:bg-[var(--ink-2)]">
+                    <tr key={i} className="odd:bg-[var(--space)] even:bg-[var(--navy-800)]">
                       {["pid", "locktype", "mode", "granted", "relation"].map((c) => (
                         <td
                           key={c}
                           className={`font-mono px-2.5 py-1.5 text-[11.5px] ${
-                            c === "granted" && l[c] === false ? "text-[var(--amber)]" : "text-[var(--cream)]"
+                            c === "granted" && l[c] === false ? "text-[var(--warn)]" : "text-[var(--text)]"
                           }`}
                         >
                           {String(l[c] ?? "—")}
@@ -461,7 +461,7 @@ export function TxLab() {
           )}
           {state?.lab_table !== undefined && state.lab_table !== null && state.lab_table.length > 0 && (
             <div>
-              <p className="font-mono mb-1 text-[10px] uppercase tracking-[0.14em] text-[var(--mute)]">
+              <p className="font-mono mb-1 text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
                 lab_account
               </p>
               <DataGrid rows={state.lab_table as Array<Record<string, unknown>>} />
@@ -480,16 +480,16 @@ function WaitGraph({ pidA, pidB, aBlocked, bBlocked, cycle }: {
   bBlocked: boolean;
   cycle: boolean;
 }) {
-  const color = cycle ? "var(--somaiya)" : "var(--amber)";
+  const color = cycle ? "var(--danger)" : "var(--ice)";
   return (
-    <svg viewBox="0 0 360 84" role="img" aria-label="wait-for graph" className="w-full max-w-[420px] rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-2">
-      <g fontFamily="IBM Plex Mono, monospace" fontSize="11">
-        <circle cx="60" cy="42" r="22" fill="none" stroke={aBlocked ? color : "var(--rule)"} strokeWidth="2" />
-        <text x="60" y="46" textAnchor="middle" fill="var(--cream)">A</text>
-        <text x="60" y="78" textAnchor="middle" fill="var(--mute)" fontSize="9">{pidA ?? "…"}</text>
-        <circle cx="300" cy="42" r="22" fill="none" stroke={bBlocked ? color : "var(--rule)"} strokeWidth="2" />
-        <text x="300" y="46" textAnchor="middle" fill="var(--cream)">B</text>
-        <text x="300" y="78" textAnchor="middle" fill="var(--mute)" fontSize="9">{pidB ?? "…"}</text>
+    <svg viewBox="0 0 360 84" role="img" aria-label="wait-for graph" className="w-full max-w-[420px] rounded-lg border border-[var(--line)] bg-[var(--space)] p-2">
+      <g fontFamily="Geist Mono, monospace" fontSize="11">
+        <circle cx="60" cy="42" r="22" fill="none" stroke={aBlocked ? color : "var(--line)"} strokeWidth="2" />
+        <text x="60" y="46" textAnchor="middle" fill="var(--text)">A</text>
+        <text x="60" y="78" textAnchor="middle" fill="var(--text-3)" fontSize="9">{pidA ?? "…"}</text>
+        <circle cx="300" cy="42" r="22" fill="none" stroke={bBlocked ? color : "var(--line)"} strokeWidth="2" />
+        <text x="300" y="46" textAnchor="middle" fill="var(--text)">B</text>
+        <text x="300" y="78" textAnchor="middle" fill="var(--text-3)" fontSize="9">{pidB ?? "…"}</text>
         {aBlocked && (
           <g stroke={color} strokeWidth="1.6" strokeDasharray="5 4">
             <line x1="84" y1="34" x2="274" y2="34" />
@@ -503,10 +503,10 @@ function WaitGraph({ pidA, pidB, aBlocked, bBlocked, cycle }: {
           </g>
         )}
         {!aBlocked && !bBlocked && (
-          <text x="180" y="46" textAnchor="middle" fill="var(--mute)">no waits</text>
+          <text x="180" y="46" textAnchor="middle" fill="var(--text-3)">no waits</text>
         )}
         {cycle && (
-          <text x="180" y="20" textAnchor="middle" fill="var(--somaiya)">DEADLOCK CYCLE</text>
+          <text x="180" y="20" textAnchor="middle" fill="var(--danger)">DEADLOCK CYCLE</text>
         )}
       </g>
     </svg>
@@ -518,11 +518,11 @@ function OutcomeCallouts({ scenarioKey, logs }: { scenarioKey: string; logs: Log
   const has40P01 = logs.some((l) => l.detail.includes("40P01") || l.status.includes("40P01"));
   if (scenarioKey === "phantom_or_write_skew" && has40001) {
     return (
-      <div role="alert" className="rounded-xl border border-[var(--somaiya)] bg-[var(--ink-2)] p-4">
-        <p className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--somaiya)]">
+      <div role="alert" className="rounded-xl border border-[var(--ice)] bg-[var(--navy-800)] p-4">
+        <p className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--ice)]">
           Serialization failure · 40001 — retry the transaction
         </p>
-        <p className="mt-1 text-[13px] text-[var(--cream-dim)]">
+        <p className="mt-1 text-[13px] text-[var(--text-2)]">
           SERIALIZABLE saw a read/write cycle between A and B. One committer wins; the other must retry from BEGIN.
         </p>
       </div>
@@ -530,11 +530,11 @@ function OutcomeCallouts({ scenarioKey, logs }: { scenarioKey: string; logs: Log
   }
   if (scenarioKey === "deadlock" && has40P01) {
     return (
-      <div role="alert" className="rounded-xl border border-[var(--somaiya)] bg-[var(--ink-2)] p-4">
-        <p className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--somaiya)]">
+      <div role="alert" className="rounded-xl border border-[var(--ice)] bg-[var(--navy-800)] p-4">
+        <p className="font-mono text-[12px] uppercase tracking-[0.16em] text-[var(--ice)]">
           Deadlock detected · 40P01 — Postgres aborted one victim
         </p>
-        <p className="mt-1 text-[13px] text-[var(--cream-dim)]">
+        <p className="mt-1 text-[13px] text-[var(--text-2)]">
           A → B and B → A formed a wait cycle. After deadlock_timeout Postgres picks a victim; retry it.
         </p>
       </div>
@@ -546,21 +546,21 @@ function OutcomeCallouts({ scenarioKey, logs }: { scenarioKey: string; logs: Log
     if (idsA.length > 0 || idsB.length > 0) {
       const overlap = idsA.filter((x) => idsB.includes(x));
       return (
-        <div className="rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--signal)]">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--ok)]">
             SKIP LOCKED — {overlap.length === 0 ? "disjoint ✓" : `overlap ✗ (${overlap.length})`}
           </p>
-          <p className="font-mono mt-2 text-[11px] text-[var(--cream-dim)]">A: [{idsA.slice(0, 12).join(", ")}]{idsA.length > 12 ? "…" : ""}</p>
-          <p className="font-mono mt-1 text-[11px] text-[var(--cream-dim)]">B: [{idsB.slice(0, 12).join(", ")}]{idsB.length > 12 ? "…" : ""}</p>
+          <p className="font-mono mt-2 text-[11px] text-[var(--text-2)]">A: [{idsA.slice(0, 12).join(", ")}]{idsA.length > 12 ? "…" : ""}</p>
+          <p className="font-mono mt-1 text-[11px] text-[var(--text-2)]">B: [{idsB.slice(0, 12).join(", ")}]{idsB.length > 12 ? "…" : ""}</p>
         </div>
       );
     }
   }
   if (scenarioKey === "mvcc") {
     return (
-      <div className="rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
-        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--sky)]">MVCC</p>
-        <p className="mt-1 text-[13px] text-[var(--cream-dim)]">
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--ice)]">MVCC</p>
+        <p className="mt-1 text-[13px] text-[var(--text-2)]">
           A updated without committing: A reads the new tuple (new xmax/ctid), B still reads the old committed
           version. Compare xmin, xmax and ctid in both result logs; after COMMIT, B sees the new ctid.
         </p>
@@ -587,9 +587,9 @@ function WALBar({ logs }: { logs: LogEntry[] }) {
   });
   void lsns;
   return (
-    <div className="rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
-      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--amber)]">WAL</p>
-      <p className="mt-1 text-[13px] text-[var(--cream-dim)]">
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
+      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--warn)]">WAL</p>
+      <p className="mt-1 text-[13px] text-[var(--text-2)]">
         Every write goes to the write-ahead log before the heap. Take LSN before/after the 1000-row insert and
         diff with pg_wal_lsn_diff — the bar is the WAL bytes that make crash recovery possible.
       </p>

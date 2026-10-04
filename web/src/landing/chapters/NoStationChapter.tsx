@@ -36,7 +36,7 @@ export function NoStationChapter() {
         ]}
         visual={
           <div className="flex flex-col gap-4">
-            <div className="overflow-hidden rounded-xl border border-[var(--rule)] bg-[var(--ink-2)]">
+            <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--navy-800)]">
               <OrbitScene mode="route" progressRef={progress} height={440} />
             </div>
             <HopRail

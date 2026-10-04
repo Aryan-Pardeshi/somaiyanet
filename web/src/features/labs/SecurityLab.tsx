@@ -106,24 +106,24 @@ export function SecurityLab() {
     <div className="flex flex-col gap-6">
       <Card title="Privilege matrix" kicker="has_*_privilege · Exp 7">
         {cells.length === 0 && (
-          <p className="font-mono mb-2 text-[11px] text-[var(--amber)]">
+          <p className="font-mono mb-2 text-[11px] text-[var(--warn)]">
             Live matrix pending — showing the contracted shape. Hover a cell for the exact privilege call.
           </p>
         )}
-        <div className="overflow-x-auto rounded-lg border border-[var(--rule)]">
+        <div className="overflow-x-auto rounded-lg border border-[var(--line)]">
           <table className="w-full border-collapse text-left">
-            <thead className="bg-[var(--ink-3)]">
+            <thead className="bg-[var(--navy-700)]">
               <tr>
-                <th className="font-mono border-b border-[var(--rule)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--cream-dim)]">role \ object</th>
+                <th className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--text-2)]">role \ object</th>
                 {objects.map((o) => (
-                  <th key={o} className="font-mono border-b border-[var(--rule)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.06em] text-[var(--cream-dim)]">{o}</th>
+                  <th key={o} className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.06em] text-[var(--text-2)]">{o}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {roles.map((r) => (
-                <tr key={r} className="odd:bg-[var(--ink)] even:bg-[var(--ink-2)]">
-                  <td className="font-mono px-2.5 py-1.5 text-[11px] text-[var(--amber)]">{r}</td>
+                <tr key={r} className="odd:bg-[var(--space)] even:bg-[var(--navy-800)]">
+                  <td className="font-mono px-2.5 py-1.5 text-[11px] text-[var(--warn)]">{r}</td>
                   {objects.map((o) => {
                     const cell = cellOf(r, o);
                     const privs = cell?.privs ?? guessPrivs(r, o);
@@ -141,8 +141,8 @@ export function SecurityLab() {
                                 key={p}
                                 className={`font-mono rounded px-1 text-[10px] ${
                                   has
-                                    ? "bg-[var(--somaiya-soft)] text-[var(--cream)]"
-                                    : "text-[var(--mute)] line-through decoration-[var(--somaiya)]"
+                                    ? "bg-[var(--navy-700)] text-[var(--text)]"
+                                    : "text-[var(--text-3)] line-through decoration-[var(--ice)]"
                                 }`}
                               >
                                 {p}
@@ -158,8 +158,8 @@ export function SecurityLab() {
             </tbody>
           </table>
         </div>
-        <p className="font-mono mt-2 text-[10.5px] text-[var(--mute)]">
-          S/I/U/D/X = SELECT/INSERT/UPDATE/DELETE/EXECUTE · cream = granted, dim + red strike = denied.
+        <p className="font-mono mt-2 text-[10.5px] text-[var(--text-3)]">
+          S/I/U/D/X = SELECT/INSERT/UPDATE/DELETE/EXECUTE. Bright cells are granted, dim cells with red strike are denied.
           station_key appears twice: key_id readable by operators, secret director-only.
         </p>
       </Card>
@@ -167,10 +167,10 @@ export function SecurityLab() {
       <Card title="Role tree" kicker="pg_auth_members">
         <div className="font-mono flex flex-wrap items-center gap-2 text-[11.5px]">
           {(matrix?.memberships ?? defaultMemberships()).map((m, i) => (
-            <span key={i} className="rounded-full border border-[var(--rule)] bg-[var(--ink)] px-3 py-1 text-[var(--cream-dim)]">
-              <span className="text-[var(--cream)]">{m.member}</span>
-              <span className="mx-1.5 text-[var(--mute)]">→</span>
-              <span className="text-[var(--sky)]">{m.role}</span>
+            <span key={i} className="rounded-full border border-[var(--line)] bg-[var(--space)] px-3 py-1 text-[var(--text-2)]">
+              <span className="text-[var(--text)]">{m.member}</span>
+              <span className="mx-1.5 text-[var(--text-3)]">→</span>
+              <span className="text-[var(--ice)]">{m.role}</span>
             </span>
           ))}
         </div>
@@ -186,7 +186,7 @@ export function SecurityLab() {
               void runTry("station_operator_hel", "read_downlinks");
               void runTry("mission_director", "read_downlinks");
             }}
-            className="font-mono rounded-full border border-[var(--rule)] px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--cream-dim)] hover:border-[var(--somaiya)] hover:text-[var(--cream)]"
+            className="font-mono rounded-full border border-[var(--line)] px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]"
           >
             compare 3 roles
           </button>
@@ -194,12 +194,12 @@ export function SecurityLab() {
       >
         <div className="flex flex-col gap-2">
           {(matrix?.policies ?? defaultPolicies()).map((p, i) => (
-            <div key={i} className="rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-2.5">
-              <p className="font-mono text-[11.5px] text-[var(--cream)]">
+            <div key={i} className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-2.5">
+              <p className="font-mono text-[11.5px] text-[var(--text)]">
                 {String(p["policyname"] ?? p["name"] ?? `policy ${i + 1}`)}
-                <span className="text-[var(--mute)]"> · {String(p["tablename"] ?? p["table"] ?? "contact/telecommand")}</span>
+                <span className="text-[var(--text-3)]"> · {String(p["tablename"] ?? p["table"] ?? "contact/telecommand")}</span>
               </p>
-              <p className="font-mono mt-1 text-[10.5px] text-[var(--cream-dim)]">
+              <p className="font-mono mt-1 text-[10.5px] text-[var(--text-2)]">
                 {String(p["qual"] ?? p["using"] ?? p["definition"] ?? "operator_role = current_user OR pg_has_role(current_user,'grp_director','MEMBER')")}
               </p>
             </div>
@@ -210,28 +210,28 @@ export function SecurityLab() {
             const counts = downlinks[r];
             const total = counts ? Object.values(counts).reduce((a, b) => a + b, 0) : null;
             return (
-              <div key={r} className="rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-3">
-                <p className="font-mono text-[10.5px] text-[var(--amber)]">{r}</p>
+              <div key={r} className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-3">
+                <p className="font-mono text-[10.5px] text-[var(--warn)]">{r}</p>
                 {counts ? (
                   <div className="mt-2 flex flex-col gap-1.5">
                     {Object.entries(counts).map(([st, n]) => (
                       <div key={st} className="flex items-center gap-2">
-                        <span className="font-mono w-16 text-[10px] text-[var(--cream-dim)]">{st}</span>
-                        <div className="h-2 flex-1 rounded bg-[var(--ink-3)]">
+                        <span className="font-mono w-16 text-[10px] text-[var(--text-2)]">{st}</span>
+                        <div className="h-2 flex-1 rounded bg-[var(--navy-700)]">
                           <div
-                            className="h-2 rounded bg-[var(--sky)]"
+                            className="h-2 rounded bg-[var(--ice)]"
                             style={{ width: `${total ? Math.max(4, (n / total) * 100) : 0}%` }}
                           />
                         </div>
-                        <span className="font-mono text-[10px] text-[var(--cream)]">{n}</span>
+                        <span className="font-mono text-[10px] text-[var(--text)]">{n}</span>
                       </div>
                     ))}
-                    <p className="font-mono mt-1 text-[10px] text-[var(--mute)]">
+                    <p className="font-mono mt-1 text-[10px] text-[var(--text-3)]">
                       {r.startsWith("station_operator") ? "sees only own station" : "sees all stations"}
                     </p>
                   </div>
                 ) : (
-                  <p className="font-mono mt-2 text-[10.5px] text-[var(--mute)]">
+                  <p className="font-mono mt-2 text-[10.5px] text-[var(--text-3)]">
                     No live rows yet — press “compare 3 roles”.
                   </p>
                 )}
@@ -242,20 +242,20 @@ export function SecurityLab() {
       </Card>
 
       <Card title="Try it as…" kicker="POST /api/labs/security/try">
-        <div className="overflow-x-auto rounded-lg border border-[var(--rule)]">
+        <div className="overflow-x-auto rounded-lg border border-[var(--line)]">
           <table className="w-full border-collapse text-left">
-            <thead className="bg-[var(--ink-3)]">
+            <thead className="bg-[var(--navy-700)]">
               <tr>
-                <th className="font-mono border-b border-[var(--rule)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--cream-dim)]">action</th>
+                <th className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--text-2)]">action</th>
                 {roles.map((r) => (
-                  <th key={r} className="font-mono border-b border-[var(--rule)] px-2.5 py-1.5 text-[10px] text-[var(--cream-dim)]">{shortRole(r)}</th>
+                  <th key={r} className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] text-[var(--text-2)]">{shortRole(r)}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {ACTIONS.map((a) => (
-                <tr key={a.key} className="odd:bg-[var(--ink)] even:bg-[var(--ink-2)]">
-                  <td className="px-2.5 py-1.5 text-[12px] text-[var(--cream-dim)]" title={a.key}>{a.label}</td>
+                <tr key={a.key} className="odd:bg-[var(--space)] even:bg-[var(--navy-800)]">
+                  <td className="px-2.5 py-1.5 text-[12px] text-[var(--text-2)]" title={a.key}>{a.label}</td>
                   {roles.map((r) => {
                     const k = `${r}:${a.key}`;
                     const res = results[k];
@@ -265,13 +265,13 @@ export function SecurityLab() {
                           onClick={() => void runTry(r, a.key)}
                           disabled={running !== null}
                           title={`POST /api/labs/security/try {"role":"${r}","action_key":"${a.key}"}`}
-                          className="font-mono rounded-full border border-[var(--rule)] px-2.5 py-0.5 text-[10px] text-[var(--cream-dim)] hover:border-[var(--somaiya)] hover:text-[var(--cream)] disabled:opacity-40"
+                          className="font-mono rounded-full border border-[var(--line)] px-2.5 py-0.5 text-[10px] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)] disabled:opacity-40"
                         >
                           {running === k ? "…" : "run"}
                         </button>
                         {res !== undefined && (
                           <span
-                            className={`font-mono ml-1.5 text-[11px] ${res.ok ? "text-[var(--signal)]" : "text-[var(--somaiya)]"}`}
+                            className={`font-mono ml-1.5 text-[11px] ${res.ok ? "text-[var(--ok)]" : "text-[var(--ice)]"}`}
                             title={res.sqlstate ? `SQLSTATE ${res.sqlstate}: ${res.message}` : res.message}
                           >
                             {res.ok ? "✓" : `refused ${res.sqlstate ?? "42501"}`}
@@ -285,7 +285,7 @@ export function SecurityLab() {
             </tbody>
           </table>
         </div>
-        <p className="font-mono mt-2 text-[10.5px] text-[var(--mute)]">
+        <p className="font-mono mt-2 text-[10.5px] text-[var(--text-3)]">
           Denials surface as “PostgreSQL refused 42501” — the error comes from GRANT/RLS, never the app.
         </p>
       </Card>
@@ -294,7 +294,7 @@ export function SecurityLab() {
         {auditError !== null ? (
           <RefusalCard error={auditError} />
         ) : audit === null ? (
-          <p className="font-mono text-[11px] text-[var(--mute)]">Loading audit_log…</p>
+          <p className="font-mono text-[11px] text-[var(--text-3)]">Loading audit_log…</p>
         ) : (
           <AuditTable rows={audit} />
         )}
@@ -347,7 +347,7 @@ function defaultPolicies(): Array<Record<string, unknown>> {
 }
 
 function AuditTable({ rows }: { rows: Array<Record<string, unknown>> }) {
-  if (rows.length === 0) return <p className="font-mono text-[11px] text-[var(--mute)]">No audit rows yet.</p>;
+  if (rows.length === 0) return <p className="font-mono text-[11px] text-[var(--text-3)]">No audit rows yet.</p>;
   return (
     <div className="flex flex-col gap-2">
       <DataGrid rows={rows} limit={20} />

@@ -95,32 +95,32 @@ export function TreeSvg({
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--mute)]">
+        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
           {nodes.length} nodes · {visible.size} shown
         </span>
         <button
           onClick={() => setShowFull((v) => !v)}
-          className="font-mono rounded-full border border-[var(--rule)] px-3 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--cream-dim)] hover:border-[var(--somaiya)] hover:text-[var(--cream)]"
+          className="font-mono rounded-full border border-[var(--line)] px-3 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]"
         >
           {showFull ? "collapse off-path" : "expand full tree"}
         </button>
         <span className="font-mono ml-auto flex gap-1 text-[10px]">
           <button
             onClick={() => setZoom((z) => Math.min(3, z * 1.2))}
-            className="rounded border border-[var(--rule)] px-2 py-0.5 text-[var(--cream-dim)]"
+            className="rounded border border-[var(--line)] px-2 py-0.5 text-[var(--text-2)]"
             aria-label="Zoom in"
           >
             +
           </button>
           <button
             onClick={() => setZoom(1)}
-            className="rounded border border-[var(--rule)] px-2 py-0.5 text-[var(--cream-dim)]"
+            className="rounded border border-[var(--line)] px-2 py-0.5 text-[var(--text-2)]"
           >
             1×
           </button>
           <button
             onClick={() => setZoom((z) => Math.max(0.3, z / 1.2))}
-            className="rounded border border-[var(--rule)] px-2 py-0.5 text-[var(--cream-dim)]"
+            className="rounded border border-[var(--line)] px-2 py-0.5 text-[var(--text-2)]"
             aria-label="Zoom out"
           >
             −
@@ -128,7 +128,7 @@ export function TreeSvg({
         </span>
       </div>
       <div
-        className="mt-2 cursor-grab overflow-hidden rounded-xl border border-[var(--rule)] bg-[var(--ink)] active:cursor-grabbing"
+        className="mt-2 cursor-grab overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--space)] active:cursor-grabbing"
         style={{ height: 420 }}
         onWheel={onWheel}
         onMouseDown={(e) =>
@@ -169,7 +169,7 @@ export function TreeSvg({
                       y1={p.y}
                       x2={q.x}
                       y2={q.y}
-                      stroke={hot ? "var(--somaiya)" : "var(--rule)"}
+                      stroke={hot ? "var(--ice)" : "var(--line)"}
                       strokeWidth={hot ? 2.4 : 1.2}
                     />
                   );
@@ -181,8 +181,8 @@ export function TreeSvg({
               const hot = onPath.has(n.node_id);
               const leaf = n.leaf_action !== null;
               const fill = leaf
-                ? (ACTION_COLORS[n.leaf_action as RouterAction] ?? "#7d7a73")
-                : "var(--ink-3)";
+                ? (ACTION_COLORS[n.leaf_action as RouterAction] ?? "#5f6f93")
+                : "var(--navy-700)";
               const step = pathIds.indexOf(n.node_id);
               return (
                 <g
@@ -202,12 +202,12 @@ export function TreeSvg({
                     width={NODE_W}
                     height={NODE_H}
                     rx={leaf ? NODE_H / 2 : 8}
-                    fill={hot ? "var(--somaiya-soft)" : "var(--ink-2)"}
-                    stroke={hot ? "var(--somaiya)" : fill}
+                    fill={hot ? "var(--navy-700)" : "var(--navy-800)"}
+                    stroke={hot ? "var(--ice)" : fill}
                     strokeWidth={hot ? 2.2 : 1.2}
                     style={
                       hot
-                        ? { filter: "drop-shadow(0 0 6px var(--somaiya))" }
+                        ? { filter: "drop-shadow(0 0 6px var(--ice))" }
                         : undefined
                     }
                   />
@@ -215,9 +215,9 @@ export function TreeSvg({
                     x={NODE_W / 2}
                     y={leaf ? 18 : 17}
                     textAnchor="middle"
-                    fill="var(--cream)"
+                    fill="var(--text)"
                     fontSize={9}
-                    fontFamily="IBM Plex Mono, monospace"
+                    fontFamily="Geist Mono, monospace"
                   >
                     {leaf ? n.leaf_action : n.feature}
                   </text>
@@ -225,9 +225,9 @@ export function TreeSvg({
                     x={NODE_W / 2}
                     y={leaf ? 32 : 31}
                     textAnchor="middle"
-                    fill="var(--cream-dim)"
+                    fill="var(--text-2)"
                     fontSize={8.5}
-                    fontFamily="IBM Plex Mono, monospace"
+                    fontFamily="Geist Mono, monospace"
                   >
                     {leaf
                       ? `n=${n.samples}`
@@ -244,7 +244,7 @@ export function TreeSvg({
         {(Object.keys(ACTION_COLORS) as RouterAction[]).map((a) => (
           <span
             key={a}
-            className="font-mono inline-flex items-center gap-1.5 text-[10px] tracking-[0.08em] text-[var(--cream-dim)]"
+            className="font-mono inline-flex items-center gap-1.5 text-[10px] tracking-[0.08em] text-[var(--text-2)]"
           >
             <span
               className="inline-block size-2.5 rounded-full"
@@ -253,7 +253,7 @@ export function TreeSvg({
             {a}
           </span>
         ))}
-        <span className="font-mono ml-auto hidden text-[10px] text-[var(--mute)] sm:inline">
+        <span className="font-mono ml-auto hidden text-[10px] text-[var(--text-3)] sm:inline">
           canvas {Math.round(maxX)}×{Math.round(maxY)}
         </span>
       </div>

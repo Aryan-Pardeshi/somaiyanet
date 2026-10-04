@@ -39,36 +39,36 @@ export function HopRail({
                     "block size-4 transition-colors duration-500",
                     n.kind === "SAT" ? "rounded-full" : "rounded-[4px]",
                     lit
-                      ? "bg-[var(--somaiya)]"
-                      : "border border-dashed border-[var(--mute)] bg-transparent"
+                      ? "bg-[var(--ice)]"
+                      : "border border-dashed border-[var(--text-3)] bg-transparent"
                   )}
                   style={
                     lit
-                      ? { boxShadow: "0 0 12px var(--somaiya)" }
+                      ? { boxShadow: "0 0 12px var(--ice)" }
                       : undefined
                   }
                 />
                 <span
                   className={cn(
                     "font-mono text-[10px] tracking-[0.1em]",
-                    lit ? "text-[var(--cream)]" : "text-[var(--mute)]"
+                    lit ? "text-[var(--text)]" : "text-[var(--text-3)]"
                   )}
                 >
                   {n.id}
                 </span>
               </div>
               {!isLast && (
-                <div className="relative mx-1 mb-6 h-px flex-1 border-t border-dashed border-[var(--mute)]">
+                <div className="relative mx-1 mb-6 h-px flex-1 border-t border-dashed border-[var(--text-3)]">
                   <div
-                    className="absolute inset-y-0 left-0 border-t-2 border-solid border-[var(--somaiya)] transition-all duration-700"
+                    className="absolute inset-y-0 left-0 border-t-2 border-solid border-[var(--ice)] transition-all duration-700"
                     style={{
                       width: i < active ? "100%" : "0%",
-                      boxShadow: i < active ? "0 0 8px var(--somaiya)" : undefined,
+                      boxShadow: i < active ? "0 0 8px var(--ice)" : undefined,
                     }}
                   />
                   {i + 1 === active && (
                     <span
-                      className="absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--somaiya)]"
+                      className="absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--ice)]"
                       style={{ left: "100%", animation: "hop-pulse 1.1s ease-in-out infinite" }}
                     />
                   )}

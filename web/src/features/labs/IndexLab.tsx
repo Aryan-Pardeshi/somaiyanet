@@ -122,13 +122,13 @@ export function IndexLab() {
       <Card title="Index catalog" kicker="bench_index_catalog() · Exp 8">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {shownCatalog.map((c) => (
-            <div key={c.key} className="rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-3">
-              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--amber)]">{c.kind}</p>
-              <p className="font-mono mt-1 text-[12.5px] font-bold text-[var(--cream)]">{c.key}</p>
-              <p className="mt-1 text-[12px] leading-relaxed text-[var(--cream-dim)]">{c.purpose}</p>
+            <div key={c.key} className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-3">
+              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--warn)]">{c.kind}</p>
+              <p className="font-mono mt-1 text-[12.5px] font-bold text-[var(--text)]">{c.key}</p>
+              <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-2)]">{c.purpose}</p>
               <SqlBlock sql={c.ddl} />
               {c.size !== undefined && c.size !== null && (
-                <p className="font-mono mt-1.5 text-[10.5px] text-[var(--mute)]">size {c.size}</p>
+                <p className="font-mono mt-1.5 text-[10.5px] text-[var(--text-3)]">size {c.size}</p>
               )}
             </div>
           ))}
@@ -147,17 +147,17 @@ export function IndexLab() {
           <button
             onClick={() => void bulk()}
             title="Director only: bench_bulk_telemetry(500000)"
-            className="font-mono rounded-full border border-[var(--amber)]/60 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--amber)] hover:scale-105"
+            className="font-mono rounded-full border border-[var(--warn)]/60 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--warn)] hover:scale-105"
           >
             bulk load 500k rows
           </button>
         }
       >
         {bulkMsg !== null && (
-          <p className="font-mono mb-2 text-[11px] text-[var(--cream-dim)]">{bulkMsg}</p>
+          <p className="font-mono mb-2 text-[11px] text-[var(--text-2)]">{bulkMsg}</p>
         )}
         <div className="flex flex-wrap items-center gap-2">
-          <label htmlFor="idx-q" className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--mute)]">Query</label>
+          <label htmlFor="idx-q" className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">Query</label>
           <select
             id="idx-q"
             value={qk}
@@ -166,18 +166,18 @@ export function IndexLab() {
               const q = shownQueries.find((x) => x.key === e.target.value);
               if (q) setIndexKey(q.best_index);
             }}
-            className="font-mono rounded-lg border border-[var(--rule)] bg-[var(--ink)] px-2.5 py-1.5 text-[12px] text-[var(--cream)]"
+            className="font-mono rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-1.5 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
           >
             {shownQueries.map((q) => (
               <option key={q.key} value={q.key}>{q.title}</option>
             ))}
           </select>
-          <label htmlFor="idx-i" className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--mute)]">Index</label>
+          <label htmlFor="idx-i" className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">Index</label>
           <select
             id="idx-i"
             value={indexKey || activeQuery?.best_index}
             onChange={(e) => setIndexKey(e.target.value)}
-            className="font-mono rounded-lg border border-[var(--rule)] bg-[var(--ink)] px-2.5 py-1.5 text-[12px] text-[var(--cream)]"
+            className="font-mono rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-1.5 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
           >
             {shownCatalog.map((c) => (
               <option key={c.key} value={c.key}>{c.key}</option>
@@ -186,7 +186,7 @@ export function IndexLab() {
           <button
             onClick={() => void run()}
             disabled={running}
-            className="font-mono rounded-full bg-[var(--somaiya)] px-4 py-1.5 text-[11px] uppercase tracking-[0.14em] text-white hover:scale-105 disabled:opacity-40"
+            className="font-mono rounded-full bg-[var(--ice)] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#04122e] hover:scale-105 disabled:opacity-40"
           >
             {running ? "running…" : "run"}
           </button>
@@ -196,20 +196,20 @@ export function IndexLab() {
           <div className="mt-3 flex flex-col gap-3">
             <div className="grid gap-3 md:grid-cols-2">
               {[{ t: `before · ${before ?? "?"}`, ms: msB, node: before }, { t: `after · ${after ?? "?"}`, ms: msA, node: after }].map((b, i) => (
-                <div key={i} className="rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-3">
-                  <p className="font-mono text-[11px] text-[var(--cream)]">{b.t}</p>
-                  <div className="mt-2 h-2.5 rounded bg-[var(--ink-3)]">
+                <div key={i} className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-3">
+                  <p className="font-mono text-[11px] text-[var(--text)]">{b.t}</p>
+                  <div className="mt-2 h-2.5 rounded bg-[var(--navy-700)]">
                     <div
-                      className={`h-2.5 rounded ${i === 0 ? "bg-[var(--amber)]" : "bg-[var(--signal)]"}`}
+                      className={`h-2.5 rounded ${i === 0 ? "bg-[var(--warn)]" : "bg-[var(--ok)]"}`}
                       style={{ width: `${b.ms !== null && b.ms !== undefined ? Math.max(3, ((b.ms as number) / maxMs) * 100) : 3}%` }}
                     />
                   </div>
-                  <p className="font-mono mt-1.5 text-[11px] text-[var(--cream-dim)]">
+                  <p className="font-mono mt-1.5 text-[11px] text-[var(--text-2)]">
                     {b.ms !== null && b.ms !== undefined ? `${(b.ms as number).toFixed(2)} ms` : "timing n/a"}
                     {result.buffers_before !== undefined && i === 0 && result.buffers_before !== null ? ` · buffers ${result.buffers_before}` : ""}
                     {result.buffers_after !== undefined && i === 1 && result.buffers_after !== null ? ` · buffers ${result.buffers_after}` : ""}
                   </p>
-                  <p className="font-mono mt-0.5 text-[10.5px] text-[var(--mute)]">
+                  <p className="font-mono mt-0.5 text-[10.5px] text-[var(--text-3)]">
                     scan {b.node ?? "?"} · index size {result.index_size ?? "n/a"}
                   </p>
                 </div>
@@ -217,11 +217,11 @@ export function IndexLab() {
             </div>
             <div className="grid gap-3 md:grid-cols-2">
               <div>
-                <p className="font-mono mb-1 text-[10px] uppercase tracking-[0.14em] text-[var(--mute)]">plan before</p>
+                <p className="font-mono mb-1 text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">plan before</p>
                 <PlanTree plan={result.plan_before} />
               </div>
               <div>
-                <p className="font-mono mb-1 text-[10px] uppercase tracking-[0.14em] text-[var(--mute)]">plan after</p>
+                <p className="font-mono mb-1 text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">plan after</p>
                 <PlanTree plan={result.plan_after} />
               </div>
             </div>
@@ -230,7 +230,7 @@ export function IndexLab() {
       </Card>
 
       <Card title="Partition pruning" kicker="telemetry_YYYYMMDD">
-        <p className="text-[13px] leading-relaxed text-[var(--cream-dim)]">
+        <p className="text-[13px] leading-relaxed text-[var(--text-2)]">
           The 6-hour query (SELECT count(*) FROM telemetry WHERE ts ≥ now() − 6h) should touch only 1–2 daily
           partitions. Run it below; the plan lists exactly which telemetry_YYYYMMDD children were scanned.
         </p>
@@ -240,7 +240,7 @@ export function IndexLab() {
       </Card>
 
       <Card title="Lesson" kicker="read this at viva">
-        <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[13px] leading-relaxed text-[var(--cream-dim)]">
+        <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[13px] leading-relaxed text-[var(--text-2)]">
           <li>BRIN is tiny and ideal for append-only time series like ts.</li>
           <li>GIN suits JSONB containment on housekeeping.</li>
           <li>The partial index covers only QUEUED packets, so dispatch stays small.</li>

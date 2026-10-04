@@ -125,6 +125,8 @@ GRANT SELECT ON v_constellation_status, v_station_workload, v_low_power,
     v_queue_by_mode, v_heard_by_bom_not_hel, v_heard_by_both, v_mode_mix,
     v_weak_isl, v_callsign_search, v_ai_overrides, v_route_detail TO grp_analyst;
 GRANT SELECT ON mv_kpis TO grp_analyst;
+-- Read-only role may inspect the deployment trail (but never write it).
+GRANT SELECT ON deployment_log TO grp_analyst;
 
 -- ------------------------------------------------- ai_router (spacecraft) ---
 -- Write-only sensor for telemetry plus queue/dispatch rights. It cannot

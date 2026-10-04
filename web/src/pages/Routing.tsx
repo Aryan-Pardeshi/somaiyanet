@@ -27,8 +27,8 @@ import {
 
 function ExpCo({ exp, co }: { exp: string; co: string }) {
   return (
-    <span className="font-mono rounded-full bg-[var(--somaiya-soft)] px-2 py-0.5 text-[10px] tracking-[0.08em] text-[var(--cream)]">
-      {exp} · {co}
+    <span className="rounded-full bg-[var(--navy-700)] px-2 py-0.5 text-[12px] text-[var(--ice)]">
+      {exp} {co}
     </span>
   );
 }
@@ -37,22 +37,22 @@ function RefusedCard({ err }: { err: ApiError }) {
   return (
     <div
       role="alert"
-      className="rounded-xl border border-[var(--somaiya)] bg-[var(--ink-2)] p-4"
+      className="rounded-xl border border-[var(--line)] border-l-4 border-l-[var(--danger)] bg-[var(--navy-800)] p-4"
     >
-      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--somaiya)]">
-        PostgreSQL refused · {err.sqlstate ?? err.status}
+      <p className="text-[13px] font-semibold text-[var(--text)]">
+        PostgreSQL refused this <span className="ml-1 rounded-full bg-[var(--navy-700)] px-2 py-0.5 font-mono text-[10px] text-[var(--danger)]">{err.sqlstate ?? err.status}</span>
       </p>
-      <p className="mt-2 text-[13px] text-[var(--cream)]">{err.message}</p>
+      <p className="mt-2 text-[13px] text-[var(--text)]">{err.message}</p>
     </div>
   );
 }
 
 const QUEUE_ORDER = ["TTC", "SSTV", "M17", "CODEC2"];
 const QUEUE_COLORS: Record<string, string> = {
-  TTC: "var(--signal)",
-  SSTV: "var(--somaiya)",
-  M17: "var(--sky)",
-  CODEC2: "var(--amber)",
+  TTC: "var(--ok)",
+  SSTV: "var(--ice)",
+  M17: "var(--ice)",
+  CODEC2: "var(--warn)",
 };
 
 function toIsoLocal(d: Date): string {
@@ -179,16 +179,16 @@ export default function Routing() {
   const ops = sats.filter((s) => isOperational(s.state));
 
   return (
-    <div className="min-h-screen bg-[var(--ink)] text-[var(--cream)]">
+    <div className="min-h-screen bg-[var(--space)] text-[var(--text)]">
       <main className="shell py-10">
         <ChapterLabel index="ROUTING" title="Contact Graph" />
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="font-sans text-3xl font-bold tracking-tight sm:text-4xl">
             Contact Graph Routing explorer
           </h1>
           <ExpCo exp="Exp 6" co="CO3" />
         </div>
-        <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-[var(--cream-dim)]">
+        <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-[var(--text-2)]">
           Earliest-arrival routes through the ISL mesh, then down. STOWED sats
           never relay.
         </p>
@@ -205,15 +205,15 @@ export default function Routing() {
         )}
 
         {/* Controls */}
-        <section className="mt-6 grid gap-3 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4 sm:grid-cols-2 lg:grid-cols-5">
+        <section className="mt-6 grid gap-3 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4 sm:grid-cols-2 lg:grid-cols-5">
           <label className="flex flex-col gap-1.5">
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--mute)]">
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-3)]">
               origin sat
             </span>
             <select
               value={origin}
               onChange={(e) => setOrigin(e.target.value)}
-              className="font-mono rounded-lg border border-[var(--rule)] bg-[var(--ink)] px-2.5 py-2 text-[13px] text-[var(--cream)]"
+              className="font-mono rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-2 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
             >
               {(ops.length > 0 ? ops : sats).map((s) => (
                 <option key={s.node_id} value={s.node_id}>
@@ -223,7 +223,7 @@ export default function Routing() {
             </select>
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--mute)]">
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-3)]">
               time t0
             </span>
             <span className="flex gap-1.5">
@@ -231,18 +231,18 @@ export default function Routing() {
                 type="datetime-local"
                 value={t0Local}
                 onChange={(e) => setT0Local(e.target.value)}
-                className="font-mono w-full rounded-lg border border-[var(--rule)] bg-[var(--ink)] px-2.5 py-2 text-[13px] text-[var(--cream)]"
+                className="font-mono w-full rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-2 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
               />
               <button
                 onClick={() => setT0Local(toIsoLocal(new Date()))}
-                className="font-mono shrink-0 rounded-lg border border-[var(--rule)] px-2.5 text-[11px] uppercase tracking-[0.12em] text-[var(--cream-dim)] hover:border-[var(--somaiya)] hover:text-[var(--cream)]"
+                className="font-mono shrink-0 rounded-lg border border-[var(--line)] px-2.5 text-[11px] uppercase tracking-[0.12em] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]"
               >
                 now
               </button>
             </span>
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--mute)]">
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-3)]">
               size · {formatBytes(size)} · ≈{txSeconds(size).toFixed(1)}s @9600bps
             </span>
             <input
@@ -252,11 +252,11 @@ export default function Routing() {
               step={256}
               value={size}
               onChange={(e) => setSize(Number(e.target.value))}
-              className="w-full accent-[#d7263d]"
+              className="w-full accent-[#7fb2ff]"
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--mute)]">
+            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-3)]">
               max hops · {maxHops}
             </span>
             <input
@@ -266,14 +266,14 @@ export default function Routing() {
               step={1}
               value={maxHops}
               onChange={(e) => setMaxHops(Number(e.target.value))}
-              className="w-full accent-[#d7263d]"
+              className="w-full accent-[#7fb2ff]"
             />
           </label>
           <div className="flex items-end">
             <button
               onClick={() => void onFind()}
               disabled={loading}
-              className="font-mono w-full rounded-full bg-[var(--somaiya)] px-4 py-2.5 text-[12px] uppercase tracking-[0.14em] text-white hover:scale-[1.02] disabled:opacity-50"
+              className="font-mono w-full rounded-full bg-[var(--ice)] px-4 py-2.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#04122e] hover:scale-[1.02] disabled:opacity-50"
             >
               {loading ? "routing…" : "Find routes"}
             </button>
@@ -283,11 +283,11 @@ export default function Routing() {
         {/* Results + globe */}
         <section className="mt-6 flex flex-col gap-6 lg:flex-row">
           <div className="w-full lg:w-[45%]">
-            <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--cream-dim)]">
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
               routes · earliest arrival wins
             </h2>
             {routes.length === 0 ? (
-              <p className="font-mono mt-3 rounded-xl border border-dashed border-[var(--rule)] p-5 text-[12px] leading-relaxed text-[var(--mute)]">
+              <p className="font-mono mt-3 rounded-xl border border-dashed border-[var(--line)] p-5 text-[12px] leading-relaxed text-[var(--text-3)]">
                 No routes yet — pick an origin and press Find routes. Calls
                 GET /api/routing/routes → cgr_routes().
               </p>
@@ -300,36 +300,36 @@ export default function Routing() {
                       aria-pressed={selected === r.rank}
                       className={`w-full rounded-xl border p-3 text-left transition-colors ${
                         selected === r.rank
-                          ? "border-[var(--somaiya)] bg-[var(--somaiya-soft)]"
-                          : "border-[var(--rule)] bg-[var(--ink-2)] hover:border-[var(--somaiya)]/60"
+                          ? "border-[var(--ice)] bg-[var(--navy-700)]"
+                          : "border-[var(--line)] bg-[var(--navy-800)] hover:border-[var(--ice)]/60"
                       }`}
                     >
                       <span className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono rounded-full bg-[var(--somaiya)] px-2 py-0.5 text-[11px] text-white">
+                        <span className="font-mono rounded-full bg-[var(--ice)] px-2 py-0.5 text-[11px] font-semibold text-[#04122e]">
                           #{r.rank}
                         </span>
-                        <span className="font-mono text-[13px] text-[var(--cream)]">
+                        <span className="font-mono text-[13px] text-[var(--text)]">
                           → {r.destination}
                         </span>
-                        <span className="font-mono ml-auto text-[11px] text-[var(--cream-dim)]">
+                        <span className="font-mono ml-auto text-[11px] text-[var(--text-2)]">
                           {formatLatency(r.latency_s)} · {r.hops} hops
                         </span>
                       </span>
-                      <span className="font-mono mt-1.5 block text-[11px] text-[var(--amber)]">
+                      <span className="font-mono mt-1.5 block text-[11px] text-[var(--warn)]">
                         {new Date(r.arrival_ts).toISOString().replace("T", " ").replace("Z", " UTC")}
                       </span>
                       <span className="mt-1.5 flex items-center gap-2">
-                        <span className="font-mono text-[10px] text-[var(--mute)]">
+                        <span className="font-mono text-[10px] text-[var(--text-3)]">
                           bottleneck {r.bottleneck_score}
                         </span>
-                        <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--ink)]">
+                        <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--space)]">
                           <span
-                            className="block h-full rounded-full bg-[var(--somaiya)]"
+                            className="block h-full rounded-full bg-[var(--ice)]"
                             style={{ width: `${r.bottleneck_score}%` }}
                           />
                         </span>
                       </span>
-                      <span className="font-mono mt-1.5 block text-[11px] leading-relaxed text-[var(--cream-dim)]">
+                      <span className="font-mono mt-1.5 block text-[11px] leading-relaxed text-[var(--text-2)]">
                         {r.explanation}
                       </span>
                     </button>
@@ -339,13 +339,13 @@ export default function Routing() {
             )}
 
             {selected !== null && (
-              <div className="mt-4 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
+              <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
                 <span className="flex items-center gap-2">
-                  <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--cream-dim)]">
+                  <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
                     hops · POST /api/routing/plan
                   </h3>
                   {planning && (
-                    <span className="font-mono text-[10px] text-[var(--amber)]">
+                    <span className="font-mono text-[10px] text-[var(--warn)]">
                       persisting…
                     </span>
                   )}
@@ -357,16 +357,16 @@ export default function Routing() {
                       {hops.map((h) => (
                         <li
                           key={h.hop_no}
-                          className="font-mono rounded-lg border border-[var(--rule)] bg-[var(--ink)] px-3 py-2 text-[11px] leading-relaxed text-[var(--cream-dim)]"
+                          className="font-mono rounded-lg border border-[var(--line)] bg-[var(--space)] px-3 py-2 text-[11px] leading-relaxed text-[var(--text-2)]"
                         >
-                          <span className="text-[var(--cream)]">
+                          <span className="text-[var(--text)]">
                             {h.from_node} → {h.to_node}
                           </span>{" "}
                           <span
                             className={
                               h.contact_kind === "ISL"
-                                ? "text-[var(--sky)]"
-                                : "text-[var(--signal)]"
+                                ? "text-[var(--ice)]"
+                                : "text-[var(--ok)]"
                             }
                           >
                             {h.contact_kind} {h.link_score}
@@ -389,7 +389,7 @@ export default function Routing() {
                           })),
                         )
                       }
-                      className="font-mono mt-3 rounded-full border border-[var(--somaiya)]/60 px-4 py-1.5 text-[11px] uppercase tracking-[0.14em] text-[var(--cream)] hover:bg-[var(--somaiya-soft)]"
+                      className="font-mono mt-3 rounded-full border border-[var(--ice)]/60 px-4 py-1.5 text-[11px] uppercase tracking-[0.14em] text-[var(--text)] hover:bg-[var(--navy-700)]"
                     >
                       Replay
                     </button>
@@ -399,8 +399,8 @@ export default function Routing() {
             )}
 
             {/* Queue panel */}
-            <div className="mt-4 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
-              <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--cream-dim)]">
+            <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
+              <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
                 queue · {origin} · v_queue_by_mode
               </h3>
               <div className="mt-3 flex flex-col gap-2">
@@ -408,11 +408,11 @@ export default function Routing() {
                   <div key={q.mode}>
                     <span className="font-mono flex justify-between text-[11px]">
                       <span style={{ color: QUEUE_COLORS[q.mode] }}>{q.mode}</span>
-                      <span className="text-[var(--cream-dim)]">
+                      <span className="text-[var(--text-2)]">
                         {q.packets} pkts · {formatBytes(q.bytes)}
                       </span>
                     </span>
-                    <span className="mt-1 block h-2 overflow-hidden rounded-full bg-[var(--ink)]">
+                    <span className="mt-1 block h-2 overflow-hidden rounded-full bg-[var(--space)]">
                       <span
                         className="block h-full rounded-full"
                         style={{
@@ -424,7 +424,7 @@ export default function Routing() {
                   </div>
                 ))}
               </div>
-              <p className="font-mono mt-2 text-[10px] text-[var(--mute)]">
+              <p className="font-mono mt-2 text-[10px] text-[var(--text-3)]">
                 priority TTC → SSTV → M17 → CODEC2
               </p>
             </div>
@@ -432,7 +432,7 @@ export default function Routing() {
 
           {/* Globe */}
           <div className="w-full lg:w-[55%]">
-            <div className="h-[420px] overflow-hidden rounded-xl border border-[var(--rule)] lg:h-[560px]">
+            <div className="h-[420px] overflow-hidden rounded-xl border border-[var(--line)] lg:h-[560px]">
               <OpsGlobe
                 ref={globeRef}
                 sats={sats}
@@ -446,7 +446,7 @@ export default function Routing() {
               />
             </div>
             {mock && (
-              <p className="font-mono mt-2 text-[11px] text-[var(--amber)]">
+              <p className="font-mono mt-2 text-[11px] text-[var(--warn)]">
                 mock orbit data · backend offline
               </p>
             )}
@@ -454,11 +454,11 @@ export default function Routing() {
         </section>
 
         {/* Why this route */}
-        <section className="mt-6 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--cream-dim)]">
+        <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
             why this route?
           </h2>
-          <p className="mt-2 max-w-[80ch] text-sm leading-relaxed text-[var(--cream-dim)]">
+          <p className="mt-2 max-w-[80ch] text-sm leading-relaxed text-[var(--text-2)]">
             The recursive CTE walks forward in time from t0, always taking the
             earliest usable contact per neighbour (ISL only to operational
             sats), and keeps the ground row with the smallest arrival — hops

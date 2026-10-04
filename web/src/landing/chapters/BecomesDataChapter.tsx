@@ -86,10 +86,10 @@ export function BecomesDataChapter() {
               {counters.map(([label, value]) => (
                 <div
                   key={label}
-                  className="reveal rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-3"
+                  className="reveal rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-3"
                 >
-                  <p className="font-mono text-lg text-[var(--amber)]">{value}</p>
-                  <p className="font-mono mt-1 text-[10px] uppercase tracking-[0.16em] text-[var(--mute)]">
+                  <p className="font-mono text-lg text-[var(--warn)]">{value}</p>
+                  <p className="font-mono mt-1 text-[10px] uppercase tracking-[0.16em] text-[var(--text-3)]">
                     {label}
                   </p>
                 </div>
@@ -99,11 +99,11 @@ export function BecomesDataChapter() {
               {TABLES.map((t) => (
                 <div
                   key={t.name}
-                  className="rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4"
+                  className="rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4"
                 >
-                  <p className="font-mono flex items-center justify-between text-[11px] tracking-[0.18em] text-[var(--cream-dim)]">
+                  <p className="font-mono flex items-center justify-between text-[11px] tracking-[0.18em] text-[var(--text-2)]">
                     {t.name}
-                    <span className="rounded-full bg-[var(--somaiya-soft)] px-2 py-0.5 text-[var(--somaiya)]">
+                    <span className="rounded-full bg-[var(--navy-700)] px-2 py-0.5 text-[var(--ice)]">
                       {t.exp}
                     </span>
                   </p>
@@ -111,7 +111,7 @@ export function BecomesDataChapter() {
                     {t.rows.map((r) => (
                       <li
                         key={r}
-                        className="reveal font-mono rounded-md bg-[var(--ink-3)] px-3 py-1.5 text-[12px] text-[var(--amber)]"
+                        className="reveal font-mono rounded-md bg-[var(--navy-700)] px-3 py-1.5 text-[12px] text-[var(--warn)]"
                       >
                         {r}
                       </li>
@@ -125,12 +125,12 @@ export function BecomesDataChapter() {
                 <Link
                   key={e.slug}
                   to={`/labs/${e.slug}`}
-                  className="group rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-3 transition-colors hover:border-[var(--somaiya)]"
+                  className="group rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-3 transition-colors hover:border-[var(--ice)]"
                 >
-                  <p className="font-mono text-[11px] tracking-[0.18em] text-[var(--somaiya)]">
+                  <p className="font-mono text-[11px] tracking-[0.18em] text-[var(--ice)]">
                     Exp {e.n}
                   </p>
-                  <p className="mt-1 text-[13px] leading-snug text-[var(--cream-dim)] group-hover:text-[var(--cream)]">
+                  <p className="mt-1 text-[13px] leading-snug text-[var(--text-2)] group-hover:text-[var(--text)]">
                     {e.concept}
                   </p>
                 </Link>

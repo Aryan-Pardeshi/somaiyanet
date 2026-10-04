@@ -41,7 +41,7 @@ export function RowCard({
     <div
       ref={ref}
       className={cn(
-        "w-full rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] transition-all duration-700",
+        "w-full rounded-xl border border-[var(--line)] bg-[var(--navy-800)] transition-all duration-700",
         inView
           ? "translate-x-0 opacity-100"
           : "-translate-x-6 opacity-0",
@@ -55,18 +55,18 @@ export function RowCard({
     >
       <style>{`
         @keyframes row-flash {
-          0% { box-shadow: inset 0 0 0 999px rgba(215, 38, 61, 0.22); }
-          100% { box-shadow: inset 0 0 0 999px rgba(215, 38, 61, 0); }
+          0% { box-shadow: inset 0 0 0 999px rgba(127, 178, 255, 0.22); }
+          100% { box-shadow: inset 0 0 0 999px rgba(127, 178, 255, 0); }
         }
       `}</style>
-      <p className="font-mono border-b border-[var(--rule)] px-4 py-2 text-[11px] tracking-[0.18em] text-[var(--somaiya)]">
+      <p className="border-b border-[var(--line)] px-4 py-2 text-[13px] font-medium text-[var(--text-2)]">
         {title}
       </p>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 px-4 py-3">
         {rows.map(([k, v]) => (
           <div key={k} className="contents">
-            <dt className="font-mono text-[12px] text-[var(--mute)]">{k}</dt>
-            <dd className="font-mono text-[12px] text-[var(--amber)]">{v}</dd>
+            <dt className="text-[12px] text-[var(--text-2)]">{k}</dt>
+            <dd className="font-mono text-[12px] text-[var(--text)]">{v}</dd>
           </div>
         ))}
       </dl>

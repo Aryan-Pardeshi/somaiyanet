@@ -1,4 +1,4 @@
-/** Before/after row card: changed values glow Somaiya red. */
+/** Before/after row card: changed values glow ice blue. */
 export function DiffCard({
   title,
   before,
@@ -15,8 +15,8 @@ export function DiffCard({
     return String(v);
   };
   return (
-    <div className="w-full rounded-xl border border-[var(--rule)] bg-[var(--ink-2)]">
-      <p className="font-mono border-b border-[var(--rule)] px-4 py-2 text-[11px] tracking-[0.18em] text-[var(--somaiya)]">
+    <div className="w-full rounded-xl border border-[var(--line)] bg-[var(--navy-800)]">
+      <p className="font-mono border-b border-[var(--line)] px-4 py-2 text-[11px] tracking-[0.18em] text-[var(--ice)]">
         {title}
       </p>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 px-4 py-3">
@@ -26,13 +26,13 @@ export function DiffCard({
           const changed = b !== a;
           return (
             <div key={k} className="contents">
-              <dt className="font-mono text-[12px] text-[var(--mute)]">
+              <dt className="font-mono text-[12px] text-[var(--text-3)]">
                 {changed ? "● " : ""}
                 {k}
               </dt>
               <dd
                 className="font-mono text-[12px]"
-                style={{ color: changed ? "var(--somaiya)" : "var(--amber)" }}
+                style={{ color: changed ? "var(--ice)" : "var(--text)" }}
               >
                 {changed ? `${b} → ${a}` : a}
               </dd>

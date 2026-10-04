@@ -28,8 +28,8 @@ const SATS = ["SAT-A1", "SAT-A2", "SAT-A3", "SAT-A4", "SAT-B1", "SAT-B2", "SAT-B
 
 function ExpCo({ exp, co }: { exp: string; co: string }) {
   return (
-    <span className="font-mono rounded-full bg-[var(--somaiya-soft)] px-2 py-0.5 text-[10px] tracking-[0.08em] text-[var(--cream)]">
-      {exp} · {co}
+    <span className="rounded-full bg-[var(--navy-700)] px-2 py-0.5 text-[12px] text-[var(--ice)]">
+      {exp} {co}
     </span>
   );
 }
@@ -38,15 +38,15 @@ function RefusedCard({ err, context }: { err: ApiError; context?: string }) {
   return (
     <div
       role="alert"
-      className="rounded-xl border border-[var(--somaiya)] bg-[var(--ink-2)] p-4"
+      className="rounded-xl border border-[var(--line)] border-l-4 border-l-[var(--danger)] bg-[var(--navy-800)] p-4"
     >
-      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--somaiya)]">
-        PostgreSQL refused · {err.sqlstate ?? err.status}
+      <p className="text-[13px] font-semibold text-[var(--text)]">
+        PostgreSQL refused this <span className="ml-1 rounded-full bg-[var(--navy-700)] px-2 py-0.5 font-mono text-[10px] text-[var(--danger)]">{err.sqlstate ?? err.status}</span>
         {context ? ` · ${context}` : ""}
       </p>
-      <p className="mt-2 text-[13px] text-[var(--cream)]">{err.message}</p>
+      <p className="mt-2 text-[13px] text-[var(--text)]">{err.message}</p>
       {err.detail && (
-        <p className="font-mono mt-1 text-[11px] text-[var(--cream-dim)]">{err.detail}</p>
+        <p className="font-mono mt-1 text-[11px] text-[var(--text-2)]">{err.detail}</p>
       )}
     </div>
   );
@@ -65,22 +65,22 @@ function ActionCard({
 }) {
   return (
     <div
-      className={`rounded-xl border bg-[var(--ink)] p-4 ${
-        accent ? "border-[var(--somaiya)]" : "border-[var(--rule)]"
+      className={`rounded-xl border bg-[var(--space)] p-4 ${
+        accent ? "border-[var(--ice)]" : "border-[var(--line)]"
       }`}
-      style={accent ? { boxShadow: "0 0 18px #d7263d44" } : undefined}
+      style={accent ? { boxShadow: "0 0 18px #7fb2ff44" } : undefined}
     >
-      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--mute)]">
+      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-3)]">
         {title}
       </p>
       <p
         className="font-mono mt-2 text-[15px] font-medium"
-        style={{ color: action ? ACTION_COLORS[action] : "var(--mute)" }}
+        style={{ color: action ? ACTION_COLORS[action] : "var(--text-3)" }}
       >
         {action ?? "—"}
       </p>
       {extra !== undefined && extra !== null && extra !== "" && (
-        <p className="mt-1.5 text-[12px] leading-snug text-[var(--cream-dim)]">{extra}</p>
+        <p className="mt-1.5 text-[12px] leading-snug text-[var(--text-2)]">{extra}</p>
       )}
     </div>
   );
@@ -103,9 +103,9 @@ function Slider({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="font-mono flex justify-between text-[10px] uppercase tracking-[0.12em] text-[var(--mute)]">
+      <span className="font-mono flex justify-between text-[10px] uppercase tracking-[0.12em] text-[var(--text-3)]">
         <span>{label}</span>
-        <span className="text-[var(--amber)]">{value}</span>
+        <span className="text-[var(--warn)]">{value}</span>
       </span>
       <input
         type="range"
@@ -114,7 +114,7 @@ function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-[#d7263d]"
+        className="w-full accent-[#7fb2ff]"
       />
     </label>
   );
@@ -240,16 +240,16 @@ export default function Brain() {
   const maxConf = active?.confusion?.matrix.flat().reduce((a, b) => Math.max(a, b), 1) ?? 1;
 
   return (
-    <div className="min-h-screen bg-[var(--ink)] text-[var(--cream)]">
+    <div className="min-h-screen bg-[var(--space)] text-[var(--text)]">
       <main className="shell py-10">
         <ChapterLabel index="BRAIN" title="AI Router" />
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="font-sans text-3xl font-bold tracking-tight sm:text-4xl">
             The AI router
           </h1>
           <ExpCo exp="Exp 9" co="CO4" />
         </div>
-        <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-[var(--cream-dim)]">
+        <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-[var(--text-2)]">
           A decision tree stored as rows in dt_node, walked by SQL. The
           watchdog always has the last word.
         </p>
@@ -274,43 +274,43 @@ export default function Brain() {
               aria-pressed={active?.model_id === m.model_id}
               className={`rounded-xl border p-4 text-left ${
                 active?.model_id === m.model_id
-                  ? "border-[var(--somaiya)] bg-[var(--somaiya-soft)]"
-                  : "border-[var(--rule)] bg-[var(--ink-2)] hover:border-[var(--somaiya)]/60"
+                  ? "border-[var(--ice)] bg-[var(--navy-700)]"
+                  : "border-[var(--line)] bg-[var(--navy-800)] hover:border-[var(--ice)]/60"
               }`}
             >
               <span className="flex items-center gap-2">
-                <span className="font-display text-[15px] font-bold">
+                <span className="font-sans text-[15px] font-bold">
                   {m.name} · v{m.version}
                 </span>
                 {m.is_active && (
-                  <span className="font-mono rounded-full bg-[var(--signal)] px-2 py-0.5 text-[10px] text-black">
+                  <span className="font-mono rounded-full bg-[var(--ok)] px-2 py-0.5 text-[10px] text-black">
                     ACTIVE
                   </span>
                 )}
-                <span className="font-mono ml-auto text-[12px] text-[var(--amber)]">
+                <span className="font-mono ml-auto text-[12px] text-[var(--warn)]">
                   {m.test_accuracy !== null ? Number(m.test_accuracy).toFixed(3) : "—"}
                 </span>
               </span>
-              <span className="mt-2 block h-2 overflow-hidden rounded-full bg-[var(--ink)]">
+              <span className="mt-2 block h-2 overflow-hidden rounded-full bg-[var(--space)]">
                 <span
-                  className="block h-full rounded-full bg-[var(--somaiya)]"
+                  className="block h-full rounded-full bg-[var(--ice)]"
                   style={{ width: `${(Number(m.test_accuracy ?? 0) * 100).toFixed(1)}%` }}
                 />
               </span>
-              <span className="font-mono mt-1.5 block text-[10px] text-[var(--mute)]">
+              <span className="font-mono mt-1.5 block text-[10px] text-[var(--text-3)]">
                 {m.algorithm} · depth {m.max_depth ?? "?"} · {m.train_rows ?? "?"} rows
               </span>
               {m.confusion && (
                 <span className="mt-2 grid grid-cols-[auto_repeat(5,minmax(0,1fr))] gap-1" style={{ display: "grid" }}>
                   <span />
                   {m.confusion.labels.map((l) => (
-                    <span key={l} className="font-mono truncate text-center text-[8px] text-[var(--mute)]">
+                    <span key={l} className="font-mono truncate text-center text-[8px] text-[var(--text-3)]">
                       {l.slice(0, 4)}
                     </span>
                   ))}
                   {m.confusion.matrix.map((row, i) => (
                     <span key={m.confusion?.labels[i] ?? i} style={{ display: "contents" }}>
-                      <span className="font-mono truncate text-right text-[8px] text-[var(--mute)]">
+                      <span className="font-mono truncate text-right text-[8px] text-[var(--text-3)]">
                         {m.confusion?.labels[i].slice(0, 4)}
                       </span>
                       {row.map((v, j) => (
@@ -318,8 +318,8 @@ export default function Brain() {
                           key={j}
                           className="font-mono rounded px-1 py-0.5 text-center text-[9px]"
                           style={{
-                            background: `rgba(215,38,61,${(v / maxConf).toFixed(2)})`,
-                            color: "var(--amber)",
+                            background: `rgba(127,178,255,${(v / maxConf).toFixed(2)})`,
+                            color: "var(--warn)",
                           }}
                         >
                           {v}
@@ -330,10 +330,10 @@ export default function Brain() {
                 </span>
               )}
               {m.metrics.length > 0 && (
-                <span className="font-mono mt-2 block overflow-x-auto text-[10px] text-[var(--cream-dim)]">
+                <span className="font-mono mt-2 block overflow-x-auto text-[10px] text-[var(--text-2)]">
                   <table className="w-full border-collapse">
                     <thead>
-                      <tr className="text-[var(--mute)]">
+                      <tr className="text-[var(--text-3)]">
                         <th className="py-0.5 text-left font-normal">class</th>
                         <th className="text-right font-normal">prec</th>
                         <th className="text-right font-normal">rec</th>
@@ -342,7 +342,7 @@ export default function Brain() {
                     </thead>
                     <tbody>
                       {m.metrics.map((mc) => (
-                        <tr key={mc.class_label} className="border-t border-[var(--rule)]">
+                        <tr key={mc.class_label} className="border-t border-[var(--line)]">
                           <td className="py-0.5">{mc.class_label}</td>
                           <td className="text-right">{mc.precision_ ?? "—"}</td>
                           <td className="text-right">{mc.recall ?? "—"}</td>
@@ -358,12 +358,12 @@ export default function Brain() {
         </section>
 
         {/* Tree */}
-        <section className="mt-6 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--cream-dim)]">
+        <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
             tree · dt_node · wheel to zoom, drag to pan
           </h2>
           {tree.length === 0 ? (
-            <p className="font-mono mt-3 text-[12px] text-[var(--mute)]">
+            <p className="font-mono mt-3 text-[12px] text-[var(--text-3)]">
               No tree rows — GET /api/ai/models/{"{id}"}/tree.
             </p>
           ) : (
@@ -374,15 +374,15 @@ export default function Brain() {
         </section>
 
         {/* Inference */}
-        <section className="mt-6 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
+        <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--cream-dim)]">
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
               inference · preview
             </h2>
             <select
               value={sat}
               onChange={(e) => setSat(e.target.value)}
-              className="font-mono ml-auto rounded-lg border border-[var(--rule)] bg-[var(--ink)] px-2.5 py-1.5 text-[12px] text-[var(--cream)]"
+              className="font-mono ml-auto rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-1.5 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
               aria-label="Satellite"
             >
               {SATS.map((s) => (
@@ -398,9 +398,9 @@ export default function Brain() {
               {FEATURE_KEYS.map((k) => (
                 <span
                   key={k}
-                  className="font-mono rounded-full border border-[var(--rule)] bg-[var(--ink)] px-2.5 py-1 text-[11px] text-[var(--cream-dim)]"
+                  className="font-mono rounded-full border border-[var(--line)] bg-[var(--space)] px-2.5 py-1 text-[11px] text-[var(--text-2)]"
                 >
-                  {k} <span className="text-[var(--amber)]">{preview.features[k]}</span>
+                  {k} <span className="text-[var(--warn)]">{preview.features[k]}</span>
                 </span>
               ))}
             </div>
@@ -411,10 +411,10 @@ export default function Brain() {
               {preview.preview.ai_path.map((step, i) => (
                 <li
                   key={i}
-                  className="font-mono rounded-lg border border-[var(--somaiya)]/50 bg-[var(--somaiya-soft)] px-3 py-1.5 text-[11px] text-[var(--cream)]"
+                  className="font-mono rounded-lg border border-[var(--ice)]/50 bg-[var(--navy-700)] px-3 py-1.5 text-[11px] text-[var(--text)]"
                   style={{ animationDelay: `${i * 120}ms` }}
                 >
-                  <span className="text-[var(--somaiya)]">{String(i + 1).padStart(2, "0")}</span> {step}
+                  <span className="text-[var(--ice)]">{String(i + 1).padStart(2, "0")}</span> {step}
                 </li>
               ))}
             </ol>
@@ -435,7 +435,7 @@ export default function Brain() {
                 accent={preview?.preview?.overridden}
               />
               {(preview?.preview?.overridden || whatif?.watchdog) && (
-                <span className="font-mono absolute -right-1 -top-2 rotate-6 rounded border-2 border-[var(--somaiya)] bg-[var(--ink)] px-2 py-0.5 text-[10px] tracking-[0.14em] text-[var(--somaiya)]">
+                <span className="font-mono absolute -right-1 -top-2 rotate-6 rounded border-2 border-[var(--ice)] bg-[var(--space)] px-2 py-0.5 text-[10px] tracking-[0.14em] text-[var(--ice)]">
                   OVERRIDE
                 </span>
               )}
@@ -445,16 +445,16 @@ export default function Brain() {
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               onClick={() => void onRecord()}
-              className="font-mono rounded-full bg-[var(--somaiya)] px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-white hover:scale-[1.02]"
+              className="font-mono rounded-full bg-[var(--ice)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#04122e] hover:scale-[1.02]"
             >
               Record decision
             </button>
-            <span className="font-mono text-[10px] text-[var(--mute)]">
+            <span className="font-mono text-[10px] text-[var(--text-3)]">
               works for director / operators / ai_router — analyst gets PostgreSQL refused
             </span>
           </div>
           {decideOk && (
-            <p className="font-mono mt-2 text-[12px] text-[var(--signal)]">{decideOk}</p>
+            <p className="font-mono mt-2 text-[12px] text-[var(--ok)]">{decideOk}</p>
           )}
           {decideError !== null && (
             <div className="mt-2">
@@ -464,14 +464,14 @@ export default function Brain() {
         </section>
 
         {/* What-if */}
-        <section className="mt-6 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
+        <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--cream-dim)]">
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
               what-if · POST /api/ai/whatif · 250ms debounce
             </h2>
             <button
               onClick={forceOverride}
-              className="font-mono ml-auto rounded-full border border-[var(--somaiya)]/60 px-3 py-1.5 text-[10px] uppercase tracking-[0.12em] text-[var(--cream)] hover:bg-[var(--somaiya-soft)]"
+              className="font-mono ml-auto rounded-full border border-[var(--ice)]/60 px-3 py-1.5 text-[10px] uppercase tracking-[0.12em] text-[var(--text)] hover:bg-[var(--navy-700)]"
             >
               Force a watchdog override
             </button>
@@ -501,9 +501,9 @@ export default function Brain() {
               {whatif.ai.path.map((step, i) => (
                 <li
                   key={i}
-                  className="font-mono rounded-lg border border-[var(--rule)] bg-[var(--ink)] px-3 py-1.5 text-[11px] text-[var(--cream-dim)]"
+                  className="font-mono rounded-lg border border-[var(--line)] bg-[var(--space)] px-3 py-1.5 text-[11px] text-[var(--text-2)]"
                 >
-                  <span className="text-[var(--somaiya)]">{String(i + 1).padStart(2, "0")}</span> {step}
+                  <span className="text-[var(--ice)]">{String(i + 1).padStart(2, "0")}</span> {step}
                 </li>
               ))}
             </ol>
@@ -511,14 +511,14 @@ export default function Brain() {
         </section>
 
         {/* Decision log */}
-        <section className="mt-6 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--cream-dim)]">
+        <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
             decision log · live from /api/stream
           </h2>
           <div className="mt-3 overflow-x-auto">
             <table className="font-mono w-full min-w-[640px] border-collapse text-[11px]">
               <thead>
-                <tr className="text-left text-[var(--mute)]">
+                <tr className="text-left text-[var(--text-3)]">
                   <th className="py-1 pr-2 font-normal">time</th>
                   <th className="py-1 pr-2 font-normal">sat</th>
                   <th className="py-1 pr-2 font-normal">ai</th>
@@ -532,17 +532,17 @@ export default function Brain() {
                 {decisions.map((d) => (
                   <tr
                     key={d.decision_id ?? `${d.sat_id}-${d.decided_at}`}
-                    className={`border-t border-[var(--rule)] ${d.overridden ? "bg-[var(--somaiya-soft)]" : ""}`}
+                    className={`border-t border-[var(--line)] ${d.overridden ? "bg-[var(--navy-700)]" : ""}`}
                   >
-                    <td className="py-1 pr-2 text-[var(--cream-dim)]">
+                    <td className="py-1 pr-2 text-[var(--text-2)]">
                       {String(d.decided_at ?? "").slice(11, 19)}
                     </td>
-                    <td className="py-1 pr-2 text-[var(--cream)]">{d.sat_id}</td>
-                    <td className="py-1 pr-2 text-[var(--cream-dim)]">{d.ai_action ?? "—"}</td>
-                    <td className="py-1 pr-2 text-[var(--cream-dim)]">{d.rule_action}</td>
-                    <td className="py-1 pr-2 text-[var(--amber)]">{d.final_action}</td>
+                    <td className="py-1 pr-2 text-[var(--text)]">{d.sat_id}</td>
+                    <td className="py-1 pr-2 text-[var(--text-2)]">{d.ai_action ?? "—"}</td>
+                    <td className="py-1 pr-2 text-[var(--text-2)]">{d.rule_action}</td>
+                    <td className="py-1 pr-2 text-[var(--warn)]">{d.final_action}</td>
                     <td className="py-1 pr-2">{d.overridden ? "●" : ""}</td>
-                    <td className="py-1 text-[var(--mute)]">{d.source}</td>
+                    <td className="py-1 text-[var(--text-3)]">{d.source}</td>
                   </tr>
                 ))}
               </tbody>

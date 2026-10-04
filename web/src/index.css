@@ -2,39 +2,38 @@
 @import "./styles/tokens.css";
 
 /* Local fonts (npm @fontsource) — no CDN, works offline. */
-@import "@fontsource/space-grotesk/latin-500.css";
-@import "@fontsource/space-grotesk/latin-700.css";
-@import "@fontsource/ibm-plex-sans/latin-400.css";
-@import "@fontsource/ibm-plex-sans/latin-500.css";
-@import "@fontsource/ibm-plex-sans/latin-600.css";
-@import "@fontsource/ibm-plex-mono/latin-400.css";
-@import "@fontsource/ibm-plex-mono/latin-500.css";
+@import "@fontsource/geist-sans/latin-400.css";
+@import "@fontsource/geist-sans/latin-500.css";
+@import "@fontsource/geist-sans/latin-600.css";
+@import "@fontsource/geist-sans/latin-700.css";
+@import "@fontsource/geist-mono/latin-400.css";
+@import "@fontsource/geist-mono/latin-500.css";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
   --radius: 0.75rem;
 
-  /* shadcn variables, mapped onto the SomaiyaNet tokens */
-  --background: var(--ink);
-  --foreground: var(--cream);
-  --card: var(--ink-2);
-  --card-foreground: var(--cream);
-  --popover: var(--ink-2);
-  --popover-foreground: var(--cream);
-  --primary: var(--somaiya);
-  --primary-foreground: #fff;
-  --secondary: var(--ink-3);
-  --secondary-foreground: var(--cream);
-  --muted: var(--ink-3);
-  --muted-foreground: var(--cream-dim);
-  --accent: var(--somaiya-soft);
-  --accent-foreground: var(--cream);
-  --destructive: var(--somaiya);
+  /* shadcn variables, mapped onto the black + navy tokens */
+  --background: var(--space);
+  --foreground: var(--text);
+  --card: var(--navy-800);
+  --card-foreground: var(--text);
+  --popover: var(--navy-900);
+  --popover-foreground: var(--text);
+  --primary: var(--ice);
+  --primary-foreground: #04122e;
+  --secondary: var(--navy-700);
+  --secondary-foreground: var(--text);
+  --muted: var(--navy-700);
+  --muted-foreground: var(--text-2);
+  --accent: var(--navy-700);
+  --accent-foreground: var(--text);
+  --destructive: var(--danger);
   --destructive-foreground: #fff;
-  --border: var(--rule);
-  --input: var(--rule);
-  --ring: var(--somaiya);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--ice);
 }
 
 @theme inline {
@@ -58,18 +57,19 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --color-ink: var(--ink);
-  --color-ink-2: var(--ink-2);
-  --color-ink-3: var(--ink-3);
-  --color-cream: var(--cream);
+  --color-space: var(--space);
+  --color-navy-900: var(--navy-900);
+  --color-navy-800: var(--navy-800);
+  --color-navy-700: var(--navy-700);
+  --color-navy-600: var(--navy-600);
+  --color-ice: var(--ice);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
   --color-somaiya: var(--somaiya);
-  --color-amber: var(--amber);
-  --color-signal: var(--signal);
-  --color-sky: var(--sky);
 
-  --font-display: "Space Grotesk", system-ui, sans-serif;
-  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: "Geist Sans", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -83,7 +83,9 @@
   }
 
   html {
-    background: var(--ink);
+    background: var(--space);
+    background-image: radial-gradient(1200px 600px at 50% -10%, #0f2147 0%, transparent 60%);
+    background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -91,11 +93,20 @@
 
   body {
     margin: 0;
-    background: var(--ink);
-    color: var(--cream);
-    font-family: var(--font-body);
+    background: transparent;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
     overflow-x: hidden;
     font-synthesis-weight: none;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
   }
 
   /* Lenis owns the scroll; html.lenis-stopped is used while pinned. */
@@ -105,8 +116,8 @@
   }
 
   ::selection {
-    background: var(--somaiya);
-    color: #fff;
+    background: var(--ice);
+    color: #04122e;
   }
 
   ::-webkit-scrollbar {
@@ -114,19 +125,34 @@
     height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: var(--ink);
+    background: var(--space);
   }
   ::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--cream-dim) 30%, transparent);
+    background: color-mix(in srgb, var(--text-2) 30%, transparent);
     border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: color-mix(in srgb, var(--cream-dim) 50%, transparent);
+    background: color-mix(in srgb, var(--text-2) 50%, transparent);
   }
 
   canvas {
     display: block;
     touch-action: pan-y;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ice);
+    outline-offset: 2px;
+  }
+
+  input[type="range"] {
+    accent-color: var(--ice);
+  }
+
+  @media (max-width: 375px) {
+    body {
+      overflow-x: hidden;
+    }
   }
 }
 
@@ -148,17 +174,8 @@
     }
   }
 
-  .font-display {
-    font-family: var(--font-display);
-  }
-
-  /* Small mono label used by the ops console readouts. */
-  .mono-label {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    line-height: 1;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
+  .font-sans {
+    font-family: var(--font-sans);
   }
 
   .text-balance {

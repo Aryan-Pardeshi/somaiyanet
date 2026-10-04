@@ -13,20 +13,35 @@ const KEYWORDS = new Set([
 
 function highlight(slice: string): ReactNode[] {
   const parts = slice.split(/(\s+|[(),;])/g)
-  return parts.map((tok, i) =>
-    KEYWORDS.has(tok.toUpperCase()) ? (
-      <span key={i} className="text-[var(--amber)]">
-        {tok}
-      </span>
-    ) : (
-      <span key={i}>{tok}</span>
-    )
-  )
+  return parts.map((tok, i) => {
+    if (KEYWORDS.has(tok.toUpperCase())) {
+      return (
+        <span key={i} className="text-[var(--ice)]">
+          {tok}
+        </span>
+      )
+    }
+    if (/^'.*'$/.test(tok) || /^".*"$/.test(tok)) {
+      return (
+        <span key={i} className="text-[var(--ok)]">
+          {tok}
+        </span>
+      )
+    }
+    if (/^[0-9]+(\.[0-9]+)?$/.test(tok)) {
+      return (
+        <span key={i} className="text-[var(--warn)]">
+          {tok}
+        </span>
+      )
+    }
+    return <span key={i}>{tok}</span>
+  })
 }
 
 /**
- * A strip of real SQL in mono, typed out with a caret. Keywords render amber,
- * identifiers cream. Typing starts when scrolled into view (ScrollTrigger,
+ * A strip of real SQL in mono, typed out with a caret. Keywords render ice,
+ * identifiers in primary text. Typing starts when scrolled into view (ScrollTrigger,
  * once) and the full text shows immediately under reduced motion.
  */
 export function SqlRibbon({
@@ -82,20 +97,20 @@ export function SqlRibbon({
     <figure className={cn("w-full", className)}>
       <div
         ref={boxRef}
-        className="overflow-x-auto rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4"
+        className="overflow-x-auto rounded-xl border border-[var(--line)] bg-[var(--space)] p-4"
       >
-        <pre className="font-mono text-[12.5px] leading-relaxed whitespace-pre-wrap text-[var(--cream)]">
+        <pre className="font-mono text-[12.5px] leading-relaxed whitespace-pre-wrap text-[var(--text)]">
           {highlight(slice)}
           {!done && (
             <span
               aria-hidden="true"
-              className="ml-0.5 inline-block h-[1em] w-[0.55em] translate-y-[0.15em] animate-pulse bg-[var(--somaiya)]"
+              className="ml-0.5 inline-block h-[1em] w-[0.55em] translate-y-[0.15em] animate-pulse bg-[var(--ice)]"
             />
           )}
         </pre>
       </div>
       {caption && (
-        <figcaption className="font-mono mt-2 text-[11px] tracking-wide text-[var(--mute)]">
+        <figcaption className="font-mono mt-2 text-[11px] tracking-wide text-[var(--text-3)]">
           {caption}
         </figcaption>
       )}

@@ -1,6 +1,5 @@
-// globe logic adapted from lakshyamody/dbmsproj (app/components/globe_template.html)
 // /ops page: full-viewport globe on the left, ops rail on the right.
-// Rendered inside AppShell (which owns the top bar, profile guard and the
+// Rendered inside AppShell (which owns the sidebar, profile guard and the
 // "SQL under the hood" drawer); this file owns the ops layout only.
 import { useMemo, useRef, useState } from "react";
 import { OpsGlobe, type OpsGlobeHandle } from "@/features/ops/OpsGlobe";
@@ -39,9 +38,9 @@ export default function Ops() {
   );
 
   return (
-    <div className="flex min-h-[calc(100vh-3.5rem)] flex-col bg-[var(--ink)] text-[var(--cream)] md:h-[calc(100vh-3.5rem)] md:overflow-hidden">
+    <div className="flex min-h-[calc(100vh-3.5rem)] flex-col bg-[var(--space)] text-[var(--text)] md:h-[calc(100vh-3.5rem)] md:overflow-hidden">
       <div className="flex flex-1 flex-col md:min-h-0 md:flex-row">
-        <div className="relative h-[60vh] w-full md:h-auto md:min-h-0 md:flex-1">
+        <div className="relative h-[60vh] w-full bg-black md:h-auto md:min-h-0 md:flex-1">
           <OpsGlobe
             ref={globeRef}
             sats={data.sats}
@@ -52,25 +51,41 @@ export default function Ops() {
             histories={histories}
           />
           {data.mock && (
-            <span className="font-mono absolute left-1/2 top-4 z-30 -translate-x-1/2 rounded-full border border-dashed border-[var(--amber)]/60 bg-[var(--ink)]/80 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-[var(--amber)]">
-              mock data · backend offline
+            <span className="absolute left-4 top-4 z-30 rounded-full border border-dashed border-[var(--warn)]/60 bg-[var(--navy-900)]/80 px-3 py-1 text-[12px] text-[var(--warn)] backdrop-blur-xl">
+              Mock data, backend offline
             </span>
           )}
         </div>
-        <aside className="w-full border-t border-[var(--rule)] bg-[var(--ink)] p-4 md:max-h-full md:w-[340px] md:min-h-0 md:overflow-y-auto md:border-l md:border-t-0">
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em]">
-            <span className="text-[var(--somaiya)]">05</span>
-            <span className="mx-2 text-[var(--mute)]">/</span>
-            <span className="text-[var(--cream-dim)]">Ops rail · {data.role}</span>
-          </p>
-          <div className="mt-3">
-            <SideRail
-              kpis={data.kpis}
-              alerts={data.alerts}
-              telemetry={data.telemetry}
-              decisions={data.decisions}
-            />
-          </div>
+        <aside className="w-full border-t border-[var(--line)] bg-[var(--space)] p-4 md:max-h-full md:w-[360px] md:min-h-0 md:overflow-y-auto md:border-l md:border-t-0">
+          <SideRail
+            kpis={data.kpis}
+            alerts={data.alerts}
+            telemetry={data.telemetry}
+            decisions={data.decisions}
+            onDemoRoute={() => globeRef.current?.playRoute([
+              {
+                from_node: "SAT-A1",
+                to_node: "SAT-A2",
+                depart_ts: new Date().toISOString(),
+                arrive_ts: new Date(Date.now() + 4000).toISOString(),
+                kind: "ISL",
+              },
+              {
+                from_node: "SAT-A2",
+                to_node: "SAT-A3",
+                depart_ts: new Date(Date.now() + 4000).toISOString(),
+                arrive_ts: new Date(Date.now() + 8000).toISOString(),
+                kind: "ISL",
+              },
+              {
+                from_node: "SAT-A3",
+                to_node: "GS-BOM",
+                depart_ts: new Date(Date.now() + 8000).toISOString(),
+                arrive_ts: new Date(Date.now() + 12000).toISOString(),
+                kind: "DOWNLINK",
+              },
+            ])}
+          />
         </aside>
       </div>
     </div>

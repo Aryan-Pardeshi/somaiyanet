@@ -24,8 +24,8 @@ import { DiffCard } from "@/features/deploy/DiffCard";
 
 function ExpCo({ exp, co }: { exp: string; co: string }) {
   return (
-    <span className="font-mono rounded-full bg-[var(--somaiya-soft)] px-2 py-0.5 text-[10px] tracking-[0.08em] text-[var(--cream)]">
-      {exp} · {co}
+    <span className="rounded-full bg-[var(--navy-700)] px-2 py-0.5 text-[12px] text-[var(--ice)]">
+      {exp} {co}
     </span>
   );
 }
@@ -34,15 +34,15 @@ function RefusedCard({ err, context }: { err: ApiError; context?: string }) {
   return (
     <div
       role="alert"
-      className="rounded-xl border border-[var(--somaiya)] bg-[var(--ink-2)] p-4"
+      className="rounded-xl border border-[var(--line)] border-l-4 border-l-[var(--danger)] bg-[var(--navy-800)] p-4"
     >
-      <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--somaiya)]">
-        PostgreSQL refused · {err.sqlstate ?? err.status}
+      <p className="text-[13px] font-semibold text-[var(--text)]">
+        PostgreSQL refused this <span className="ml-1 rounded-full bg-[var(--navy-700)] px-2 py-0.5 font-mono text-[10px] text-[var(--danger)]">{err.sqlstate ?? err.status}</span>
         {context ? ` · ${context}` : ""}
       </p>
-      <p className="mt-2 text-[13px] text-[var(--cream)]">{err.message}</p>
+      <p className="mt-2 text-[13px] text-[var(--text)]">{err.message}</p>
       {err.detail && (
-        <p className="font-mono mt-1 text-[11px] text-[var(--cream-dim)]">{err.detail}</p>
+        <p className="font-mono mt-1 text-[11px] text-[var(--text-2)]">{err.detail}</p>
       )}
     </div>
   );
@@ -58,22 +58,22 @@ function PodSvg({ status, ejected }: { status: string; ejected: boolean }) {
   return (
     <svg viewBox="0 0 340 150" className="w-full" role="img" aria-label={`Pod ${status}`}>
       {/* pod tube: 127.4 long (x) — drawn 240 wide */}
-      <rect x={20} y={45} width={240} height={60} rx={8} fill="var(--ink-3)" stroke="var(--rule)" strokeWidth={2} />
-      <rect x={20} y={45} width={18} height={60} rx={8} fill="var(--ink)" stroke="var(--rule)" strokeWidth={1.5} />
+      <rect x={20} y={45} width={240} height={60} rx={8} fill="var(--navy-700)" stroke="var(--line)" strokeWidth={2} />
+      <rect x={20} y={45} width={18} height={60} rx={8} fill="var(--space)" stroke="var(--line)" strokeWidth={1.5} />
       {/* spring plate */}
-      <rect x={out ? 30 : 218} y={52} width={10} height={46} rx={2} fill="var(--amber)" opacity={0.9}>
+      <rect x={out ? 30 : 218} y={52} width={10} height={46} rx={2} fill="var(--warn)" opacity={0.9}>
         {!out && <animate attributeName="x" values="218;214;218" dur="2s" repeatCount="indefinite" />}
       </rect>
       {/* PocketQube 1P cube */}
       <g transform={out ? "translate(272,58)" : "translate(120,58)"} style={{ transition: "transform 800ms ease" }}>
-        <rect x={-22} y={-22} width={44} height={44} rx={4} fill={out ? "var(--somaiya)" : "var(--ink-2)"} stroke={out ? "var(--somaiya)" : "var(--cream-dim)"} strokeWidth={2} />
-        <rect x={-22} y={-22} width={44} height={10} rx={4} fill="var(--sky)" opacity={0.7} />
-        <circle cx={0} cy={8} r={5} fill="var(--signal)" opacity={0.9} />
+        <rect x={-22} y={-22} width={44} height={44} rx={4} fill={out ? "var(--ice)" : "var(--navy-800)"} stroke={out ? "var(--ice)" : "var(--text-2)"} strokeWidth={2} />
+        <rect x={-22} y={-22} width={44} height={10} rx={4} fill="var(--ice)" opacity={0.7} />
+        <circle cx={0} cy={8} r={5} fill="var(--ok)" opacity={0.9} />
       </g>
       {out && (
-        <line x1={258} y1={80} x2={272} y2={80} stroke="var(--somaiya)" strokeWidth={2} strokeDasharray="4 3" />
+        <line x1={258} y1={80} x2={272} y2={80} stroke="var(--ice)" strokeWidth={2} strokeDasharray="4 3" />
       )}
-      <text x={20} y={128} fill="var(--mute)" fontSize={10} fontFamily="IBM Plex Mono, monospace">
+      <text x={20} y={128} fill="var(--text-3)" fontSize={10} fontFamily="Geist Mono, monospace">
         SomaiyaPod · 127.4 × 57.9 × 57.2 mm · {status}
       </text>
     </svg>
@@ -94,19 +94,19 @@ function StateDiagram({ current }: { current: string | null }) {
           <span
             className={`font-mono rounded-full border px-2.5 py-1 text-[10px] tracking-[0.1em] ${
               current === s
-                ? "border-[var(--somaiya)] bg-[var(--somaiya-soft)] text-[var(--cream)]"
-                : "border-[var(--rule)] text-[var(--mute)]"
+                ? "border-[var(--ice)] bg-[var(--navy-700)] text-[var(--text)]"
+                : "border-[var(--line)] text-[var(--text-3)]"
             }`}
-            style={current === s ? { boxShadow: "0 0 12px var(--somaiya)" } : undefined}
+            style={current === s ? { boxShadow: "0 0 12px var(--ice)" } : undefined}
           >
             {s}
           </span>
           {i < STATES.length - 1 && (
-            <span className="font-mono text-[var(--mute)]">→</span>
+            <span className="font-mono text-[var(--text-3)]">→</span>
           )}
         </span>
       ))}
-      <span className="font-mono mt-1 w-full text-[10px] text-[var(--mute)]">
+      <span className="font-mono mt-1 w-full text-[10px] text-[var(--text-3)]">
         legal jumps: {edges.map(([a, b]) => `${a}→${b}`).join(" · ")} (+ NOMINAL⇄SAFE, →DECOMMISSIONED)
       </span>
     </div>
@@ -266,16 +266,16 @@ export default function Deploy() {
   );
 
   return (
-    <div className="min-h-screen bg-[var(--ink)] text-[var(--cream)]">
+    <div className="min-h-screen bg-[var(--space)] text-[var(--text)]">
       <main className="shell py-10">
         <ChapterLabel index="DEPLOY" title="SomaiyaPod" />
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
+          <h1 className="font-sans text-3xl font-bold tracking-tight sm:text-4xl">
             Deployment &amp; transactions
           </h1>
           <ExpCo exp="Exp 9" co="CO4" />
         </div>
-        <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-[var(--cream-dim)]">
+        <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-[var(--text-2)]">
           Two signals agree, the pod fires, the sat wakes. Every step is a
           transaction you can roll back on purpose.
         </p>
@@ -292,15 +292,15 @@ export default function Deploy() {
         )}
 
         {/* Pod selector + illustration */}
-        <section className="mt-6 grid gap-6 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4 lg:grid-cols-2">
+        <section className="mt-6 grid gap-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4 lg:grid-cols-2">
           <div>
-            <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--mute)]">
+            <label className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-3)]">
               pod
             </label>
             <select
               value={pod}
               onChange={(e) => setPod(e.target.value)}
-              className="font-mono mt-1.5 w-full rounded-lg border border-[var(--rule)] bg-[var(--ink)] px-2.5 py-2 text-[13px] text-[var(--cream)]"
+              className="font-mono mt-1.5 w-full rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-2 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
             >
               {PODS.map((p) => (
                 <option key={p} value={p}>
@@ -333,7 +333,7 @@ export default function Deploy() {
 
           {/* Signals + actions */}
           <div>
-            <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--cream-dim)]">
+            <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
               deploy signals · {confirmedCount} of 3 confirmed (need 2)
             </h2>
             <div className="mt-2 flex flex-col gap-2">
@@ -343,31 +343,31 @@ export default function Deploy() {
                 return (
                   <div
                     key={s}
-                    className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--rule)] bg-[var(--ink)] px-3 py-2.5"
+                    className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--line)] bg-[var(--space)] px-3 py-2.5"
                   >
                     <span
                       aria-hidden="true"
                       className="inline-block size-3 rounded-full"
                       style={{
-                        background: lit ? "var(--signal)" : "var(--mute)",
-                        boxShadow: lit ? "0 0 10px var(--signal)" : undefined,
+                        background: lit ? "var(--ok)" : "var(--text-3)",
+                        boxShadow: lit ? "0 0 10px var(--ok)" : undefined,
                       }}
                     />
-                    <span className="font-mono text-[12px] text-[var(--cream)]">{s}</span>
-                    <span className="font-mono text-[10px] text-[var(--mute)]">
+                    <span className="font-mono text-[12px] text-[var(--text)]">{s}</span>
+                    <span className="font-mono text-[10px] text-[var(--text-3)]">
                       {hits.length > 0 ? `${hits.length} event${hits.length > 1 ? "s" : ""}` : "no signal yet"}
                     </span>
                     <span className="ml-auto flex items-center gap-1.5">
                       <button
                         onClick={() => setOkState((p) => ({ ...p, [s]: !(p[s] ?? true) }))}
                         aria-label={`Toggle ok for ${s}`}
-                        className="font-mono rounded-full border border-[var(--rule)] px-2.5 py-1 text-[10px] uppercase tracking-[0.1em] text-[var(--cream-dim)]"
+                        className="font-mono rounded-full border border-[var(--line)] px-2.5 py-1 text-[10px] uppercase tracking-[0.1em] text-[var(--text-2)]"
                       >
                         ok: {okState[s] ? "true" : "false"}
                       </button>
                       <button
                         onClick={() => void onSignal(s)}
-                        className="font-mono rounded-full bg-[var(--somaiya)] px-3 py-1 text-[10px] uppercase tracking-[0.1em] text-white hover:scale-105"
+                        className="font-mono rounded-full bg-[var(--ice)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#04122e] hover:scale-105"
                       >
                         send
                       </button>
@@ -380,21 +380,21 @@ export default function Deploy() {
               <button
                 onClick={() => void onConfirm(false)}
                 disabled={busy !== null}
-                className="font-mono rounded-full bg-[var(--somaiya)] px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-white hover:scale-[1.02] disabled:opacity-50"
+                className="font-mono rounded-full bg-[var(--ice)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#04122e] hover:scale-[1.02] disabled:opacity-50"
               >
                 {busy === "confirm" ? "confirming…" : "Confirm deployment"}
               </button>
               <button
                 onClick={() => void onConfirm(true)}
                 disabled={busy !== null}
-                className="font-mono rounded-full border border-[var(--amber)]/60 px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-[var(--amber)] hover:bg-[var(--somaiya-soft)] disabled:opacity-50"
+                className="font-mono rounded-full border border-[var(--warn)]/60 px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-[var(--warn)] hover:bg-[var(--navy-700)] disabled:opacity-50"
               >
                 {busy === "fail" ? "failing…" : "Simulate failure"}
               </button>
               <button
                 onClick={() => void onReset()}
                 disabled={busy !== null}
-                className="font-mono rounded-full border border-[var(--rule)] px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-[var(--cream-dim)] hover:text-[var(--cream)] disabled:opacity-50"
+                className="font-mono rounded-full border border-[var(--line)] px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-[var(--text-2)] hover:text-[var(--text)] disabled:opacity-50"
               >
                 {busy === "reset" ? "resetting…" : "Reset demo"}
               </button>
@@ -404,21 +404,21 @@ export default function Deploy() {
 
         {/* Before / after */}
         {(before !== null || after !== null) && (
-          <section className="mt-6 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
+          <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--cream-dim)]">
+              <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
                 before / after
               </h2>
               {rolledBack && (
-                <span className="font-mono rotate-[-2deg] rounded border-2 border-[var(--amber)] px-2 py-0.5 text-[11px] tracking-[0.14em] text-[var(--amber)]">
+                <span className="font-mono rotate-[-2deg] rounded border-2 border-[var(--warn)] px-2 py-0.5 text-[11px] tracking-[0.14em] text-[var(--warn)]">
                   ROLLED BACK
                 </span>
               )}
             </div>
-            <p className="mt-2 max-w-[80ch] text-sm leading-relaxed text-[var(--cream-dim)]">
+            <p className="mt-2 max-w-[80ch] text-sm leading-relaxed text-[var(--text-2)]">
               {rolledBack
                 ? "Identical rows: the transaction rolled back, nothing changed. The deployment_log row below still exists because it was written in a separate transaction — and deployment_log has no foreign keys, so nothing cascades it away."
-                : "Changed fields glow red. The COMMITTED log row is the audit twin of the same transaction."}
+                : "Changed fields glow ice blue. The COMMITTED log row is the audit twin of the same transaction."}
             </p>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               {before && (
@@ -466,8 +466,8 @@ export default function Deploy() {
         )}
 
         {/* State machine + illegal jump */}
-        <section className="mt-6 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--cream-dim)]">
+        <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
             state machine · trg_satellite_state
           </h2>
           <div className="mt-3">
@@ -476,38 +476,38 @@ export default function Deploy() {
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               onClick={() => void onIllegal()}
-              className="font-mono rounded-full border border-[var(--somaiya)]/60 px-4 py-1.5 text-[11px] uppercase tracking-[0.12em] text-[var(--cream)] hover:bg-[var(--somaiya-soft)]"
+              className="font-mono rounded-full border border-[var(--ice)]/60 px-4 py-1.5 text-[11px] uppercase tracking-[0.12em] text-[var(--text)] hover:bg-[var(--navy-700)]"
             >
               Try illegal jump (STOWED → NOMINAL)
             </button>
             <Link
               to="/labs/transactions"
-              className="font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--sky)] hover:underline"
+              className="font-mono text-[11px] uppercase tracking-[0.12em] text-[var(--ice)] hover:underline"
             >
-              open /labs/transactions →
+              Open transactions lab
             </Link>
           </div>
           {illegalMsg && (
-            <p className="font-mono mt-2 rounded-lg border border-[var(--somaiya)]/50 bg-[var(--somaiya-soft)] px-3 py-2 text-[11px] leading-relaxed text-[var(--cream)]">
+            <p className="font-mono mt-2 rounded-lg border border-[var(--ice)]/50 bg-[var(--navy-700)] px-3 py-2 text-[11px] leading-relaxed text-[var(--text)]">
               {illegalMsg}
             </p>
           )}
         </section>
 
         {/* Pass execution */}
-        <section className="mt-6 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--cream-dim)]">
+        <section className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[var(--text-2)]">
             pass execution · SAVEPOINT demo · execute_pass()
           </h2>
           <div className="mt-3 grid gap-2 sm:grid-cols-3">
             <label className="flex flex-col gap-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--mute)]">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
                 sat
               </span>
               <select
                 value={passSat}
                 onChange={(e) => setPassSat(e.target.value)}
-                className="font-mono rounded-lg border border-[var(--rule)] bg-[var(--ink)] px-2.5 py-2 text-[13px] text-[var(--cream)]"
+                className="font-mono rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-2 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
               >
                 {PASS_SATS.map((s) => (
                   <option key={s} value={s}>
@@ -517,13 +517,13 @@ export default function Deploy() {
               </select>
             </label>
             <label className="flex flex-col gap-1.5 sm:col-span-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--mute)]">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
                 downlink contact
               </span>
               <select
                 value={passContactId ?? ""}
                 onChange={(e) => setPassContactId(Number(e.target.value))}
-                className="font-mono rounded-lg border border-[var(--rule)] bg-[var(--ink)] px-2.5 py-2 text-[13px] text-[var(--cream)]"
+                className="font-mono rounded-lg border border-[var(--line)] bg-[var(--navy-700)] px-2.5 py-2 text-[13px] text-[var(--text)] focus:border-[var(--line-strong)] focus:outline-none"
               >
                 {passContacts.length === 0 && <option value="">no downlink in window</option>}
                 {passContacts.map((c) => (
@@ -538,14 +538,14 @@ export default function Deploy() {
             <button
               onClick={() => void onPass(false)}
               disabled={busy !== null || passContactId === null}
-              className="font-mono rounded-full bg-[var(--somaiya)] px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-white hover:scale-[1.02] disabled:opacity-50"
+              className="font-mono rounded-full bg-[var(--ice)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#04122e] hover:scale-[1.02] disabled:opacity-50"
             >
               {busy === "pass" ? "executing…" : "Execute pass"}
             </button>
             <button
               onClick={() => void onPass(true)}
               disabled={busy !== null || passContactId === null}
-              className="font-mono rounded-full border border-[var(--amber)]/60 px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-[var(--amber)] hover:bg-[var(--somaiya-soft)] disabled:opacity-50"
+              className="font-mono rounded-full border border-[var(--warn)]/60 px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-[var(--warn)] hover:bg-[var(--navy-700)] disabled:opacity-50"
             >
               {busy === "pass-fail" ? "failing…" : "Execute with stage-2 failure"}
             </button>
@@ -553,7 +553,7 @@ export default function Deploy() {
 
           {passResult && (
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
-              <ol className="relative ml-2 flex flex-col gap-3 border-l border-dashed border-[var(--rule)] pl-5">
+              <ol className="relative ml-2 flex flex-col gap-3 border-l border-dashed border-[var(--line)] pl-5">
                 {passResult.stages.map((st, i) => {
                   const rolled = /roll/i.test(st.status);
                   return (
@@ -562,14 +562,14 @@ export default function Deploy() {
                         aria-hidden="true"
                         className="absolute -left-[27px] top-1 size-2.5 rounded-full"
                         style={{
-                          background: rolled ? "var(--amber)" : "var(--signal)",
-                          boxShadow: `0 0 8px ${rolled ? "var(--amber)" : "var(--signal)"}`,
+                          background: rolled ? "var(--warn)" : "var(--ok)",
+                          boxShadow: `0 0 8px ${rolled ? "var(--warn)" : "var(--ok)"}`,
                         }}
                       />
-                      <p className="font-mono text-[12px] text-[var(--cream)]">
+                      <p className="font-mono text-[12px] text-[var(--text)]">
                         {st.stage} · {rolled ? "ROLLED BACK TO SAVEPOINT" : st.status}
                       </p>
-                      <p className="font-mono text-[11px] text-[var(--cream-dim)]">
+                      <p className="font-mono text-[11px] text-[var(--text-2)]">
                         {st.packets} packets · {st.bytes} bytes
                       </p>
                     </li>
@@ -577,7 +577,7 @@ export default function Deploy() {
                 })}
               </ol>
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--mute)]">
+                <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">
                   queued bytes by mode · before → after
                 </p>
                 <div className="mt-2 flex flex-col gap-2">
@@ -587,20 +587,20 @@ export default function Deploy() {
                     return (
                       <div key={m}>
                         <span className="font-mono flex justify-between text-[11px]">
-                          <span className="text-[var(--cream)]">{m}</span>
-                          <span className="text-[var(--cream-dim)]">
+                          <span className="text-[var(--text)]">{m}</span>
+                          <span className="text-[var(--text-2)]">
                             {b} → {a} B
                           </span>
                         </span>
-                        <span className="mt-1 block h-2 overflow-hidden rounded-full bg-[var(--ink)]">
+                        <span className="mt-1 block h-2 overflow-hidden rounded-full bg-[var(--space)]">
                           <span
-                            className="block h-full rounded-full bg-[var(--sky)]"
+                            className="block h-full rounded-full bg-[var(--ice)]"
                             style={{ width: `${(b / passMax) * 100}%`, opacity: 0.45 }}
                           />
                         </span>
-                        <span className="mt-0.5 block h-2 overflow-hidden rounded-full bg-[var(--ink)]">
+                        <span className="mt-0.5 block h-2 overflow-hidden rounded-full bg-[var(--space)]">
                           <span
-                            className="block h-full rounded-full bg-[var(--somaiya)]"
+                            className="block h-full rounded-full bg-[var(--ice)]"
                             style={{ width: `${(a / passMax) * 100}%` }}
                           />
                         </span>

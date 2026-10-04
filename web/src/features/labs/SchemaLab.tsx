@@ -52,26 +52,26 @@ function TableNode({ data }: NodeProps) {
   return (
     <div
       onClick={() => d.onPick(t.name)}
-      className={`min-w-[190px] max-w-[230px] rounded-xl bg-[var(--ink-2)] p-2.5 text-left ${
-        d.selected ? "border-2 border-[var(--somaiya)]" : weak ? "border-2 border-double border-[var(--amber)]" : "border border-[var(--rule)]"
+      className={`min-w-[190px] max-w-[230px] rounded-xl bg-[var(--navy-800)] p-2.5 text-left ${
+        d.selected ? "border-2 border-[var(--ice)]" : weak ? "border-2 border-double border-[var(--warn)]" : "border border-[var(--line)]"
       }`}
     >
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      <p className="font-mono text-[11px] font-bold text-[var(--cream)]">
+      <p className="font-mono text-[11px] font-bold text-[var(--text)]">
         {partitioned ? "▤ " : ""}{t.name}
       </p>
       {t.tag !== undefined && t.tag !== null && t.tag !== "" && (
-        <p className="font-mono mt-0.5 text-[9.5px] uppercase tracking-[0.1em] text-[var(--sky)]">{tagBadge(t.tag)}</p>
+        <p className="font-mono mt-0.5 text-[9.5px] uppercase tracking-[0.1em] text-[var(--ice)]">{tagBadge(t.tag)}</p>
       )}
       <div className="mt-1.5 flex flex-col gap-0.5">
         {t.columns.slice(0, 8).map((c) => (
-          <p key={c.name} className={`font-mono truncate text-[10px] ${c.pk ? "text-[var(--amber)]" : c.fk ? "text-[var(--sky)]" : "text-[var(--cream-dim)]"} ${c.generated ? "italic" : ""}`}>
+          <p key={c.name} className={`font-mono truncate text-[10px] ${c.pk ? "text-[var(--warn)]" : c.fk ? "text-[var(--ice)]" : "text-[var(--text-2)]"} ${c.generated ? "italic" : ""}`}>
             {c.pk ? "⚿ " : c.fk ? "→ " : "· "}{c.name}
-            <span className="text-[var(--mute)]"> {c.type}</span>
+            <span className="text-[var(--text-3)]"> {c.type}</span>
           </p>
         ))}
         {t.columns.length > 8 && (
-          <p className="font-mono text-[9.5px] text-[var(--mute)]">+{t.columns.length - 8} more</p>
+          <p className="font-mono text-[9.5px] text-[var(--text-3)]">+{t.columns.length - 8} more</p>
         )}
       </div>
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
@@ -136,8 +136,8 @@ export function SchemaLab({ initialTab = "diagram" }: { initialTab?: Tab }) {
           source: f.to_table,
           target: f.from_table,
           label: disjoint ? `d · ${f.label ?? "1:1"}` : (f.label ?? ""),
-          style: disjoint ? { stroke: "var(--amber)", strokeWidth: 2 } : { stroke: "var(--rule)", strokeWidth: 1.4 },
-          labelStyle: { fill: "var(--cream-dim)", fontSize: 9, fontFamily: "IBM Plex Mono, monospace" },
+          style: disjoint ? { stroke: "var(--ice)", strokeWidth: 2 } : { stroke: "var(--line)", strokeWidth: 1.4 },
+          labelStyle: { fill: "var(--text-2)", fontSize: 9, fontFamily: "Geist Mono, monospace" },
         } as Edge;
       });
   }, [data, tables]);
@@ -167,8 +167,8 @@ export function SchemaLab({ initialTab = "diagram" }: { initialTab?: Tab }) {
             onClick={() => setTab(t)}
             className={`font-mono rounded-full border px-3.5 py-1.5 text-[11px] uppercase tracking-[0.14em] ${
               tab === t
-                ? "border-[var(--somaiya)] bg-[var(--somaiya-soft)] text-[var(--cream)]"
-                : "border-[var(--rule)] text-[var(--cream-dim)] hover:text-[var(--cream)]"
+                ? "border-[var(--ice)] bg-[var(--navy-700)] text-[var(--text)]"
+                : "border-[var(--line)] text-[var(--text-2)] hover:text-[var(--text)]"
             }`}
           >
             {t === "diagram" ? "ER/EER diagram" : t === "mapping" ? "Mapping rules" : "Constraints"}
@@ -178,7 +178,7 @@ export function SchemaLab({ initialTab = "diagram" }: { initialTab?: Tab }) {
 
       {tab === "diagram" && (
         <Card title="Live ER/EER diagram" kicker={`${tables.length} tables · click a table`}>
-          <div className="h-[560px] overflow-hidden rounded-lg border border-[var(--rule)] bg-[var(--ink)]">
+          <div className="h-[560px] overflow-hidden rounded-lg border border-[var(--line)] bg-[var(--space)]">
             <ReactFlow
               nodes={nodes}
               edges={edges}
@@ -188,25 +188,25 @@ export function SchemaLab({ initialTab = "diagram" }: { initialTab?: Tab }) {
               proOptions={{ hideAttribution: true }}
               colorMode="dark"
             >
-              <Background gap={24} color="var(--rule)" />
+              <Background gap={24} color="var(--line)" />
               <Controls showInteractive={false} />
-              <MiniMap pannable zoomable style={{ background: "var(--ink-2)" }} />
+              <MiniMap pannable zoomable style={{ background: "var(--navy-800)" }} />
             </ReactFlow>
           </div>
-          <p className="font-mono mt-2 text-[10.5px] leading-relaxed text-[var(--mute)]">
-            Supertype→subtype edges meet at an amber “d” disjoint circle (double line = total participation).
+          <p className="font-mono mt-2 text-[10.5px] leading-relaxed text-[var(--text-3)]">
+            Supertype→subtype edges meet at an ice “d” disjoint circle (double line = total participation).
             Weak entities get a double border, telemetry shows ▤ + partition count, bridges carry ◇.
             {data?.partition_count ? ` ${data.partition_count} telemetry partitions live.` : ""}
           </p>
           {sel !== undefined && (
-            <div className="mt-3 rounded-lg border border-[var(--somaiya)]/60 bg-[var(--ink)] p-3">
-              <p className="font-mono text-[12px] font-bold text-[var(--cream)]">{sel.name}</p>
-              {sel.comment && <p className="mt-1 text-[12.5px] text-[var(--cream-dim)]">{sel.comment}</p>}
+            <div className="mt-3 rounded-lg border border-[var(--ice)]/60 bg-[var(--space)] p-3">
+              <p className="font-mono text-[12px] font-bold text-[var(--text)]">{sel.name}</p>
+              {sel.comment && <p className="mt-1 text-[12.5px] text-[var(--text-2)]">{sel.comment}</p>}
               <div className="mt-2 flex flex-col gap-0.5">
                 {sel.columns.map((c) => (
-                  <p key={c.name} className="font-mono text-[11px] text-[var(--cream-dim)]">
-                    <span className="text-[var(--amber)]">{c.name}</span>
-                    <span className="text-[var(--mute)]"> {c.type}{c.nullable ? "" : " NOT NULL"}{c.def ? ` DEFAULT ${c.def}` : ""}{c.generated ? " GENERATED" : ""}{c.pk ? " PK" : ""}{c.fk ? " FK" : ""}</span>
+                  <p key={c.name} className="font-mono text-[11px] text-[var(--text-2)]">
+                    <span className="text-[var(--warn)]">{c.name}</span>
+                    <span className="text-[var(--text-3)]"> {c.type}{c.nullable ? "" : " NOT NULL"}{c.def ? ` DEFAULT ${c.def}` : ""}{c.generated ? " GENERATED" : ""}{c.pk ? " PK" : ""}{c.fk ? " FK" : ""}</span>
                   </p>
                 ))}
               </div>
@@ -219,7 +219,7 @@ export function SchemaLab({ initialTab = "diagram" }: { initialTab?: Tab }) {
         <Card title="EER → relational mapping rules" kicker="how the diagram became tables">
           <ol className="flex list-decimal flex-col gap-2 pl-5">
             {mapping.map((m, i) => (
-              <li key={i} className="text-[13px] leading-relaxed text-[var(--cream-dim)]">{m}</li>
+              <li key={i} className="text-[13px] leading-relaxed text-[var(--text-2)]">{m}</li>
             ))}
           </ol>
         </Card>

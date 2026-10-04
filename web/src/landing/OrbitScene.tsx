@@ -4,15 +4,15 @@ import { Canvas, useFrame } from "@react-three/fiber"
 import * as THREE from "three"
 
 /**
- * The story's wireframe Earth: a lat/long line sphere in rule/cream-dim
- * (never points, never textured), two tilted SSO-feel orbit rings, 8 amber
- * satellite dots and one Somaiya-red packet dot riding SAT-A3.
+ * The story's wireframe Earth: a lat/long line sphere (never points,
+ * never textured), two tilted SSO-feel orbit rings in ice, 8 small white
+ * satellite points and one red packet dot riding SAT-A3.
  *
  * All motion runs in useFrame against refs — no React state per frame.
  */
 
 const R = 1.5
-const SAT_COLOR = "#ffb020"
+const SAT_COLOR = "#e6ecf8"
 const PACKET_COLOR = "#d7263d"
 const RING_A_TILT = THREE.MathUtils.degToRad(22.5)
 const RING_B_TILT = THREE.MathUtils.degToRad(-22.5)
@@ -105,19 +105,19 @@ function Swarm({
             satRefs.current[i] = m
           }}
         >
-          <sphereGeometry args={[0.032, 12, 12]} />
+          <sphereGeometry args={[0.02, 12, 12]} />
           <meshBasicMaterial color={SAT_COLOR} />
         </mesh>
       ))}
       {mode === "route" && (
         <lineSegments geometry={chordGeom}>
-          <lineBasicMaterial color="#6ea8ff" transparent opacity={0.85} />
+          <lineBasicMaterial color="#7fb2ff" transparent opacity={0.85} />
         </lineSegments>
       )}
       {mode === "route" && (
         <mesh position={chords.gs}>
           <boxGeometry args={[0.09, 0.09, 0.09]} />
-          <meshBasicMaterial color="#4cc38a" />
+          <meshBasicMaterial color="#3ecf8e" />
         </mesh>
       )}
       <mesh ref={packetRef}>
@@ -164,23 +164,23 @@ export function OrbitScene({
         gl={{ antialias: true, alpha: true }}
       >
         <Rig mode={mode} />
-        {/* wireframe Earth: line sphere, rule + cream-dim */}
+        {/* wireframe Earth in line-strong at 40% */}
         <mesh>
           <sphereGeometry args={[1, 28, 20]} />
-          <meshBasicMaterial color="#26305a" wireframe transparent opacity={0.9} />
+          <meshBasicMaterial color="#28427a" wireframe transparent opacity={0.4} />
         </mesh>
         <mesh scale={1.002}>
           <sphereGeometry args={[1, 12, 8]} />
-          <meshBasicMaterial color="#b9b09e" wireframe transparent opacity={0.16} />
+          <meshBasicMaterial color="#28427a" wireframe transparent opacity={0.16} />
         </mesh>
-        {/* orbit rings, planes A/B with an SSO feel */}
+        {/* orbit rings in ice at 35% */}
         <mesh rotation={[Math.PI / 2, 0, RING_A_TILT]}>
           <torusGeometry args={[R, 0.004, 8, 180]} />
-          <meshBasicMaterial color="#26305a" transparent opacity={0.95} />
+          <meshBasicMaterial color="#7fb2ff" transparent opacity={0.35} />
         </mesh>
         <mesh rotation={[Math.PI / 2, 0, RING_B_TILT]}>
           <torusGeometry args={[R, 0.004, 8, 180]} />
-          <meshBasicMaterial color="#26305a" transparent opacity={0.95} />
+          <meshBasicMaterial color="#7fb2ff" transparent opacity={0.35} />
         </mesh>
         <Swarm mode={mode} progressRef={progressRef} />
       </Canvas>

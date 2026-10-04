@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import db as dbmod
 from . import sqlbook
-from .routers import ai, console, deploy, mission, profiles, routing, stream, telecommand
+from .routers import ai, console, deploy, labs_index, labs_norm, labs_schema, labs_security, labs_tx, mission, profiles, routing, stream, telecommand
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -68,6 +68,11 @@ app.include_router(deploy.router)
 app.include_router(telecommand.router)
 app.include_router(console.router)
 app.include_router(stream.router)
+app.include_router(labs_tx.router)
+app.include_router(labs_security.router)
+app.include_router(labs_index.router)
+app.include_router(labs_norm.router)
+app.include_router(labs_schema.router)
 
 DIST = ROOT / "web" / "dist"
 if DIST.exists():

@@ -62,15 +62,15 @@ interface PathDatum {
   stroke: number;
 }
 
-const PLANE_A = "#ffb020";
-const PLANE_B = "#ffcf6b";
-const SAFE_RED = "#d7263d";
-const DOWNLINK_GREEN = "#4cc38a";
+const PLANE_A = "#a9caff";
+const PLANE_B = "#e6ecf8";
+const SAFE_RING = "#e5484d";
+const DOWNLINK_GREEN = "#3ecf8e";
 const TRAIL_N = 70;
 const MODEL_ALT = 525 / EARTH_R_KM;
 
 function satColor(s: ConstellationSat): string {
-  if (s.state === "SAFE") return SAFE_RED;
+  if (s.state === "SAFE") return SAFE_RING;
   return s.plane === "A" ? PLANE_A : PLANE_B;
 }
 
@@ -144,6 +144,11 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
     const [speed, setSpeed] = useState(1);
     const [booted, setBooted] = useState(false);
     const [playing, setPlaying] = useState(false);
+    const [legendOpen, setLegendOpen] = useState(
+      () =>
+        typeof window === "undefined" ||
+        window.innerWidth >= 1400,
+    );
 
     const nodePos = (name: string, tMs: number): LatLngAlt | null => {
       const rec = recsRef.current.get(name);
@@ -187,7 +192,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         .globeImageUrl(`${texBase}/earth_day.jpg`)
         .bumpImageUrl(`${texBase}/earth_topology.jpg`)
         .showAtmosphere(true)
-        .atmosphereColor("#d6c9a8")
+        .atmosphereColor("#3a6bd6")
         .atmosphereAltitude(0.25)
         .width(el.clientWidth)
         .height(el.clientHeight);
@@ -207,7 +212,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         .ringLng((d: object) => (d as { lng: number }).lng)
         .ringColor((d: object) => {
           const primary = (d as { primary: boolean }).primary;
-          const c = primary ? "215,38,61" : "243,234,216";
+          const c = primary ? "127,178,255" : "230,236,248";
           return (t: number): string => `rgba(${c},${((1 - t) * 0.95).toFixed(3)})`;
         })
         .ringMaxRadius((d: object) =>
@@ -671,19 +676,20 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
     };
 
     return (
-      <div className="relative h-full w-full overflow-hidden bg-[var(--ink)]">
+      <div className="relative h-full w-full overflow-hidden bg-[var(--space)]">
         <style>{`
           .ops-sat{position:relative;width:46px;height:46px;margin:-23px 0 0 -23px;cursor:pointer;pointer-events:auto;user-select:none}
           .ops-sat .ops-halo{position:absolute;inset:7px;border-radius:50%;border:1px solid currentColor;opacity:.34;animation:ops-sonar 2.6s ease-out infinite}
           @keyframes ops-sonar{0%{transform:scale(.55);opacity:.55}100%{transform:scale(1.5);opacity:0}}
-          .ops-sat .ops-body{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:3px;background:currentColor;box-shadow:0 0 10px currentColor}
-          .ops-sat.ops-selected .ops-body{box-shadow:0 0 0 3px var(--somaiya),0 0 14px var(--somaiya)}
-          .ops-sat .ops-tag{position:absolute;left:28px;top:12px;font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.1em;white-space:nowrap;color:var(--cream);background:rgba(11,16,32,.8);border:1px solid var(--rule);border-radius:6px;padding:1px 5px}
+          .ops-sat .ops-body{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 8px 1px currentColor}
+          .ops-sat.ops-selected .ops-body{box-shadow:0 0 0 2px var(--space),0 0 0 4px var(--ice),0 0 12px var(--ice)}
+          .ops-sat.ops-safe .ops-body{box-shadow:0 0 0 2px var(--space),0 0 0 4px var(--danger),0 0 12px var(--danger)}
+          .ops-sat .ops-tag{position:absolute;left:28px;top:12px;font-family:'Geist Mono',monospace;font-size:.6rem;letter-spacing:.1em;white-space:nowrap;color:var(--text);background:rgba(6,13,31,.8);border:1px solid var(--line);border-radius:6px;padding:1px 5px}
           .ops-sat:hover .ops-tag,.ops-sat.ops-selected .ops-tag{border-color:currentColor}
           .ops-sat.ops-safe .ops-body{animation:ops-blink 1.1s ease-in-out infinite}
           @keyframes ops-blink{0%,100%{opacity:1}50%{opacity:.35}}
           .ops-flash{animation:ops-flash .8s ease-out}
-          @keyframes ops-flash{0%{background:rgba(215,38,61,.3)}100%{background:transparent}}
+          @keyframes ops-flash{0%{background:rgba(127,178,255,.3)}100%{background:transparent}}
         `}</style>
         <div ref={containerRef} className="absolute inset-0" />
         <div
@@ -695,32 +701,32 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         {/* top bar with UTC clock */}
         <div
           className="pointer-events-none absolute left-0 right-0 top-0 z-30 flex h-14 items-center gap-3 px-4"
-          style={{ background: "linear-gradient(to bottom,rgba(11,16,32,.9),rgba(11,16,32,0))" }}
+          style={{ background: "linear-gradient(to bottom,rgba(2,4,10,.9),rgba(2,4,10,0))" }}
         >
-          <span className="text-[17px] font-semibold tracking-[-0.02em] text-[var(--cream)]">
-            SomaiyaSat <span className="font-mono text-[11px] font-normal tracking-[0.16em] text-[var(--cream-dim)]">OPS</span>
+          <span className="text-[17px] font-semibold tracking-[-0.02em] text-[var(--text)]">
+            SomaiyaSat <span className="font-mono text-[11px] font-normal tracking-[0.16em] text-[var(--text-2)]">OPS</span>
           </span>
           {playing && (
-            <span className="mono-label rounded-full border border-[var(--amber)]/40 bg-[var(--ink-2)] px-2 py-1 text-[var(--amber)]">
+            <span className="rounded-full border border-[var(--warn)]/40 bg-[var(--navy-800)] px-2 py-1 text-[12px] text-[var(--warn)]">
               playing route
             </span>
           )}
           <div className="flex-1" />
-          <div className="font-mono text-[13px] tracking-[0.06em] text-[var(--cream)]">
+          <div className="font-mono text-[13px] tracking-[0.06em] text-[var(--text)]">
             {`${two(clock.getUTCHours())}:${two(clock.getUTCMinutes())}:${two(clock.getUTCSeconds())} `}
-            <span className="text-[var(--cream-dim)]">UTC</span>
+            <span className="text-[var(--text-2)]">UTC</span>
           </div>
         </div>
 
         {/* selected-sat side panel */}
         {selected && (
-          <aside className="absolute left-4 top-16 z-30 w-[300px] max-w-[calc(100%-2rem)] rounded-xl border border-[var(--rule)] bg-[var(--ink-2)]/90 p-4 backdrop-blur-xl">
+          <aside className="absolute left-4 top-16 z-30 w-[300px] max-w-[calc(100%-2rem)] rounded-xl border border-[var(--line)] bg-[var(--navy-800)]/90 p-4 backdrop-blur-xl">
             <div className="flex items-start gap-2">
               <div>
-                <p className="font-mono text-[15px] tracking-[0.04em] text-[var(--cream)]">{selected.node_id}</p>
+                <p className="font-mono text-[15px] tracking-[0.04em] text-[var(--text)]">{selected.node_id}</p>
                 <span
                   className="mt-1 inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em]"
-                  style={{ color: selected.state === "SAFE" ? SAFE_RED : "#4cc38a", borderColor: "currentColor" }}
+                  style={{ color: selected.state === "SAFE" ? SAFE_RING : "#3ecf8e", borderColor: "currentColor" }}
                 >
                   {selected.state}
                 </span>
@@ -728,54 +734,54 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
               <button
                 onClick={() => props.onSelect(null)}
                 aria-label="Close panel"
-                className="ml-auto rounded-md border border-[var(--rule)] px-2 py-0.5 text-[var(--cream-dim)] hover:border-[var(--somaiya)]/60 hover:text-[var(--cream)]"
+                className="ml-auto rounded-md border border-[var(--line)] px-2 py-0.5 text-[var(--text-2)] hover:border-[var(--ice)]/60 hover:text-[var(--text)]"
               >
                 ×
               </button>
             </div>
             {selected.state === "STOWED" ? (
-              <p className="mt-3 font-mono text-xs leading-relaxed text-[var(--cream-dim)]">
+              <p className="mt-3 font-mono text-xs leading-relaxed text-[var(--text-2)]">
                 in SomaiyaPod — awaiting deployment. No orbit track yet.
               </p>
             ) : (
               <>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div className="rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-2">
-                    <p className="mono-label text-[var(--cream-dim)]">battery</p>
-                    <p className="mt-1 font-mono text-[15px] text-[var(--amber)]">
+                  <div className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-2">
+                    <p className="text-[12px] font-medium text-[var(--text-2)]">Battery</p>
+                    <p className="mt-1 font-mono text-[15px] text-[var(--warn)]">
                       {selected.battery_v === null || selected.battery_v === undefined ? "—" : `${selected.battery_v.toFixed(2)} V`}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-2">
-                    <p className="mono-label text-[var(--cream-dim)]">plane / slot</p>
-                    <p className="mt-1 font-mono text-[15px] text-[var(--cream)]">{selected.plane} / {selected.slot}</p>
+                  <div className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-2">
+                    <p className="text-[12px] font-medium text-[var(--text-2)]">Plane and slot</p>
+                    <p className="mt-1 font-mono text-[15px] text-[var(--text)]">{selected.plane} / {selected.slot}</p>
                   </div>
-                  <div className="rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-2">
-                    <p className="mono-label text-[var(--cream-dim)]">queued</p>
-                    <p className="mt-1 font-mono text-[15px] text-[var(--cream)]">
+                  <div className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-2">
+                    <p className="text-[12px] font-medium text-[var(--text-2)]">Queued</p>
+                    <p className="mt-1 font-mono text-[15px] text-[var(--text)]">
                       {selected.queued_bytes === undefined ? "—" : `${(selected.queued_bytes / 1024).toFixed(1)} KB`}
                     </p>
                   </div>
-                  <div className="rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-2">
-                    <p className="mono-label text-[var(--cream-dim)]">next downlink</p>
-                    <p className="mt-1 font-mono text-[15px] text-[var(--cream)]">{selected.next_downlink_station ?? "—"}</p>
+                  <div className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-2">
+                    <p className="text-[12px] font-medium text-[var(--text-2)]">Next downlink</p>
+                    <p className="mt-1 font-mono text-[15px] text-[var(--text)]">{selected.next_downlink_station ?? "—"}</p>
                   </div>
                 </div>
-                <p className="mt-2 font-mono text-xs text-[var(--cream)]">
+                <p className="mt-2 font-mono text-xs text-[var(--text)]">
                   {countdownText(selected.next_downlink_start, clock.getTime())}
                 </p>
                 <div className="mt-2">
-                  <p className="mono-label text-[var(--cream-dim)]">01 / battery · live spark</p>
+                  <p className="text-[12px] font-medium text-[var(--text-2)]">Battery, live</p>
                   {spark ? (
                     <div dangerouslySetInnerHTML={{ __html: spark }} />
                   ) : (
-                    <p className="mt-1 font-mono text-xs text-[var(--mute)]">awaiting telemetry…</p>
+                    <p className="mt-1 font-mono text-xs text-[var(--text-3)]">awaiting telemetry…</p>
                   )}
                 </div>
               </>
             )}
             {stowed.length > 0 && (
-              <p className="mt-3 border-t border-[var(--rule)] pt-2 font-mono text-[11px] text-[var(--cream-dim)]">
+              <p className="mt-3 border-t border-[var(--line)] pt-2 font-mono text-[11px] text-[var(--text-2)]">
                 in SomaiyaPod: {stowed.map((s) => s.node_id).join(", ")}
               </p>
             )}
@@ -783,58 +789,72 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         )}
 
         {/* speed control */}
-        <div className="absolute bottom-[132px] left-4 z-30 flex items-center gap-1.5 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)]/80 px-2 py-1.5 backdrop-blur-xl">
-          <span className="mono-label px-1 text-[var(--cream-dim)]">speed</span>
+        <div className="absolute bottom-[132px] left-4 z-30 flex items-center gap-1.5 rounded-xl border border-[var(--line)] bg-[var(--navy-800)]/80 px-2 py-1.5 backdrop-blur-xl">
+          <span className="px-1 text-[12px] text-[var(--text-2)]">Speed</span>
           {[1, 10, 60].map((v) => (
             <button
               key={v}
               onClick={() => setSpeedBoth(v)}
-              className={`mono-label rounded-full border px-2 py-1 transition-colors ${
+              className={`rounded-full border px-2 py-1 text-[12px] transition-colors ${
                 speed === v
-                  ? "border-[var(--somaiya)] bg-[var(--somaiya-soft)] text-[var(--cream)]"
-                  : "border-[var(--rule)] text-[var(--cream-dim)] hover:text-[var(--cream)]"
+                  ? "border-[var(--ice)] bg-[var(--navy-700)] text-[var(--text)]"
+                  : "border-[var(--line)] text-[var(--text-2)] hover:text-[var(--text)]"
               }`}
             >
               {v === 1 ? "live" : `${v}×`}
             </button>
           ))}
           {speed !== 1 && (
-            <span className="mono-label pl-1 text-[var(--amber)]">fast-forward ×{speed}</span>
+            <span className="pl-1 text-[12px] text-[var(--warn)]">fast-forward ×{speed}</span>
           )}
         </div>
 
-        {/* legend */}
-        <div className="absolute bottom-4 left-4 z-30 flex flex-col gap-1.5 rounded-xl border border-[var(--rule)] bg-[var(--ink-2)]/80 px-3 py-2.5 backdrop-blur-xl">
-          <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[var(--cream-dim)]">
-            <span className="h-[3px] w-4 rounded" style={{ background: DOWNLINK_GREEN }} /> downlink beam
-          </div>
-          <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[var(--cream-dim)]">
-            <span className="h-[3px] w-4 rounded" style={{ background: "#6ea8ff" }} /> ISL · score→alpha
-          </div>
-          <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[var(--cream-dim)]">
-            <span className="h-2 w-2 rounded-[2px]" style={{ background: PLANE_A }} /> plane A
-            <span className="ml-2 h-2 w-2 rounded-[2px]" style={{ background: PLANE_B }} /> plane B
-            <span className="ml-2 h-2 w-2 rounded-[2px]" style={{ background: SAFE_RED }} /> safe
-          </div>
-          <div className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-[var(--cream-dim)]">
-            <span className="font-mono" style={{ color: scoreColor(80) }}>link ≥ 70 good</span>
-            <span style={{ color: scoreColor(55) }}>40–69 fair</span>
-            <span style={{ color: scoreColor(10) }}>&lt; 40 poor</span>
-          </div>
+        {/* legend: collapsible glass chip, collapsed by default under 1400px */}
+        <div className="absolute bottom-4 left-4 z-30 rounded-xl border border-[var(--line)] bg-[var(--navy-900)]/80 px-3 py-2 backdrop-blur-xl">
+          <button
+            onClick={() => setLegendOpen((o) => !o)}
+            aria-expanded={legendOpen}
+            className="flex items-center gap-2 text-[12px] text-[var(--text-2)] hover:text-[var(--text)]"
+          >
+            Legend
+            <span aria-hidden="true" className="text-[var(--text-3)]">
+              {legendOpen ? "▾" : "▸"}
+            </span>
+          </button>
+          {legendOpen && (
+            <div className="mt-1.5 flex flex-col gap-1.5">
+              <div className="flex items-center gap-2 text-[12px] text-[var(--text-2)]">
+                <span className="h-[3px] w-4 rounded" style={{ background: DOWNLINK_GREEN }} /> Downlink beam
+              </div>
+              <div className="flex items-center gap-2 text-[12px] text-[var(--text-2)]">
+                <span className="h-[3px] w-4 rounded" style={{ background: "#7fb2ff" }} /> ISL, alpha by score
+              </div>
+              <div className="flex items-center gap-2 text-[12px] text-[var(--text-2)]">
+                <span className="h-2 w-2 rounded-full" style={{ background: PLANE_A }} /> Plane A
+                <span className="ml-2 h-2 w-2 rounded-full" style={{ background: PLANE_B }} /> Plane B
+                <span className="ml-2 h-2 w-2 rounded-full" style={{ background: SAFE_RING }} /> Safe
+              </div>
+              <div className="flex items-center gap-2 text-[12px] text-[var(--text-2)]">
+                <span style={{ color: scoreColor(80) }}>Link 70 or more: good</span>
+                <span style={{ color: scoreColor(55) }}>40 to 69: fair</span>
+                <span style={{ color: scoreColor(10) }}>Under 40: poor</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {import.meta.env.DEV && (
           <button
             onClick={demoRoute}
-            className="mono-label absolute bottom-4 right-4 z-30 rounded-full border border-dashed border-[var(--rule)] bg-[var(--ink)]/60 px-3 py-1.5 text-[var(--cream-dim)] hover:border-[var(--somaiya)]/60 hover:text-[var(--cream)]"
+            className="absolute bottom-4 right-4 text-[12px] z-30 rounded-full border border-dashed border-[var(--line)] bg-[var(--space)]/60 px-3 py-1.5 text-[var(--text-2)] hover:border-[var(--ice)]/60 hover:text-[var(--text)]"
           >
             ▶ demo 3-hop route
           </button>
         )}
 
         {!booted && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--ink)]">
-            <p className="mono-label animate-pulse text-[var(--cream-dim)]">acquiring orbit…</p>
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-[var(--space)]">
+            <p className="animate-pulse text-[12px] text-[var(--text-2)]">acquiring orbit…</p>
           </div>
         )}
       </div>

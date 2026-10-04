@@ -92,11 +92,11 @@ export interface DecisionRow {
 }
 
 export const ACTION_COLORS: Record<RouterAction, string> = {
-  SAFE_TTC_ONLY: "#d7263d",
-  TTC_VOICE: "#ffb020",
-  FULL_DOWNLINK: "#4cc38a",
-  RELAY_VIA_ISL: "#6ea8ff",
-  HOLD: "#7d7a73",
+  SAFE_TTC_ONLY: "#e5484d",
+  TTC_VOICE: "#f5b142",
+  FULL_DOWNLINK: "#3ecf8e",
+  RELAY_VIA_ISL: "#7fb2ff",
+  HOLD: "#93a3c4",
 };
 
 export const FEATURE_KEYS = [

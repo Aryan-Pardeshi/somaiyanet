@@ -91,10 +91,10 @@ export default function Console() {
 
   return (
     <div
-      className="grid-paper flex min-h-screen flex-col bg-[var(--ink)] text-[var(--cream)]"
+      className="flex min-h-screen flex-col bg-[var(--space)] text-[var(--text)]"
       onKeyDown={onKeyDown}
     >
-      <header className="border-b border-[var(--rule)]">
+      <header className="border-b border-[var(--line)]">
         <div className="shell flex h-14 items-center">
           <Link to="/" aria-label="SomaiyaNet home">
             <Brand className="text-lg" />
@@ -102,22 +102,11 @@ export default function Console() {
         </div>
       </header>
       <main className="shell flex flex-1 flex-col items-center justify-center py-16">
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em]">
-          <span className="text-[var(--somaiya)]">01</span>
-          <span className="mx-2 text-[var(--mute)]">/</span>
-          <span className="text-[var(--cream-dim)]">Console</span>
-        </p>
-        <h1
-          className="font-display mt-4 text-center font-bold tracking-tight"
-          style={{ fontSize: "clamp(36px, 5vw, 64px)" }}
-        >
+        <h1 className="text-center text-[40px] font-semibold tracking-[-0.02em]">
           Who&apos;s on console?
         </h1>
-        <p className="font-mono mt-3 text-[11px] uppercase tracking-[0.16em] text-[var(--mute)]">
-          Every query runs as that Postgres role
-        </p>
         {offline && (
-          <p className="font-mono mt-4 rounded-full border border-dashed border-[var(--amber)]/60 px-3 py-1 text-[11px] text-[var(--amber)]">
+          <p className="font-mono mt-4 rounded-full border border-dashed border-[var(--warn)]/60 px-3 py-1 text-[11px] text-[var(--warn)]">
             backend offline — showing roles, sign-in will retry live
           </p>
         )}
@@ -137,48 +126,52 @@ export default function Console() {
               onClick={() => void pick(p.role)}
               onMouseEnter={() => setFocus(i)}
               onFocus={() => setFocus(i)}
-              className="group flex w-full flex-col items-center rounded-2xl border border-[var(--rule)] bg-[var(--ink-2)] p-5 transition-all duration-150 hover:scale-[1.06] hover:border-[var(--somaiya)] focus-visible:scale-[1.06] focus-visible:border-[var(--somaiya)] focus-visible:outline-none sm:w-[180px]"
+              className="group flex w-full flex-col items-center rounded-[10px] border border-[var(--line)] bg-[var(--navy-800)] p-5 transition-colors hover:-translate-y-1 hover:border-[var(--ice)] focus-visible:-translate-y-1 focus-visible:border-[var(--ice)] focus-visible:outline-none sm:w-[168px] sm:h-[168px] sm:justify-center"
               style={{
-                transform: zooming === p.role ? "scale(1.12)" : undefined,
+                transform: zooming === p.role ? "scale(1.04)" : undefined,
                 boxShadow:
                   zooming === p.role
-                    ? "0 0 0 2px var(--somaiya)"
+                    ? "0 0 0 2px var(--ice)"
                     : undefined,
               }}
             >
               <span
-                className="flex size-[88px] items-center justify-center rounded-2xl border bg-[var(--ink)]"
+                className="flex size-[88px] items-center justify-center rounded-2xl border bg-[var(--space)]"
                 style={{ borderColor: `${accentRing(p.accent)}66` }}
               >
                 <ProfileAvatar role={p.role} size={52} />
               </span>
-              <span className="font-display mt-4 text-center text-[15px] font-bold leading-tight">
+              <span className="mt-4 text-center text-[15px] font-semibold leading-tight">
                 {p.title}
               </span>
-              <span className="font-mono mt-1 text-[10px] tracking-[0.08em] text-[var(--cream-dim)]">
+              <span className="mt-1 font-mono text-[12px] text-[var(--text-2)]">
                 {p.role}
               </span>
-              <span className="font-mono mt-1 text-[10px] text-[var(--mute)]">
+              <span className="mt-1 text-[12px] text-[var(--text-3)]">
                 {p.subtitle}
               </span>
               <span className="mt-3 hidden min-h-[3.5rem] flex-col gap-1 text-center group-hover:flex group-focus-visible:flex">
                 {p.can.slice(0, 3).map((c) => (
                   <span
                     key={c}
-                    className="font-mono text-[10px] leading-snug text-[var(--cream-dim)]"
+                    className="text-[12px] leading-snug text-[var(--text-2)]"
                   >
-                    · {c}
+                    {c}
                   </span>
                 ))}
               </span>
             </button>
           ))}
         </div>
+        <p className="mt-8 text-[13px] text-[var(--text-3)]">
+          Every query runs as this Postgres role. Switch anytime from the
+          sidebar.
+        </p>
         <Link
           to="/"
-          className="font-mono mt-10 text-[11px] uppercase tracking-[0.16em] text-[var(--mute)] hover:text-[var(--cream)]"
+          className="mt-6 text-[13px] text-[var(--text-3)] hover:text-[var(--text)]"
         >
-          ← back to the packet
+          Back to the packet
         </Link>
       </main>
     </div>

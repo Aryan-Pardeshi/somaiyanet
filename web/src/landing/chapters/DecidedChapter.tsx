@@ -53,7 +53,7 @@ const WATCHDOG = [
 /**
  * 03 / DECIDED. The decision tree is rows in dt_node, walked by a recursive
  * CTE — explainable by construction. Scroll lights the path node by node in
- * Somaiya red; the watchdog then checks its 5 invariants with ticks.
+ * ice blue; the watchdog then checks its 5 invariants with ticks.
  */
 export function DecidedChapter() {
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -72,7 +72,7 @@ export function DecidedChapter() {
       if (g) g.setAttribute("opacity", order < litCount ? "1" : "0.28")
     })
     edgeRefs.current.forEach((e, i) => {
-      if (e) e.setAttribute("stroke", i < litCount - 1 ? "#d7263d" : "#26305a")
+      if (e) e.setAttribute("stroke", i < litCount - 1 ? "#7fb2ff" : "#1b2d55")
     })
     if (noteRef.current) {
       noteRef.current.textContent =
@@ -99,8 +99,8 @@ export function DecidedChapter() {
         ]}
         visual={
           <div className="flex flex-col gap-4">
-            <div className="rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
-              <p className="font-mono mb-2 text-[11px] tracking-[0.18em] text-[var(--cream-dim)]">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
+              <p className="font-mono mb-2 text-[11px] tracking-[0.18em] text-[var(--text-2)]">
                 ai_model 1 · DecisionTree · walking for SAT-A3
               </p>
               <svg
@@ -128,7 +128,7 @@ export function DecidedChapter() {
                         y1={n.y + 14}
                         x2={c.x}
                         y2={c.y - 14}
-                        stroke="#26305a"
+                        stroke="#1b2d55"
                         strokeWidth={onPath ? 2.5 : 1.5}
                       />
                     )
@@ -153,8 +153,8 @@ export function DecidedChapter() {
                         width="104"
                         height="26"
                         rx="6"
-                        fill={n.id === 9 ? "#d7263d22" : "none"}
-                        stroke={n.id === 9 ? "#d7263d" : "#26305a"}
+                        fill={n.id === 9 ? "#7fb2ff22" : "none"}
+                        stroke={n.id === 9 ? "#7fb2ff" : "#1b2d55"}
                         strokeWidth={n.id === 9 ? 2 : 1.5}
                       />
                     ) : (
@@ -162,8 +162,8 @@ export function DecidedChapter() {
                         cx={n.x}
                         cy={n.y}
                         r="14"
-                        fill="#1a2346"
-                        stroke={PATH.includes(n.id) ? "#d7263d" : "#6ea8ff"}
+                        fill="#0f2147"
+                        stroke={PATH.includes(n.id) ? "#7fb2ff" : "#7fb2ff"}
                         strokeWidth="2"
                       />
                     )}
@@ -172,8 +172,8 @@ export function DecidedChapter() {
                       y={n.leaf ? n.y + 4 : n.y - 20}
                       textAnchor="middle"
                       fontSize="9.5"
-                      fill={n.id === 9 ? "#f3ead8" : "#b9b09e"}
-                      fontFamily="IBM Plex Mono, monospace"
+                      fill={n.id === 9 ? "#e6ecf8" : "#93a3c4"}
+                      fontFamily="Geist Mono, monospace"
                     >
                       {n.leaf ?? `${n.feature} ≤ ${n.threshold}?`}
                     </text>
@@ -182,26 +182,26 @@ export function DecidedChapter() {
               </svg>
               <p
                 ref={noteRef}
-                className="font-mono mt-2 min-h-[1.5em] text-[12px] text-[var(--amber)]"
+                className="font-mono mt-2 min-h-[1.5em] text-[12px] text-[var(--warn)]"
               >
                 walking dt_node from node 0…
               </p>
             </div>
-            <div className="rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
-              <p className="font-mono mb-3 text-[11px] tracking-[0.18em] text-[var(--cream-dim)]">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
+              <p className="font-mono mb-3 text-[11px] tracking-[0.18em] text-[var(--text-2)]">
                 watchdog · 5 invariants
               </p>
               <ul className="flex flex-col gap-2">
                 {WATCHDOG.map((w, i) => (
                   <li
                     key={w}
-                    className="font-mono flex items-center gap-3 text-[12px] text-[var(--cream-dim)]"
+                    className="font-mono flex items-center gap-3 text-[12px] text-[var(--text-2)]"
                   >
                     <span
                       ref={(s) => {
                         tickRefs.current[i] = s
                       }}
-                      className="inline-flex size-5 items-center justify-center rounded-full bg-[var(--signal)] text-[11px] text-[#0b1020] transition-opacity duration-300"
+                      className="inline-flex size-5 items-center justify-center rounded-full bg-[var(--ok)] text-[11px] text-[#02040a] transition-opacity duration-300"
                       style={{ opacity: 0 }}
                     >
                       ✓
@@ -211,21 +211,21 @@ export function DecidedChapter() {
                 ))}
               </ul>
             </div>
-            <div className="relative overflow-hidden rounded-xl border border-[var(--somaiya)]/50 bg-[var(--ink-2)] p-4">
-              <p className="font-mono text-[11px] tracking-[0.18em] text-[var(--mute)]">
+            <div className="relative overflow-hidden rounded-xl border border-[var(--ice)]/50 bg-[var(--navy-800)] p-4">
+              <p className="font-mono text-[11px] tracking-[0.18em] text-[var(--text-3)]">
                 second scenario · watchdog override
               </p>
               <p className="font-mono mt-2 text-[13px]">
-                <span className="text-[var(--mute)] line-through">
+                <span className="text-[var(--text-3)] line-through">
                   FULL_DOWNLINK
                 </span>
-                <span className="mx-2 text-[var(--cream-dim)]">→</span>
-                <span className="text-[var(--amber)]">TTC_VOICE</span>
+                <span className="mx-2 text-[var(--text-2)]">→</span>
+                <span className="text-[var(--warn)]">TTC_VOICE</span>
               </p>
-              <p className="font-mono mt-1 text-[11px] text-[var(--mute)]">
+              <p className="font-mono mt-1 text-[11px] text-[var(--text-3)]">
                 battery 7.10 V below 7.2 V — SSTV is the most power-hungry mode
               </p>
-              <span className="font-mono absolute right-4 top-4 -rotate-6 rounded border-2 border-[var(--somaiya)] px-2 py-0.5 text-[11px] tracking-[0.2em] text-[var(--somaiya)]">
+              <span className="font-mono absolute right-4 top-4 -rotate-6 rounded border-2 border-[var(--ice)] px-2 py-0.5 text-[11px] tracking-[0.2em] text-[var(--ice)]">
                 OVERRIDE
               </span>
             </div>

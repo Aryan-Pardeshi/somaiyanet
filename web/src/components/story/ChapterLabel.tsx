@@ -1,20 +1,19 @@
 import { cn } from "@/lib/utils"
 
-/** Section label written `01 / CAPTURED` in Plex Mono — never bracketed. */
+/** Sentence-case section label in Geist Sans — never bracketed, never tracked out. */
 export function ChapterLabel({
   index,
   title,
   className,
 }: {
-  index: string
-  title: string
-  className?: string
+  index: string;
+  title: string;
+  className?: string;
 }) {
   return (
-    <p className={cn("font-mono text-[11px] uppercase tracking-[0.22em]", className)}>
-      <span className="text-[var(--somaiya)]">{index}</span>
-      <span className="mx-2 text-[var(--mute)]">/</span>
-      <span className="text-[var(--cream-dim)]">{title}</span>
+    <p className={cn("text-[13px] font-medium text-[var(--text-2)]", className)}>
+      {title}
+      <span className="sr-only">{` (section ${index})`}</span>
     </p>
-  )
+  );
 }

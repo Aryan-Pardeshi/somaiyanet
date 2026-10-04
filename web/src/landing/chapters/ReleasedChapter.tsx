@@ -33,8 +33,8 @@ export function ReleasedChapter() {
     const lit = p < 0.25 ? 0 : p < 0.5 ? 1 : p < 0.72 ? 2 : 3
     lampRefs.current.forEach((lamp, i) => {
       if (!lamp) return
-      lamp.setAttribute("fill", i < lit ? "#4cc38a" : "#1a2346")
-      lamp.setAttribute("stroke", i < lit ? "#4cc38a" : "#26305a")
+      lamp.setAttribute("fill", i < lit ? "#3ecf8e" : "#0f2147")
+      lamp.setAttribute("stroke", i < lit ? "#3ecf8e" : "#1b2d55")
     })
     if (countRef.current) {
       countRef.current.textContent = `${Math.min(lit, 2)} of 3 confirmed`
@@ -55,7 +55,7 @@ export function ReleasedChapter() {
         ]}
         visual={
           <div className="flex flex-col gap-4">
-            <div className="rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
               <svg
                 viewBox="0 0 460 240"
                 className="h-auto w-full"
@@ -70,7 +70,7 @@ export function ReleasedChapter() {
                   height="90"
                   rx="6"
                   fill="none"
-                  stroke="#b9b09e"
+                  stroke="#93a3c4"
                   strokeWidth="2"
                 />
                 {/* spring plate, compresses on scroll */}
@@ -80,7 +80,7 @@ export function ReleasedChapter() {
                   y="92"
                   width="36"
                   height="66"
-                  fill="#d7263d"
+                  fill="#7fb2ff"
                   opacity="0.85"
                   style={{ transformOrigin: "48px 125px" }}
                 />
@@ -92,27 +92,27 @@ export function ReleasedChapter() {
                   width="66"
                   height="42"
                   rx="3"
-                  fill="#ffb020"
-                  stroke="#0b1020"
+                  fill="#e6ecf8"
+                  stroke="#02040a"
                   strokeWidth="2"
                 />
-                <text x="104" y="129" fontSize="11" fill="#0b1020" fontFamily="IBM Plex Mono, monospace">
+                <text x="104" y="129" fontSize="11" fill="#02040a" fontFamily="Geist Mono, monospace">
                   SAT-A3
                 </text>
                 {/* dimension annotations */}
-                <line x1="40" y1="196" x2="240" y2="196" stroke="#7d7a73" strokeWidth="1" />
-                <text x="140" y="212" fontSize="10" fill="#7d7a73" textAnchor="middle" fontFamily="IBM Plex Mono, monospace">
+                <line x1="40" y1="196" x2="240" y2="196" stroke="#5f6f93" strokeWidth="1" />
+                <text x="140" y="212" fontSize="10" fill="#5f6f93" textAnchor="middle" fontFamily="Geist Mono, monospace">
                   127.4 mm
                 </text>
-                <line x1="262" y1="80" x2="262" y2="170" stroke="#7d7a73" strokeWidth="1" />
-                <text x="272" y="130" fontSize="10" fill="#7d7a73" fontFamily="IBM Plex Mono, monospace">
+                <line x1="262" y1="80" x2="262" y2="170" stroke="#5f6f93" strokeWidth="1" />
+                <text x="272" y="130" fontSize="10" fill="#5f6f93" fontFamily="Geist Mono, monospace">
                   57.9
                 </text>
-                <text x="272" y="142" fontSize="10" fill="#7d7a73" fontFamily="IBM Plex Mono, monospace">
+                <text x="272" y="142" fontSize="10" fill="#5f6f93" fontFamily="Geist Mono, monospace">
                   × 57.2
                 </text>
                 {/* escaping packet dot */}
-                <circle cx="330" cy="100" r="5" fill="#d7263d" opacity="0.9">
+                <circle cx="330" cy="100" r="5" fill="#7fb2ff" opacity="0.9">
                   <animate attributeName="r" values="4;6;4" dur="1.6s" repeatCount="indefinite" />
                 </circle>
               </svg>
@@ -120,7 +120,7 @@ export function ReleasedChapter() {
                 {SIGNALS.map((s, i) => (
                   <span
                     key={s}
-                    className="font-mono flex items-center gap-2 text-[11px] tracking-[0.1em] text-[var(--cream-dim)]"
+                    className="font-mono flex items-center gap-2 text-[11px] tracking-[0.1em] text-[var(--text-2)]"
                   >
                     <svg width="14" height="14" aria-hidden="true">
                       <circle
@@ -130,8 +130,8 @@ export function ReleasedChapter() {
                         cx="7"
                         cy="7"
                         r="5.5"
-                        fill="#1a2346"
-                        stroke="#26305a"
+                        fill="#0f2147"
+                        stroke="#1b2d55"
                         strokeWidth="1.5"
                       />
                     </svg>
@@ -140,7 +140,7 @@ export function ReleasedChapter() {
                 ))}
                 <span
                   ref={countRef}
-                  className="font-mono ml-auto text-[11px] tracking-[0.1em] text-[var(--amber)]"
+                  className="font-mono ml-auto text-[11px] tracking-[0.1em] text-[var(--warn)]"
                 >
                   0 of 3 confirmed
                 </span>
@@ -151,8 +151,8 @@ export function ReleasedChapter() {
 -- 3 signals ok, 2 of 3 required -> COMMIT;`}
               caption="Exp 9 · TCL — COMMIT on success"
             />
-            <div className="rounded-xl border border-dashed border-[var(--rule)] p-4 opacity-60">
-              <pre className="font-mono text-[12.5px] leading-relaxed whitespace-pre-wrap text-[var(--mute)]">
+            <div className="rounded-xl border border-dashed border-[var(--line)] p-4 opacity-60">
+              <pre className="font-mono text-[12.5px] leading-relaxed whitespace-pre-wrap text-[var(--text-3)]">
                 {`CALL confirm_deployment('POD-B4', p_simulate_failure => TRUE);
 -- ROLLBACK — but deployment_log keeps the row.`}
               </pre>

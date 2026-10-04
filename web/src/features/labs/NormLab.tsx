@@ -61,10 +61,10 @@ export function NormLab() {
               onClick={() => setActive(i)}
               className={`font-mono rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.12em] ${
                 i === active
-                  ? "border-[var(--somaiya)] bg-[var(--somaiya-soft)] text-[var(--cream)]"
+                  ? "border-[var(--ice)] bg-[var(--navy-700)] text-[var(--text)]"
                   : i < active
-                    ? "border-[var(--signal)]/50 text-[var(--signal)]"
-                    : "border-[var(--rule)] text-[var(--cream-dim)] hover:border-[var(--somaiya)] hover:text-[var(--cream)]"
+                    ? "border-[var(--ok)]/50 text-[var(--ok)]"
+                    : "border-[var(--line)] text-[var(--text-2)] hover:border-[var(--ice)] hover:text-[var(--text)]"
               }`}
             >
               {i + 1} · {s.stage}
@@ -73,7 +73,7 @@ export function NormLab() {
         </div>
         <DecompTree active={active} />
         <div className="mt-4">
-          <p className="font-mono mb-2 text-[10px] uppercase tracking-[0.16em] text-[var(--amber)]">
+          <p className="font-mono mb-2 text-[10px] uppercase tracking-[0.16em] text-[var(--warn)]">
             {cur.stage} · functional dependencies
           </p>
           <div className="flex flex-col gap-1.5">
@@ -82,15 +82,15 @@ export function NormLab() {
                 key={i}
                 className={`font-mono rounded-lg border px-3 py-1.5 text-[11.5px] ${
                   f.violates && f.violates !== "—" && f.violates.toLowerCase() !== "none"
-                    ? "border-[var(--somaiya)]/60 bg-[var(--somaiya-soft)] text-[var(--cream)]"
-                    : "border-[var(--rule)] bg-[var(--ink)] text-[var(--cream-dim)]"
+                    ? "border-[var(--ice)]/60 bg-[var(--navy-700)] text-[var(--text)]"
+                    : "border-[var(--line)] bg-[var(--space)] text-[var(--text-2)]"
                 }`}
               >
-                <span className="text-[var(--sky)]">{f.fd}</span>
+                <span className="text-[var(--ice)]">{f.fd}</span>
                 {f.violates && f.violates !== "—" && (
-                  <span className="text-[var(--somaiya)]"> · violates {f.violates}</span>
+                  <span className="text-[var(--ice)]"> · violates {f.violates}</span>
                 )}
-                {f.fix && <span className="text-[var(--mute)]"> → {f.fix}</span>}
+                {f.fix && <span className="text-[var(--text-3)]"> → {f.fix}</span>}
               </p>
             ))}
           </div>
@@ -98,11 +98,11 @@ export function NormLab() {
         <div className="mt-4 flex flex-col gap-4">
           {cur.tables.map((t) => (
             <div key={t.name}>
-              <p className="font-mono mb-1 text-[11px] text-[var(--cream)]">
+              <p className="font-mono mb-1 text-[11px] text-[var(--text)]">
                 {t.name}
-                <span className="text-[var(--mute)]"> · {t.columns.join(", ")}</span>
+                <span className="text-[var(--text-3)]"> · {t.columns.join(", ")}</span>
               </p>
-              <AmberGrid rows={t.rows} highlight={dupColumns(t.rows)} />
+              <HighlightGrid rows={t.rows} highlight={dupColumns(t.rows)} />
             </div>
           ))}
         </div>
@@ -119,8 +119,8 @@ export function NormLab() {
                 onClick={() => setAnomalyKind(k)}
                 className={`font-mono rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.14em] ${
                   anomalyKind === k
-                    ? "border-[var(--somaiya)] bg-[var(--somaiya-soft)] text-[var(--cream)]"
-                    : "border-[var(--rule)] text-[var(--cream-dim)] hover:text-[var(--cream)]"
+                    ? "border-[var(--ice)] bg-[var(--navy-700)] text-[var(--text)]"
+                    : "border-[var(--line)] text-[var(--text-2)] hover:text-[var(--text)]"
                 }`}
               >
                 {k}
@@ -131,30 +131,30 @@ export function NormLab() {
       >
         {anomaly ? (
           <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--mute)]">before</p>
-              <p className="font-mono mt-1 text-[11.5px] text-[var(--cream-dim)]">{anomaly.before}</p>
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">before</p>
+              <p className="font-mono mt-1 text-[11.5px] text-[var(--text-2)]">{anomaly.before}</p>
             </div>
-            <div className="rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--mute)]">after</p>
-              <p className="font-mono mt-1 text-[11.5px] text-[var(--amber)]">{anomaly.after}</p>
+            <div className="rounded-lg border border-[var(--line)] bg-[var(--space)] p-3">
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--text-3)]">after</p>
+              <p className="font-mono mt-1 text-[11.5px] text-[var(--warn)]">{anomaly.after}</p>
             </div>
-            <p className="text-[13px] leading-relaxed text-[var(--cream-dim)] md:col-span-2">
+            <p className="text-[13px] leading-relaxed text-[var(--text-2)] md:col-span-2">
               {anomaly.explanation}
             </p>
           </div>
         ) : (
-          <p className="font-mono text-[11px] text-[var(--mute)]">No anomaly output yet.</p>
+          <p className="font-mono text-[11px] text-[var(--text-3)]">No anomaly output yet.</p>
         )}
       </Card>
 
       <Card title="Lossless-join proof" kicker="NATURAL JOIN + EXCEPT both ways">
-        <div className="overflow-x-auto rounded-lg border border-[var(--rule)]">
+        <div className="overflow-x-auto rounded-lg border border-[var(--line)]">
           <table className="w-full border-collapse text-left">
-            <thead className="bg-[var(--ink-3)]">
+            <thead className="bg-[var(--navy-700)]">
               <tr>
                 {["stage", "original", "rejoined", "missing", "spurious", ""].map((c) => (
-                  <th key={c} className="font-mono border-b border-[var(--rule)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--cream-dim)]">{c}</th>
+                  <th key={c} className="font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] text-[var(--text-2)]">{c}</th>
                 ))}
               </tr>
             </thead>
@@ -162,13 +162,13 @@ export function NormLab() {
               {shownLossless.map((r) => {
                 const ok = r.missing === 0 && r.spurious === 0;
                 return (
-                  <tr key={r.stage} className="odd:bg-[var(--ink)] even:bg-[var(--ink-2)]">
-                    <td className="font-mono px-2.5 py-1.5 text-[11.5px] text-[var(--amber)]">{r.stage}</td>
-                    <td className="font-mono px-2.5 py-1.5 text-[11.5px] text-[var(--cream)]">{r.rows_original}</td>
-                    <td className="font-mono px-2.5 py-1.5 text-[11.5px] text-[var(--cream)]">{r.rows_rejoined}</td>
-                    <td className="font-mono px-2.5 py-1.5 text-[11.5px] text-[var(--cream)]">{r.missing}</td>
-                    <td className="font-mono px-2.5 py-1.5 text-[11.5px] text-[var(--cream)]">{r.spurious}</td>
-                    <td className={`font-mono px-2.5 py-1.5 text-[12px] ${ok ? "text-[var(--signal)]" : "text-[var(--somaiya)]"}`}>
+                  <tr key={r.stage} className="odd:bg-[var(--space)] even:bg-[var(--navy-800)]">
+                    <td className="font-mono px-2.5 py-1.5 text-[11.5px] text-[var(--warn)]">{r.stage}</td>
+                    <td className="font-mono px-2.5 py-1.5 text-[11.5px] text-[var(--text)]">{r.rows_original}</td>
+                    <td className="font-mono px-2.5 py-1.5 text-[11.5px] text-[var(--text)]">{r.rows_rejoined}</td>
+                    <td className="font-mono px-2.5 py-1.5 text-[11.5px] text-[var(--text)]">{r.missing}</td>
+                    <td className="font-mono px-2.5 py-1.5 text-[11.5px] text-[var(--text)]">{r.spurious}</td>
+                    <td className={`font-mono px-2.5 py-1.5 text-[12px] ${ok ? "text-[var(--ok)]" : "text-[var(--ice)]"}`}>
                       {ok ? "✓" : "✗"}
                     </td>
                   </tr>
@@ -185,12 +185,12 @@ export function NormLab() {
 function DecompTree({ active }: { active: number }) {
   const labels = STAGES.slice(0, Math.max(active + 1, 2));
   return (
-    <svg viewBox={`0 0 ${labels.length * 120} 46`} role="img" aria-label="decomposition diagram" className="mt-4 w-full max-w-[560px] rounded-lg border border-[var(--rule)] bg-[var(--ink)] p-2">
-      <g fontFamily="IBM Plex Mono, monospace" fontSize="10">
+    <svg viewBox={`0 0 ${labels.length * 120} 46`} role="img" aria-label="decomposition diagram" className="mt-4 w-full max-w-[560px] rounded-lg border border-[var(--line)] bg-[var(--space)] p-2">
+      <g fontFamily="Geist Mono, monospace" fontSize="10">
         {labels.map((s, i) => (
           <g key={s}>
             {i > 0 && (
-              <line x1={i * 120 - 78} y1="23" x2={i * 120 - 42} y2="23" stroke="var(--rule)" strokeWidth="1.5" strokeDasharray="4 3" />
+              <line x1={i * 120 - 78} y1="23" x2={i * 120 - 42} y2="23" stroke="var(--line)" strokeWidth="1.5" strokeDasharray="4 3" />
             )}
             <rect
               x={i * 120 + 6}
@@ -199,10 +199,10 @@ function DecompTree({ active }: { active: number }) {
               height="30"
               rx="8"
               fill="none"
-              stroke={i === active ? "var(--somaiya)" : "var(--rule)"}
+              stroke={i === active ? "var(--ice)" : "var(--line)"}
               strokeWidth={i === active ? 2 : 1.2}
             />
-            <text x={i * 120 + 42} y="27" textAnchor="middle" fill={i === active ? "var(--cream)" : "var(--mute)"}>{s}</text>
+            <text x={i * 120 + 42} y="27" textAnchor="middle" fill={i === active ? "var(--text)" : "var(--text-3)"}>{s}</text>
           </g>
         ))}
       </g>
@@ -226,18 +226,18 @@ function dupColumns(rows: Array<Record<string, unknown>>): Set<string> {
   return dup;
 }
 
-function AmberGrid({ rows, highlight }: { rows: Array<Record<string, unknown>>; highlight: Set<string> }) {
-  if (rows.length === 0) return <p className="font-mono text-[11px] text-[var(--mute)]">0 rows.</p>;
+function HighlightGrid({ rows, highlight }: { rows: Array<Record<string, unknown>>; highlight: Set<string> }) {
+  if (rows.length === 0) return <p className="font-mono text-[11px] text-[var(--text-3)]">0 rows.</p>;
   const cols = Object.keys(rows[0] ?? {});
   return (
-    <div className="overflow-x-auto rounded-lg border border-[var(--rule)]">
+    <div className="overflow-x-auto rounded-lg border border-[var(--line)]">
       <table className="w-full border-collapse text-left">
-        <thead className="bg-[var(--ink-3)]">
+        <thead className="bg-[var(--navy-700)]">
           <tr>
             {cols.map((c) => (
               <th
                 key={c}
-                className={`font-mono border-b border-[var(--rule)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.06em] ${highlight.has(c) ? "text-[var(--amber)]" : "text-[var(--cream-dim)]"}`}
+                className={`font-mono border-b border-[var(--line)] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.06em] ${highlight.has(c) ? "text-[var(--warn)]" : "text-[var(--text-2)]"}`}
               >
                 {c}{highlight.has(c) ? " ●" : ""}
               </th>
@@ -246,11 +246,11 @@ function AmberGrid({ rows, highlight }: { rows: Array<Record<string, unknown>>; 
         </thead>
         <tbody>
           {rows.slice(0, 12).map((r, i) => (
-            <tr key={i} className="odd:bg-[var(--ink)] even:bg-[var(--ink-2)]">
+            <tr key={i} className="odd:bg-[var(--space)] even:bg-[var(--navy-800)]">
               {cols.map((c) => (
                 <td
                   key={c}
-                  className={`font-mono max-w-[240px] truncate px-2.5 py-1.5 text-[11px] ${highlight.has(c) ? "text-[var(--amber)]" : "text-[var(--cream)]"}`}
+                  className={`font-mono max-w-[240px] truncate px-2.5 py-1.5 text-[11px] ${highlight.has(c) ? "text-[var(--warn)]" : "text-[var(--text)]"}`}
                   title={String(r[c] ?? "NULL")}
                 >
                   {String(r[c] ?? "NULL")}

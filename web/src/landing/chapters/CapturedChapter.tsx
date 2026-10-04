@@ -56,7 +56,7 @@ function useEarthLimb(canvasRef: RefObject<HTMLCanvasElement | null>) {
       }
     }
     imgRef.current = img
-    ctx.fillStyle = "#0b1020"
+    ctx.fillStyle = "#02040a"
     ctx.fillRect(0, 0, W, H)
   }, [canvasRef])
 
@@ -69,13 +69,13 @@ function useEarthLimb(canvasRef: RefObject<HTMLCanvasElement | null>) {
     const W = 320
     const H = 240
     const rows = Math.floor(p * H)
-    ctx.fillStyle = "#0b1020"
+    ctx.fillStyle = "#02040a"
     ctx.fillRect(0, 0, W, H)
     if (rows <= 0) return
     const part = ctx.createImageData(W, rows)
     part.data.set(img.data.subarray(0, W * rows * 4))
     ctx.putImageData(part, 0, 0)
-    ctx.fillStyle = "rgba(215,38,61,0.9)"
+    ctx.fillStyle = "rgba(127,178,255,0.9)"
     ctx.fillRect(0, rows - 1, W, 2)
   }
 }
@@ -102,8 +102,8 @@ export function CapturedChapter() {
         ]}
         visual={
           <div className="flex flex-col gap-4">
-            <div className="overflow-hidden rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
-              <p className="font-mono mb-3 text-[11px] tracking-[0.18em] text-[var(--cream-dim)]">
+            <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
+              <p className="font-mono mb-3 text-[11px] tracking-[0.18em] text-[var(--text-2)]">
                 SSTV · Robot36 · 320×240 · building scanlines
               </p>
               <canvas

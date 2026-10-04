@@ -1,4 +1,3 @@
-// globe logic adapted from lakshyamody/dbmsproj (app/components/globe_template.html)
 // Right rail for /ops: KPI tiles, alerts, live telemetry ticker, decision feed.
 import type { Alert, DecisionEvent, Kpi, TelemetryEvent } from "./api";
 
@@ -7,147 +6,162 @@ interface SideRailProps {
   alerts: Alert[];
   telemetry: TelemetryEvent[];
   decisions: DecisionEvent[];
+  onDemoRoute?: () => void;
 }
 
 function sevColor(sev: Alert["severity"]): string {
-  if (sev === "CRITICAL") return "var(--somaiya)";
-  if (sev === "WARN") return "var(--amber)";
-  return "var(--signal)";
+  if (sev === "CRITICAL") return "var(--danger)";
+  if (sev === "WARN") return "var(--warn)";
+  return "var(--ok)";
 }
 
-export function SideRail({ kpis, alerts, telemetry, decisions }: SideRailProps) {
+function SatPill({ state }: { state: string }) {
+  const color =
+    state === "NOMINAL"
+      ? "var(--ok)"
+      : state === "SAFE"
+        ? "var(--danger)"
+        : state === "WARN"
+          ? "var(--warn)"
+          : "var(--text-3)";
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[12px]"
+      style={{ background: `color-mix(in srgb, ${color} 12%, transparent)` }}
+    >
+      <span
+        aria-hidden="true"
+        className="inline-block size-1.5 rounded-full"
+        style={{ background: color }}
+      />
+      <span style={{ color }}>{state}</span>
+    </span>
+  );
+}
+
+export function SideRail({ kpis, alerts, telemetry, decisions, onDemoRoute }: SideRailProps) {
   const kpi = kpis[0];
   const tiles: Array<{ label: string; value: string }> = kpi
     ? [
-        { label: "sats", value: `${kpi.sats_operational}/${kpi.sats_total}` },
-        { label: "queued", value: String(kpi.packets_queued) },
-        { label: "deliv 24h", value: String(kpi.packets_delivered_24h) },
+        { label: "Satellites online", value: `${kpi.sats_operational}/${kpi.sats_total}` },
+        { label: "Packets queued", value: String(kpi.packets_queued) },
+        { label: "Delivered, 24h", value: String(kpi.packets_delivered_24h) },
         {
-          label: "contacts 24h",
-          value: `${kpi.isl_contacts_next_24h}/${kpi.contacts_next_24h} isl`,
+          label: "Contacts, 24h",
+          value: `${kpi.isl_contacts_next_24h}/${kpi.contacts_next_24h} ISL`,
         },
-        { label: "overrides 24h", value: String(kpi.ai_overrides_24h) },
+        { label: "AI overrides, 24h", value: String(kpi.ai_overrides_24h) },
         {
-          label: "mb down 24h",
-          value: `${(kpi.bytes_delivered_24h / 1_000_000).toFixed(1)}`,
+          label: "Downlinked, 24h",
+          value: `${(kpi.bytes_delivered_24h / 1_000_000).toFixed(1)} MB`,
         },
       ]
     : [];
 
   return (
     <div className="flex flex-col gap-4">
-      <style>{`
-        .ops-flash{animation:ops-flash .8s ease-out}
-        @keyframes ops-flash{0%{background:rgba(215,38,61,.28)}100%{background:transparent}}
-      `}</style>
-
-      <section>
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em]">
-          <span className="text-[var(--somaiya)]">01</span>
-          <span className="mx-2 text-[var(--mute)]">/</span>
-          <span className="text-[var(--cream-dim)]">Kpis</span>
-        </p>
-        <div className="mt-2 grid grid-cols-2 gap-2">
+      <section className="rounded-[14px] border border-[var(--line)] bg-[var(--navy-800)] p-4">
+        <div className="flex items-center gap-2">
+          <h2 className="text-[14px] font-semibold">Fleet</h2>
+          {onDemoRoute !== undefined && (
+            <button
+              onClick={onDemoRoute}
+              className="ml-auto rounded-lg bg-[var(--navy-700)] px-3 py-1.5 text-[13px] font-medium text-[var(--text)] hover:bg-[var(--navy-600)]"
+            >
+              Demo 3-hop route
+            </button>
+          )}
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
           {tiles.map((t) => (
             <div
               key={t.label}
-              className="rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-2.5"
+              className="rounded-[10px] border border-[var(--line)] bg-[var(--navy-700)] p-2.5"
             >
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--cream-dim)]">{t.label}</p>
-              <p className="font-mono mt-1 text-lg text-[var(--amber)]">{t.value}</p>
+              <p className="text-[12px] font-medium text-[var(--text-2)]">{t.label}</p>
+              <p className="mt-1 text-[20px] font-semibold tabular-nums leading-none text-[var(--text)]">{t.value}</p>
             </div>
           ))}
           {tiles.length === 0 && (
-            <p className="font-mono text-xs text-[var(--mute)]">no kpis yet</p>
+            <p className="text-[13px] text-[var(--text-3)]">No KPIs yet.</p>
           )}
         </div>
       </section>
 
-      <section>
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em]">
-          <span className="text-[var(--somaiya)]">02</span>
-          <span className="mx-2 text-[var(--mute)]">/</span>
-          <span className="text-[var(--cream-dim)]">Alerts</span>
-        </p>
+      <section className="max-h-64 overflow-y-auto rounded-[14px] border border-[var(--line)] bg-[var(--navy-800)] p-4">
+        <h2 className="text-[14px] font-semibold">Alerts</h2>
         <ul className="mt-2 flex flex-col gap-2">
           {alerts.map((a) => (
             <li
               key={a.alert_id}
-              className="rounded-xl border bg-[var(--ink-2)] p-2.5"
-              style={{ borderColor: "var(--rule)" }}
+              className="rounded-[10px] border border-[var(--line)] bg-[var(--navy-700)] p-2.5"
             >
-              <p className="font-mono text-[11px]" style={{ color: sevColor(a.severity) }}>
-                {a.severity} · {a.sat_id ?? "—"}
+              <p className="text-[12px]" style={{ color: sevColor(a.severity) }}>
+                {a.severity} <span className="font-mono">{a.sat_id ?? ""}</span>
               </p>
-              <p className="mt-1 text-[13px] leading-snug text-[var(--cream)]">{a.message}</p>
-              <p className="font-mono mt-1 text-[10px] text-[var(--mute)]">
+              <p className="mt-1 text-[13px] leading-snug text-[var(--text)]">{a.message}</p>
+              <p className="mt-1 text-[12px] text-[var(--text-3)]">
                 {new Date(a.raised_at).toUTCString()}
-                {a.acknowledged ? " · acked" : ""}
+                {a.acknowledged ? " (acknowledged)" : ""}
               </p>
             </li>
           ))}
           {alerts.length === 0 && (
-            <p className="font-mono text-xs text-[var(--mute)]">all quiet</p>
+            <p className="text-[13px] text-[var(--text-3)]">All quiet.</p>
           )}
         </ul>
       </section>
 
-      <section>
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em]">
-          <span className="text-[var(--somaiya)]">03</span>
-          <span className="mx-2 text-[var(--mute)]">/</span>
-          <span className="text-[var(--cream-dim)]">Telemetry · live</span>
-        </p>
+      <section className="max-h-64 overflow-y-auto rounded-[14px] border border-[var(--line)] bg-[var(--navy-800)] p-4">
+        <h2 className="text-[14px] font-semibold">Live telemetry</h2>
         <ul className="mt-2 flex flex-col gap-1">
           {[...telemetry].reverse().map((t, i) => (
             <li
               key={`${t.sat_id}-${t.ts}-${i}`}
               className={i === 0 ? "ops-flash rounded-md px-2 py-1" : "px-2 py-1"}
             >
-              <p className="font-mono text-[11px] text-[var(--cream)]">
-                {t.sat_id}{" "}
-                <span className="text-[var(--cream-dim)]">
-                  {t.battery_v.toFixed(2)}V · {t.mode_active ?? "—"} ·{" "}
+              <p className="text-[13px] text-[var(--text)]">
+                <span className="font-mono">{t.sat_id}</span>{" "}
+                <span className="text-[var(--text-2)]">
+                  {t.battery_v.toFixed(2)} V, {t.mode_active ?? "no mode"},{" "}
                   {new Date(t.ts).toISOString().slice(11, 19)}Z
                 </span>
               </p>
             </li>
           ))}
           {telemetry.length === 0 && (
-            <p className="font-mono text-xs text-[var(--mute)]">awaiting stream…</p>
+            <p className="text-[13px] text-[var(--text-3)]">Awaiting stream.</p>
           )}
         </ul>
       </section>
 
-      <section>
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em]">
-          <span className="text-[var(--somaiya)]">04</span>
-          <span className="mx-2 text-[var(--mute)]">/</span>
-          <span className="text-[var(--cream-dim)]">Decisions</span>
-        </p>
+      <section className="max-h-64 overflow-y-auto rounded-[14px] border border-[var(--line)] bg-[var(--navy-800)] p-4">
+        <h2 className="text-[14px] font-semibold">Decisions</h2>
         <ul className="mt-2 flex flex-col gap-1">
           {decisions.map((d, i) => (
             <li
               key={`${d.sat_id}-${d.final_action}-${i}`}
               className="rounded-md border px-2 py-1.5"
               style={{
-                borderColor: d.overridden ? "var(--somaiya)" : "var(--rule)",
-                background: d.overridden ? "var(--somaiya-soft)" : "var(--ink-2)",
+                borderColor: d.overridden ? "var(--danger)" : "var(--line)",
+                background: d.overridden ? "var(--navy-700)" : "var(--navy-800)",
               }}
             >
-              <p className="font-mono text-[11px] text-[var(--cream)]">
-                {d.sat_id} → {d.final_action}
+              <p className="text-[13px] text-[var(--text)]">
+                <span className="font-mono">{d.sat_id}</span> {d.final_action}
                 {d.overridden && (
-                  <span className="ml-2 text-[var(--somaiya)]">override</span>
+                  <span className="ml-2 text-[var(--danger)]">override</span>
                 )}
               </p>
             </li>
           ))}
           {decisions.length === 0 && (
-            <p className="font-mono text-xs text-[var(--mute)]">no decisions yet</p>
+            <p className="text-[13px] text-[var(--text-3)]">No decisions yet.</p>
           )}
         </ul>
       </section>
     </div>
   );
 }
+
+export { SatPill };

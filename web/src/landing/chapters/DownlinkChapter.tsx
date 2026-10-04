@@ -43,7 +43,7 @@ export function DownlinkChapter() {
         ]}
         visual={
           <div className="flex flex-col gap-4">
-            <div className="rounded-xl border border-[var(--rule)] bg-[var(--ink-2)] p-4">
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--navy-800)] p-4">
               <svg
                 viewBox="0 0 460 260"
                 className="h-auto w-full"
@@ -51,26 +51,26 @@ export function DownlinkChapter() {
                 aria-label="Downlink beam from SAT-B2 to Mumbai with elevation arc"
               >
                 {/* horizon */}
-                <line x1="20" y1="220" x2="440" y2="220" stroke="#26305a" strokeWidth="2" />
+                <line x1="20" y1="220" x2="440" y2="220" stroke="#1b2d55" strokeWidth="2" />
                 {/* station */}
-                <rect x="216" y="204" width="28" height="16" rx="2" fill="#b9b09e" />
-                <text x="230" y="240" textAnchor="middle" fontSize="11" fill="#b9b09e" fontFamily="IBM Plex Mono, monospace">
+                <rect x="216" y="204" width="28" height="16" rx="2" fill="#93a3c4" />
+                <text x="230" y="240" textAnchor="middle" fontSize="11" fill="#93a3c4" fontFamily="Geist Mono, monospace">
                   GS-BOM · Mumbai 19.07°N
                 </text>
                 {/* satellite */}
-                <rect x="300" y="40" width="46" height="26" rx="3" fill="#ffb020" />
-                <text x="323" y="57" textAnchor="middle" fontSize="11" fill="#0b1020" fontFamily="IBM Plex Mono, monospace">
+                <rect x="300" y="40" width="46" height="26" rx="3" fill="#e6ecf8" />
+                <text x="323" y="57" textAnchor="middle" fontSize="11" fill="#02040a" fontFamily="Geist Mono, monospace">
                   B2
                 </text>
                 {/* elevation arc */}
                 <path
                   d="M 230 220 A 150 150 0 0 1 322 66"
                   fill="none"
-                  stroke="#7d7a73"
+                  stroke="#5f6f93"
                   strokeWidth="1.5"
                   strokeDasharray="5 5"
                 />
-                <text x="150" y="130" fontSize="11" fill="#7d7a73" fontFamily="IBM Plex Mono, monospace">
+                <text x="150" y="130" fontSize="11" fill="#5f6f93" fontFamily="Geist Mono, monospace">
                   el 32°
                 </text>
                 {/* beam */}
@@ -80,18 +80,18 @@ export function DownlinkChapter() {
                   y1="66"
                   x2="230"
                   y2="204"
-                  stroke="#4cc38a"
+                  stroke="#3ecf8e"
                   strokeWidth="3"
                   strokeDasharray="40"
                   opacity="0"
-                  style={{ filter: "drop-shadow(0 0 6px #4cc38a)" }}
+                  style={{ filter: "drop-shadow(0 0 6px #3ecf8e)" }}
                 />
                 <circle
                   ref={glowRef}
                   cx="230"
                   cy="204"
                   r="12"
-                  fill="#4cc38a"
+                  fill="#3ecf8e"
                   opacity="0"
                 />
                 <text
@@ -99,13 +99,13 @@ export function DownlinkChapter() {
                   x="392"
                   y="160"
                   fontSize="34"
-                  fill="#4cc38a"
-                  fontFamily="IBM Plex Mono, monospace"
+                  fill="#3ecf8e"
+                  fontFamily="Geist Mono, monospace"
                   opacity="0.25"
                 >
                   0
                 </text>
-                <text x="392" y="178" fontSize="11" fill="#7d7a73" fontFamily="IBM Plex Mono, monospace">
+                <text x="392" y="178" fontSize="11" fill="#5f6f93" fontFamily="Geist Mono, monospace">
                   link score
                 </text>
               </svg>

@@ -10,7 +10,7 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          "border-[var(--somaiya)]/50 bg-[var(--somaiya-soft)] text-[var(--cream)] [a&]:hover:bg-[var(--somaiya)]/30",
+          "border-[var(--ice)]/50 bg-[var(--navy-700)] text-[var(--text)] [a&]:hover:bg-[var(--ice)]/30",
         secondary:
           "border-white/[0.12] bg-white/[0.05] text-white [a&]:hover:bg-white/[0.09]",
         destructive:
