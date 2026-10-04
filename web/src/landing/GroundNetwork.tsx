@@ -17,7 +17,7 @@ const LAT_TOP = 82;
 const LAT_BOTTOM = -58;
 const W = 1600;
 const H = Math.round((W * (LAT_TOP - LAT_BOTTOM)) / 360);
-const STEP = 9; // dot grid pitch in canvas px
+const STEP = 8; // dot grid pitch in canvas px
 
 const toX = (lng: number) => ((lng + 180) / 360) * W;
 const toY = (lat: number) => ((LAT_TOP - lat) / (LAT_TOP - LAT_BOTTOM)) * H;
@@ -32,8 +32,12 @@ export function GroundNetwork() {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    canvas.width = W;
-    canvas.height = H;
+    
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.scale(dpr, dpr);
+    
     void loadLandMask().then((mask) => {
       if (!alive || !mask) return;
       ctx.clearRect(0, 0, W, H);
@@ -56,14 +60,21 @@ export function GroundNetwork() {
             if (d < b.r) k = Math.max(k, 1 - d / b.r);
           }
           if (k > 0) {
-            ctx.fillStyle = `rgba(61, 91, ${255}, ${0.35 + k * 0.65})`;
+            ctx.fillStyle = `rgba(61, 91, 255, ${0.35 + k * 0.65})`;
             ctx.beginPath();
-            ctx.arc(x, y, 1.2 + k * 3.3, 0, Math.PI * 2);
+            ctx.arc(x, y, 1.2 + k * 3.6, 0, Math.PI * 2);
             ctx.fill();
           } else if (land) {
-            ctx.fillStyle = "#2a2e38";
+            let alphaMod = 1.0;
+            const ratio = y / H;
+            if (ratio < 0.08) {
+              alphaMod = 0.6 + 0.4 * (ratio / 0.08);
+            } else if (ratio > 0.92) {
+              alphaMod = 0.6 + 0.4 * ((1 - ratio) / 0.08);
+            }
+            ctx.fillStyle = `rgba(190, 200, 225, ${0.42 * alphaMod})`;
             ctx.beginPath();
-            ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+            ctx.arc(x, y, 2.0, 0, Math.PI * 2);
             ctx.fill();
           }
         }
@@ -93,12 +104,12 @@ export function GroundNetwork() {
               style={{ left: `${(toX(s.lng) / W) * 100}%`, top: `${(toY(s.lat) / H) * 100}%` }}
             >
               <span
-                className="absolute left-0 top-0 h-px w-8 bg-white/50"
+                className="absolute left-0 top-0 h-px w-8 bg-white/60"
                 style={{ transform: `translate(6px, ${"below" in s ? 10 : -10}px) rotate(${"below" in s ? 30 : -30}deg)`, transformOrigin: "left" }}
               />
               <span className="absolute whitespace-nowrap" style={{ left: 34, top: "below" in s ? 14 : -34 }}>
-                <span className={`block text-[13px] ${s.primary ? "text-white" : "text-[#c9d1e3]"}`}>{s.name}</span>
-                <span className="font-mono block text-[10px] tracking-[0.08em] text-[#5f6f93]">
+                <span className={`block text-[13px] ${s.primary ? "text-white" : "text-[#dfe6f5]"}`}>{s.name}</span>
+                <span className="font-mono block text-[10px] tracking-[0.08em] text-[#8b96b0]">
                   {s.id} · {s.passes} passes/day
                 </span>
               </span>
