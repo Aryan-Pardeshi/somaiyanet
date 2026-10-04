@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { ScrollTrigger } from "@/lib/gsap";
 import { PocketQube } from "./PocketQube";
 
@@ -321,7 +322,7 @@ function LineArtScene({ reveal }: { reveal: React.MutableRefObject<number> }) {
   const root = useRef<THREE.Group>(null);
   const pkt = useRef<THREE.Mesh>(null);
   const cubes = useMemo(
-    () => [new THREE.Vector3(-2.3, 1.05, 0), new THREE.Vector3(0, 1.75, -0.4), new THREE.Vector3(2.3, 1.05, 0)],
+    () => [new THREE.Vector3(-2.75, 1.0, 0), new THREE.Vector3(0, 1.8, -0.4), new THREE.Vector3(2.75, 1.0, 0)],
     [],
   );
   // horizon: arcs of a huge sphere seen edge-on, plus meridians
@@ -357,7 +358,7 @@ function LineArtScene({ reveal }: { reveal: React.MutableRefObject<number> }) {
     cubes.forEach((c) => {
       for (const dx of [-1.1, -0.45, 0.2, 0.85]) {
         const x = c.x + dx;
-        out.push([c.clone().add(new THREE.Vector3(0, -0.15, 0)), new THREE.Vector3(x, horizon.surfaceY(x) + 0.02, -0.6)]);
+        out.push([c.clone().add(new THREE.Vector3(0, -0.3, 0)), new THREE.Vector3(x, horizon.surfaceY(x) + 0.02, -0.6)]);
       }
     });
     return out;
@@ -379,9 +380,9 @@ function LineArtScene({ reveal }: { reveal: React.MutableRefObject<number> }) {
     root.current.traverse((o) => {
       const m = (o as THREE.Line).material as THREE.Material & { opacity?: number };
       if (!m || m.opacity === undefined || o === pkt.current) return;
-      const base = (o.userData.baseOpacity as number | undefined) ?? 0.9;
+      if (m.userData.base === undefined) m.userData.base = (o.userData.baseOpacity as number | undefined) ?? m.opacity;
       m.transparent = true;
-      m.opacity = base * k;
+      m.opacity = (m.userData.base as number) * k;
     });
     if (pkt.current) {
       const loop = (state.clock.elapsedTime * 0.22) % 1;
@@ -395,8 +396,8 @@ function LineArtScene({ reveal }: { reveal: React.MutableRefObject<number> }) {
   return (
     <group ref={root} visible={false}>
       {cubes.map((c, i) => (
-        <group key={i} position={c} rotation={[0.25, i === 1 ? 0 : i === 0 ? 0.5 : -0.5, 0]}>
-          <PocketQube lineArt scale={0.55} />
+        <group key={i} position={c} rotation={[0.12, i === 1 ? 0 : i === 0 ? 0.35 : -0.35, i === 1 ? 0 : i === 0 ? 0.08 : -0.08]}>
+          <PocketQube lineArt scale={0.4} />
         </group>
       ))}
       {beams.map((b, i) => (
@@ -425,7 +426,18 @@ function LineArtScene({ reveal }: { reveal: React.MutableRefObject<number> }) {
 
 function Scene({ progress, mobile }: { progress: React.MutableRefObject<number>; mobile: boolean }) {
   const maps = useEarthMaps();
-  const { camera } = useThree();
+  const { camera, gl, scene } = useThree();
+  // studio reflections for the metal and cover-glass of the satellite
+  useEffect(() => {
+    const pmrem = new THREE.PMREMGenerator(gl);
+    const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = env;
+    return () => {
+      scene.environment = null;
+      env.dispose();
+      pmrem.dispose();
+    };
+  }, [gl, scene]);
   const earth = useRef<THREE.Group>(null);
   const sat = useRef<THREE.Group>(null);
   const earthOpacity = useRef(1);
@@ -486,9 +498,9 @@ function Scene({ progress, mobile }: { progress: React.MutableRefObject<number>;
     if (sat.current) {
       const show = smooth(0.44, 0.52, p) * (1 - smooth(0.66, 0.74, p));
       sat.current.visible = show > 0.01;
-      sat.current.position.set(0.25, lerp(0.3, 0.38, c), 1.0);
+      sat.current.position.set(0.5, lerp(0.38, 0.46, c), 0.85);
       const tt = performance.now() / 1000;
-      sat.current.rotation.set(0.32, 0.45 + Math.sin(tt * 0.35) * 0.35, 0.12);
+      sat.current.rotation.set(0.18, -0.5 + Math.sin(tt * 0.3) * 0.3, 0.32);
       sat.current.traverse((o) => {
         const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
         const list = Array.isArray(m) ? m : m ? [m] : [];
@@ -524,7 +536,7 @@ function Scene({ progress, mobile }: { progress: React.MutableRefObject<number>;
       </group>
       <Warp amount={warpAmount} mobile={mobile} />
       <group ref={sat} visible={false}>
-        <PocketQube scale={0.27} />
+        <PocketQube scale={0.2} />
       </group>
       <LineArtScene reveal={lineReveal} />
     </>
