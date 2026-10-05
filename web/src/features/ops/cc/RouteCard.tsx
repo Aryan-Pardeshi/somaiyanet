@@ -71,7 +71,7 @@ export function RouteCard({
     <div
       role="dialog"
       aria-label="Packet Route"
-      className="sx-material p-4 flex flex-col gap-2.5 pointer-events-auto max-h-[calc(100vh-6rem)] overflow-y-auto"
+      className="sx-material p-3 flex flex-col gap-2 pointer-events-auto max-h-[calc(100vh-6rem)] overflow-y-auto"
       style={{
         animation: "route-card-slide-up 250ms var(--sx-ease-out) forwards",
       }}
@@ -92,7 +92,7 @@ export function RouteCard({
       {/* Header row: title and quiet close button */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 flex-wrap">
-          <h2 className="sx-h3">Packet Route</h2>
+          <h2 className="sx-h3 text-[15px]">Packet Route</h2>
           {isFallback && (
             <span className="sx-status text-[12px]" data-tone="warn">
               Sample route (database offline)
@@ -103,9 +103,9 @@ export function RouteCard({
           type="button"
           onClick={onClose}
           aria-label="Close route"
-          className="sx-btn sx-btn--quiet p-1.5 min-h-0 min-w-0 h-8 w-8 rounded-full"
+          className="sx-btn sx-btn--quiet p-1 min-h-0 min-w-0 h-7 w-7 rounded-full"
         >
-          <X className="w-4 h-4 text-[var(--sx-text-2)] hover:text-white transition-colors" />
+          <X className="w-3.5 h-3.5 text-[var(--sx-text-2)] hover:text-white transition-colors" />
         </button>
       </div>
 
@@ -123,10 +123,10 @@ export function RouteCard({
       ) : (
         <>
           {/* Subtitle line */}
-          <p className="sx-body">{arrivalText}</p>
+          <p className="sx-caption text-[var(--sx-text-2)]">{arrivalText}</p>
 
           {/* Hops inset-grouped list */}
-          <div className="sx-group my-1">
+          <div className="sx-group">
             {hops.map((hop, idx) => {
               const isCurrent = idx === activeHopIndex && !isCompleted;
               const isUpcoming = !isCompleted && idx > activeHopIndex;
@@ -134,7 +134,7 @@ export function RouteCard({
               return (
                 <div
                   key={`${hop.fromNode}-${hop.toNode}-${idx}`}
-                  className={`sx-row min-h-[40px] py-2 px-3 transition-colors duration-150 ${
+                  className={`sx-row min-h-[32px] py-1.5 px-2.5 transition-colors duration-150 ${
                     isCurrent ? "bg-[var(--sx-surface-2)]" : ""
                   } ${isUpcoming ? "text-white/45" : "text-[var(--sx-text)]"}`}
                 >
@@ -148,23 +148,23 @@ export function RouteCard({
                       }`}
                       aria-hidden="true"
                     />
-                    <span className="sx-num text-[13px] w-4 text-center shrink-0">
+                    <span className="sx-num text-[12px] w-3 text-center shrink-0">
                       {hop.hopNo}
                     </span>
-                    <span className="font-medium text-[14px] truncate">
+                    <span className="font-medium text-[13px] truncate">
                       {hop.fromNode} to {hop.toNode}
                     </span>
                   </div>
 
                   {/* Right: kind, quality, depart time */}
-                  <div className="flex items-center gap-3 sm:gap-4 text-[13px] shrink-0">
+                  <div className="flex items-center gap-2.5 sm:gap-3 text-[12px] shrink-0">
                     <span className="text-[var(--sx-text-2)] hidden sm:inline">
                       {hop.kind === "ISL" ? "Satellite link" : "Downlink"}
                     </span>
                     <span className="sx-num">
                       {hop.linkScore != null ? `q ${hop.linkScore}` : "q n/a"}
                     </span>
-                    <span className="sx-num w-16 text-right">
+                    <span className="sx-num w-14 text-right">
                       {hop.departRel}
                     </span>
                   </div>
@@ -175,10 +175,10 @@ export function RouteCard({
 
           {/* Footer: the query that found this route, and replay */}
           <div className="flex items-center gap-2">
-            <div className="sx-code min-w-0 flex-1 overflow-x-auto whitespace-nowrap px-3 py-1.5 text-[12px]">
+            <div className="sx-code min-w-0 flex-1 truncate px-2.5 py-1 text-[11px]" title={`SELECT * FROM cgr_routes('${origin}', now(), 41216, 4);`}>
               SELECT * FROM cgr_routes('{origin}', now(), 41216, 4);
             </div>
-            <button type="button" onClick={onReplay} className="sx-btn sx-btn--sm shrink-0">
+            <button type="button" onClick={onReplay} className="sx-btn sx-btn--sm shrink-0 min-h-[30px] px-3.5 text-[12px]">
               Replay
             </button>
           </div>

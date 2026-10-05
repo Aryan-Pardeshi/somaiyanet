@@ -538,7 +538,7 @@ export default function Ops() {
 
       {/* 6. Route Card floating above BottomDock */}
       {routeState && (
-        <div className="fixed sm:absolute bottom-20 inset-x-0 mx-auto w-[calc(100%-32px)] max-w-[480px] z-30 pointer-events-auto">
+        <div className="fixed sm:absolute bottom-20 inset-x-0 mx-auto w-[calc(100%-32px)] max-w-[400px] z-30 pointer-events-auto">
           <RouteCard
             origin={routeState.origin}
             route={routeState.route}
