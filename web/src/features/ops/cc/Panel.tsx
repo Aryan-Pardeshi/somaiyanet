@@ -1,1 +1,1 @@
-export { Panel, type PanelProps } from "@/components/cc/Panel";
+export { Glass as Panel, type GlassProps as PanelProps, Glass } from "./Glass";

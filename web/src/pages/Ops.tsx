@@ -154,9 +154,16 @@ export default function Ops() {
       {/* 3. Left Rail:
              Constellation bar, 2x2 chips filter, and fleet cards list.
              Overlays globe on desktop, stacks below globe on mobile. */}
-      <aside className="p-4 lg:p-0 lg:absolute lg:left-4 lg:top-14 lg:bottom-20 lg:w-[300px] lg:z-20 pointer-events-auto flex flex-col">
+      <aside className="p-4 lg:p-0 lg:absolute lg:left-4 lg:top-14 lg:bottom-0 lg:w-[320px] lg:z-20 pointer-events-auto flex flex-col min-h-0">
         <div className="relative flex-1 min-h-0 flex flex-col">
-          <div className="h-full overflow-y-auto pr-1 pb-8 scrollbar-none [mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent_100%)]">
+          <div
+            data-lenis-prevent
+            className="h-auto lg:h-full min-h-0 lg:overflow-y-auto lg:overscroll-contain pr-1 pb-8 lg:pb-24 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] lg:[mask-image:linear-gradient(to_bottom,black_92%,transparent)]"
+            style={{
+              scrollbarWidth: "thin",
+              scrollbarColor: "rgba(255, 255, 255, 0.2) transparent",
+            }}
+          >
             <LeftRail
               sats={data.sats}
               contacts={data.contacts}
@@ -166,7 +173,6 @@ export default function Ops() {
               onFilterChange={setFilter}
             />
           </div>
-          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-black to-transparent" />
         </div>
       </aside>
 
@@ -174,9 +180,16 @@ export default function Ops() {
              Swaps by tab (Overview / Satellites / Upcoming passes / Live data).
              Overlays globe on desktop, stacks below left rail on mobile.
              Scrolls inside its own area with a soft fade at the bottom and dock clearance. */}
-      <aside className="p-4 lg:p-0 lg:absolute lg:right-4 lg:top-14 lg:bottom-20 lg:w-[340px] lg:z-20 pointer-events-auto flex flex-col">
+      <aside className="p-4 lg:p-0 lg:absolute lg:right-4 lg:top-14 lg:bottom-0 lg:w-[340px] lg:z-20 pointer-events-auto flex flex-col min-h-0">
         <div className="relative flex-1 min-h-0 flex flex-col">
-          <div className="h-full overflow-y-auto pr-1 pb-8 scrollbar-none [mask-image:linear-gradient(to_bottom,black_calc(100%-28px),transparent_100%)]">
+          <div
+            data-lenis-prevent
+            className="h-auto lg:h-full min-h-0 lg:overflow-y-auto lg:overscroll-contain pr-1 pb-8 lg:pb-24 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] lg:[mask-image:linear-gradient(to_bottom,black_92%,transparent)]"
+            style={{
+              scrollbarWidth: "thin",
+              scrollbarColor: "rgba(255, 255, 255, 0.2) transparent",
+            }}
+          >
             <RightRail
               activeTab={activeTab}
               selectedSat={activeSat}
@@ -189,7 +202,6 @@ export default function Ops() {
               onRefetchAlerts={data.refetchAlerts}
             />
           </div>
-          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-black to-transparent" />
         </div>
       </aside>
 

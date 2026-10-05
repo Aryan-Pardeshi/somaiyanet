@@ -19,6 +19,11 @@ export function initLenis(): Lenis | null {
     smoothWheel: true,
     syncTouch: false,
     touchMultiplier: 1.6,
+    // Smooth scrolling is for the landing story only. On app pages (and inside
+    // any element marked data-lenis-prevent) let the browser scroll natively,
+    // so nested panels like the Ops side columns scroll with the wheel.
+    prevent: (node: HTMLElement) =>
+      window.location.pathname !== "/" || node.closest("[data-lenis-prevent]") !== null,
   })
 
   lenis.on("scroll", ScrollTrigger.update)

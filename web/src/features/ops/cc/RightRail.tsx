@@ -11,7 +11,7 @@ import type {
   Kpi,
   TelemetryEvent,
 } from "../api";
-import { Panel } from "./Panel";
+import { Glass } from "./Glass";
 import { HelpHint } from "./HelpHint";
 import type { OpsTab } from "./types";
 
@@ -70,99 +70,8 @@ function formatContactCountdown(iso: string, nowMs: number): string {
   return `In ${two(mm)}:${two(ss)}`;
 }
 
-// Sparkline SVG component
-function Sparkline({
-  points,
-  color,
-  unit,
-  label,
-  currentValue,
-}: {
-  points: number[];
-  color: string;
-  unit: string;
-  label: string;
-  currentValue: string;
-}) {
-  const w = 120;
-  const h = 32;
-  const pad = 2;
-
-  let pathD = "";
-  let areaD = "";
-  let lastX = w - pad;
-  let lastY = h / 2;
-
-  if (points.length < 2) {
-    // Flat line fallback
-    const y = h / 2;
-    pathD = `M ${pad} ${y} L ${w - pad} ${y}`;
-    areaD = `M ${pad} ${y} L ${w - pad} ${y} L ${w - pad} ${h - pad} L ${pad} ${h - pad} Z`;
-    lastY = y;
-  } else {
-    let min = Math.min(...points);
-    let max = Math.max(...points);
-    if (max - min < 0.1) {
-      max += 0.5;
-      min -= 0.5;
-    }
-    const step = (w - pad * 2) / (points.length - 1);
-    const coords = points.map((val, i) => {
-      const x = pad + i * step;
-      const y = pad + (h - pad * 2) * (1 - (val - min) / (max - min));
-      return [x, y] as [number, number];
-    });
-
-    pathD = coords
-      .map((c, i) => `${i === 0 ? "M" : "L"} ${c[0].toFixed(1)} ${c[1].toFixed(1)}`)
-      .join(" ");
-    const last = coords[coords.length - 1];
-    lastX = last[0];
-    lastY = last[1];
-    areaD = `${pathD} L ${lastX.toFixed(1)} ${h - pad} L ${pad} ${h - pad} Z`;
-  }
-
-  return (
-    <div className="flex flex-col gap-1 p-2 rounded bg-black/40 border border-white/5 flex-1 min-w-0">
-      <div className="flex items-center justify-between font-mono text-[9px]">
-        <span className="text-[#8b96b0] uppercase tracking-wider">{label}</span>
-        <span className="text-[#dfe6f5] font-semibold tabular-nums">
-          {currentValue} {unit}
-        </span>
-      </div>
-      <div className="w-full h-8 relative">
-        <svg
-          viewBox={`0 0 ${w} ${h}`}
-          preserveAspectRatio="none"
-          className="w-full h-full block overflow-visible"
-        >
-          <path
-            d={areaD}
-            fill={`color-mix(in srgb, ${color} 15%, transparent)`}
-          />
-          <path
-            d={pathD}
-            fill="none"
-            stroke={color}
-            strokeWidth="1.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <circle
-            cx={lastX.toFixed(1)}
-            cy={lastY.toFixed(1)}
-            r="2"
-            fill={color}
-          />
-        </svg>
-      </div>
-    </div>
-  );
-}
-
 // Vertical bar chart component (~40 bars)
 function BatteryBarChart({ values }: { values: number[] }) {
-  // Take last 40 values, or pad
   let bars = values.slice(-40);
   if (bars.length === 0) bars = [7.4];
 
@@ -176,7 +85,7 @@ function BatteryBarChart({ values }: { values: number[] }) {
 
   return (
     <div className="flex flex-col gap-1.5 w-full">
-      <div className="flex items-end gap-[2px] h-[54px] w-full pt-2">
+      <div className="flex items-end gap-[2px] h-[52px] w-full pt-1.5">
         {bars.map((v, i) => {
           const isLatest = i === bars.length - 1;
           const ratio = Math.max(0.1, Math.min(1, (v - min) / range));
@@ -238,13 +147,14 @@ export function RightRail({
   // Telemetry for selected sat
   const satTelemetry = telemetry.filter((t) => t.sat_id === satId);
   const latestTelem = satTelemetry[satTelemetry.length - 1];
-  const tempValues = satTelemetry.map((t) => t.temp_c);
-  const rssiValues = satTelemetry
-    .map((t) => t.rssi_dbm)
-    .filter((r): r is number => r !== null);
 
-  const curTemp = latestTelem ? `${latestTelem.temp_c > 0 ? "+" : ""}${latestTelem.temp_c.toFixed(1)}` : "+21.4";
-  const curRssi = latestTelem?.rssi_dbm !== null && latestTelem?.rssi_dbm !== undefined ? `${latestTelem.rssi_dbm.toFixed(1)}` : "-88.5";
+  const curTemp = latestTelem
+    ? `${latestTelem.temp_c > 0 ? "+" : ""}${latestTelem.temp_c.toFixed(1)}`
+    : "+21.4";
+  const curRssi =
+    latestTelem?.rssi_dbm !== null && latestTelem?.rssi_dbm !== undefined
+      ? `${latestTelem.rssi_dbm.toFixed(1)}`
+      : "-88.5";
 
   // Highest priority unacknowledged alert
   const unackAlerts = alerts
@@ -313,9 +223,9 @@ export function RightRail({
 
     return (
       <div className="w-full flex flex-col gap-3">
-        <Panel cut={8}>
-          <div className="p-3.5 flex flex-col gap-3">
-            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+        <Glass>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
               <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#dfe6f5]">
                 Upcoming passes
               </span>
@@ -325,7 +235,7 @@ export function RightRail({
             </div>
 
             {access?.station && (
-              <div className="p-2 rounded bg-white/[0.03] border border-white/10 text-[11px] text-[#dfe6f5] leading-relaxed">
+              <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-[11px] text-[#dfe6f5] leading-relaxed">
                 Only passes involving your station are listed: row-level security on contact
               </div>
             )}
@@ -336,7 +246,7 @@ export function RightRail({
                 return (
                   <div
                     key={c.contact_id}
-                    className="p-2.5 rounded bg-black/40 border border-white/5 flex flex-col gap-1.5"
+                    className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col gap-1.5"
                   >
                     <div className="flex items-center justify-between gap-1">
                       <span className="font-mono text-[11.5px] font-semibold text-[#dfe6f5]">
@@ -345,7 +255,7 @@ export function RightRail({
                           : `${c.from_node} to ${c.to_node} (to ground)`}
                       </span>
                       <span
-                        className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
+                        className={`font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full border shrink-0 ${
                           isIsl
                             ? "text-[#7fb2ff] border-[#7fb2ff]/30 bg-[#7fb2ff]/10"
                             : "text-[#7ee2b8] border-[#7ee2b8]/30 bg-[#7ee2b8]/10"
@@ -357,7 +267,7 @@ export function RightRail({
 
                     <div className="flex items-center justify-between font-mono text-[10px]">
                       <span className="text-[#8b96b0]">Countdown</span>
-                      <span className="text-[#7ee2b8] tabular-nums">
+                      <span className="text-[#7ee2b8] tabular-nums font-medium">
                         {formatContactCountdown(c.start_ts, now)}
                       </span>
                     </div>
@@ -369,7 +279,7 @@ export function RightRail({
                           Link quality
                           <HelpHint text="Expected radio signal strength and packet success rate for this link." />
                         </span>
-                        <span className="text-[#dfe6f5] tabular-nums">{c.link_score}%</span>
+                        <span className="text-[#dfe6f5] tabular-nums font-medium">{c.link_score}%</span>
                       </div>
                       <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                         <div
@@ -396,7 +306,7 @@ export function RightRail({
               )}
             </div>
           </div>
-        </Panel>
+        </Glass>
       </div>
     );
   }
@@ -406,13 +316,13 @@ export function RightRail({
     return (
       <div className="w-full flex flex-col gap-3">
         {/* Live Data Ticker */}
-        <Panel cut={8}>
-          <div className="p-3.5 flex flex-col gap-2.5">
-            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+        <Glass>
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
               <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#dfe6f5]">
                 Live data
               </span>
-              <span className="font-mono text-[10px] text-[#7ee2b8] flex items-center gap-1">
+              <span className="font-mono text-[10px] text-[#7ee2b8] flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-[#7ee2b8] motion-safe:animate-pulse" />
                 STREAMING
               </span>
@@ -422,7 +332,7 @@ export function RightRail({
               {[...telemetry].reverse().map((t, idx) => (
                 <div
                   key={`${t.sat_id}-${t.ts}-${idx}`}
-                  className={`p-2 rounded font-mono text-[11px] flex flex-col gap-0.5 border ${
+                  className={`p-2.5 rounded-xl font-mono text-[11px] flex flex-col gap-0.5 border ${
                     idx === 0
                       ? "bg-[#3d5bff]/10 border-[#3d5bff]/40 text-white"
                       : "bg-black/30 border-white/5 text-[#8b96b0]"
@@ -452,12 +362,12 @@ export function RightRail({
               )}
             </div>
           </div>
-        </Panel>
+        </Glass>
 
         {/* AI Router Decision Feed */}
-        <Panel cut={8}>
-          <div className="p-3.5 flex flex-col gap-2.5">
-            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+        <Glass>
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
               <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#dfe6f5]">
                 AI router decisions
               </span>
@@ -470,12 +380,12 @@ export function RightRail({
               {decisions.map((d, idx) => (
                 <div
                   key={`${d.sat_id}-${idx}`}
-                  className="p-2.5 rounded bg-black/40 border border-white/5 flex flex-col gap-1 font-mono text-[11px]"
+                  className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col gap-1 font-mono text-[11px]"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[#dfe6f5] font-semibold">{d.sat_id}</span>
                     {d.overridden && (
-                      <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-[#f5a524]/40 bg-[#f5a524]/10 text-[#f5a524]">
+                      <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-[#f5a524]/40 bg-[#f5a524]/10 text-[#f5a524]">
                         Safety check overruled the AI
                       </span>
                     )}
@@ -492,7 +402,7 @@ export function RightRail({
               )}
             </div>
           </div>
-        </Panel>
+        </Glass>
       </div>
     );
   }
@@ -500,101 +410,95 @@ export function RightRail({
   // Overview and Satellites (Fleet) Tabs:
   return (
     <div className="w-full flex flex-col gap-3">
-      {/* 1. Selected Satellite Panel */}
+      {/* 1. ONE "Selected satellite" card (merges identity, battery & chart, and 2-column stats) */}
       {sat && (
-        <Panel cut={8} className="w-full">
-          <div className="p-4 flex flex-col gap-1">
-            <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-              Selected satellite
-            </span>
-            <div className="flex items-baseline justify-between mt-1">
-              <h1 className="font-sans min-w-0 break-words text-[34px] font-light leading-none tracking-tight text-white">
-                {sat.display_name || sat.node_id}
-              </h1>
-              <span
-                className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-sm border shrink-0 inline-flex items-center"
-                style={{
-                  color: stateColor(sat.state),
-                  borderColor: `color-mix(in srgb, ${stateColor(sat.state)} 30%, transparent)`,
-                  backgroundColor: `color-mix(in srgb, ${stateColor(sat.state)} 10%, transparent)`,
-                }}
-              >
-                {formatSatState(sat.state)}
-                {sat.state === "SAFE" && (
-                  <HelpHint text="A low-power survival state where the satellite turns off payload systems and only listens for ground commands." />
-                )}
+        <Glass className="w-full">
+          <div className="flex flex-col gap-3">
+            {/* Identity section */}
+            <div className="flex flex-col gap-1">
+              <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+                Selected satellite
               </span>
+              <div className="flex items-baseline justify-between mt-1 gap-2">
+                <h1 className="font-sans min-w-0 break-words text-[30px] font-light leading-none tracking-tight text-white">
+                  {sat.display_name || sat.node_id}
+                </h1>
+                <span
+                  className="font-mono text-[10px] uppercase tracking-[0.14em] px-2.5 py-0.5 rounded-full border shrink-0 inline-flex items-center"
+                  style={{
+                    color: stateColor(sat.state),
+                    borderColor: `color-mix(in srgb, ${stateColor(sat.state)} 35%, transparent)`,
+                    backgroundColor: `color-mix(in srgb, ${stateColor(sat.state)} 12%, transparent)`,
+                  }}
+                >
+                  {formatSatState(sat.state)}
+                  {sat.state === "SAFE" && (
+                    <HelpHint text="A low-power survival state where the satellite turns off payload systems and only listens for ground commands." />
+                  )}
+                </span>
+              </div>
+              <p className="font-mono text-[11px] text-[#8b96b0] tracking-wider">
+                {sat.node_id}, sun-synchronous orbit {sat.plane}, 525 km
+              </p>
             </div>
-            <p className="font-mono text-[11px] text-[#8b96b0] tracking-wider mt-1">
-              {sat.node_id}, sun-synchronous orbit {sat.plane}, 525 km
-            </p>
+
+            {/* Battery section */}
+            <div className="pt-2 border-t border-white/[0.08] flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+                  Battery
+                </span>
+                <span
+                  className={`font-mono text-[10px] ${
+                    batDelta >= 0 ? "text-[#7ee2b8]" : "text-[#f5a524]"
+                  }`}
+                >
+                  change over 10 min: {batDelta >= 0 ? "+" : ""}
+                  {batDelta.toFixed(2)} V
+                </span>
+              </div>
+
+              <div className="font-mono text-[24px] font-semibold text-white tracking-tight leading-none">
+                {currentBat.toFixed(2)}{" "}
+                <span className="text-[13px] font-normal text-[#8b96b0]">V</span>
+              </div>
+
+              <BatteryBarChart values={batHistory} />
+            </div>
+
+            {/* 2-column stat row: Temperature and Signal received (RSSI) as plain numbers with units */}
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/[0.08]">
+              <div className="flex flex-col gap-0.5">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-[#8b96b0]">
+                  Temperature
+                </span>
+                <span className="font-mono text-[18px] font-medium text-white tabular-nums">
+                  {curTemp} <span className="text-[12px] font-normal text-[#8b96b0]">°C</span>
+                </span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-[#8b96b0] truncate">
+                  Signal received (RSSI)
+                </span>
+                <span className="font-mono text-[18px] font-medium text-white tabular-nums">
+                  {curRssi} <span className="text-[12px] font-normal text-[#8b96b0]">dBm</span>
+                </span>
+              </div>
+            </div>
           </div>
-        </Panel>
+        </Glass>
       )}
-
-      {/* 2. Battery Panel */}
-      <Panel cut={8} className="w-full">
-        <div className="p-4 flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-              Battery
-            </span>
-            <span
-              className={`font-mono text-[10px] ${
-                batDelta >= 0 ? "text-[#7ee2b8]" : "text-[#f5a524]"
-              }`}
-            >
-              change over 10 min: {batDelta >= 0 ? "+" : ""}
-              {batDelta.toFixed(2)} V
-            </span>
-          </div>
-
-          <div className="font-mono text-[26px] font-semibold text-white tracking-tight leading-none">
-            {currentBat.toFixed(2)}{" "}
-            <span className="text-[14px] font-normal text-[#8b96b0]">V</span>
-          </div>
-
-          <BatteryBarChart values={batHistory} />
-        </div>
-      </Panel>
 
       {/* If Satellites (Fleet) tab: only asset card + battery chart */}
       {activeTab === "fleet" ? null : (
         <>
-          {/* 3. Health Panel */}
-          <Panel cut={8} className="w-full">
-            <div className="p-3.5 flex flex-col gap-2.5">
-              <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-                Health
-              </span>
-              <div className="flex gap-2">
-                <Sparkline
-                  points={tempValues}
-                  color="#7ee2b8"
-                  unit="°C"
-                  label="Temperature"
-                  currentValue={curTemp}
-                />
-                <Sparkline
-                  points={rssiValues}
-                  color="#3d5bff"
-                  unit="dBm"
-                  label="Signal received at ground (RSSI)"
-                  currentValue={curRssi}
-                />
-              </div>
-            </div>
-          </Panel>
-
-          {/* 4. Warning Panel */}
+          {/* 2. Warning Card (only when there is an unacknowledged alert) */}
           {activeAlert && (
-            <Panel
-              cut={8}
-              borderColor={alertColor}
-              glowColor={alertColor}
+            <Glass
+              tone={isCritical ? "critical" : "warn"}
               className="w-full"
             >
-              <div className="p-3.5 flex flex-col gap-2.5">
+              <div className="flex flex-col gap-2.5">
                 <div className="flex items-center gap-2">
                   <AlertTriangle size={16} style={{ color: alertColor }} />
                   <span
@@ -645,23 +549,25 @@ export function RightRail({
                       onTry={handleAckAlert}
                     >
                       <button
+                        type="button"
                         onClick={handleAckAlert}
                         disabled={acking}
-                        className="px-3 py-1.5 rounded border border-white/10 bg-white/5 text-[11px] font-mono uppercase tracking-wider text-[#dfe6f5] hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50"
+                        className="px-3.5 py-1.5 rounded-full border border-white/15 bg-white/10 text-[11px] font-mono uppercase tracking-wider text-[#dfe6f5] hover:bg-white/20 transition-all cursor-pointer disabled:opacity-50"
                       >
                         {acking ? "Acknowledging..." : "Acknowledge"}
                       </button>
                     </Locked>
                     <button
+                      type="button"
                       onClick={() => navigate("/brain")}
-                      className="px-3 py-1.5 rounded font-mono text-[11px] uppercase tracking-wider text-black font-semibold transition-transform hover:scale-[1.02] cursor-pointer ml-auto"
+                      className="px-3.5 py-1.5 rounded-full font-mono text-[11px] uppercase tracking-wider text-black font-semibold transition-transform hover:scale-[1.02] cursor-pointer ml-auto"
                       style={{ backgroundColor: alertColor }}
                     >
                       Open AI router
                     </button>
                   </div>
                   {ackError && (
-                    <div className="p-2 rounded border border-[#ff3b4f]/40 bg-[#ff3b4f]/10 text-xs text-[#ff3b4f] flex flex-col gap-1">
+                    <div className="p-2.5 rounded-xl border border-[#ff3b4f]/40 bg-[#ff3b4f]/10 text-xs text-[#ff3b4f] flex flex-col gap-1">
                       <div className="font-semibold">
                         Permission denied by PostgreSQL ({ackError.sqlstate ?? "42501"})
                       </div>
@@ -672,17 +578,17 @@ export function RightRail({
                   )}
                 </div>
               </div>
-            </Panel>
+            </Glass>
           )}
 
-          {/* 5. KPI Panel */}
-          <Panel cut={8} className="w-full">
-            <div className="p-3.5 flex flex-col gap-2.5">
+          {/* 3. Today KPIs Card (2x2 numbers) */}
+          <Glass className="w-full">
+            <div className="flex flex-col gap-2.5">
               <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
                 Today
               </span>
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-2.5 rounded bg-black/40 border border-white/5 flex flex-col gap-0.5">
+                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col gap-0.5">
                   <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
                     Working satellites
                   </span>
@@ -691,7 +597,7 @@ export function RightRail({
                   </span>
                 </div>
 
-                <div className="p-2.5 rounded bg-black/40 border border-white/5 flex flex-col gap-0.5">
+                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col gap-0.5">
                   <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
                     Packets waiting to send
                   </span>
@@ -700,7 +606,7 @@ export function RightRail({
                   </span>
                 </div>
 
-                <div className="p-2.5 rounded bg-black/40 border border-white/5 flex flex-col gap-0.5">
+                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col gap-0.5">
                   <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
                     Delivered in last 24 h
                   </span>
@@ -709,7 +615,7 @@ export function RightRail({
                   </span>
                 </div>
 
-                <div className="p-2.5 rounded bg-black/40 border border-white/5 flex flex-col gap-0.5">
+                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col gap-0.5">
                   <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
                     Times the safety check overruled the AI
                   </span>
@@ -719,7 +625,7 @@ export function RightRail({
                 </div>
               </div>
             </div>
-          </Panel>
+          </Glass>
         </>
       )}
     </div>

@@ -608,33 +608,39 @@ export function PacketStepper() {
   const step = STEPS[active];
   return (
     <section className="border-t border-white/10" style={{ background: "#000" }}>
-      <div ref={root} className="mx-auto flex min-h-screen max-w-[1180px] flex-col justify-center px-6 py-16">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+      <div
+        ref={root}
+        className="mx-auto flex h-screen max-w-[1180px] flex-col justify-center overflow-hidden px-6 py-4 md:py-6"
+      >
+        <div className="flex items-end justify-between gap-4">
           <SectionLabel>LIFE OF A PACKET</SectionLabel>
           <span className="font-mono text-[11px] tracking-[0.08em] text-[#5f6f93]">
             {String(active + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")}
           </span>
         </div>
 
-        <div className="mt-10 grid items-center gap-10 md:grid-cols-[minmax(0,420px)_minmax(0,1fr)] md:gap-16">
-          <div className="relative aspect-square w-full max-w-[420px] border border-white/80">
+        <div className="mt-4 grid items-center gap-4 md:mt-6 md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:gap-10 lg:gap-16">
+          <div
+            className="relative aspect-square max-w-full shrink-0 border border-white/80"
+            style={{ width: "min(420px, 44vh)", height: "min(420px, 44vh)" }}
+          >
             <span className="font-mono absolute left-3 top-3 text-[10px] tracking-[0.1em] text-[#5f6f93]">{step.caption}</span>
             <div key={active} className="absolute inset-6">
               <Art kind={step.art} active size="lg" />
             </div>
           </div>
           <div key={`t${active}`} className="fade-step min-w-0 max-w-[520px]">
-            <h3 className="font-light text-white" style={{ fontSize: "clamp(28px, 3vw, 40px)", lineHeight: 1.12, letterSpacing: "-0.02em" }}>
+            <h3 className="font-light text-white" style={{ fontSize: "clamp(24px, 2.6vw, 34px)", lineHeight: 1.12, letterSpacing: "-0.02em" }}>
               {step.title}
             </h3>
-            <p className="mt-4 text-[16px] leading-relaxed text-[#9aa3b8]">{step.body}</p>
-            <pre className="font-mono mt-6 overflow-x-auto border border-white/15 bg-[#05070d] p-4 text-[12.5px] leading-relaxed text-[#dfe6f5]">
+            <p className="mt-3 text-[15px] leading-relaxed text-[#9aa3b8]">{step.body}</p>
+            <pre className="font-mono mt-4 max-w-full whitespace-pre-wrap break-words border border-white/15 bg-[#05070d] p-4 text-[12.5px] leading-relaxed text-[#dfe6f5]">
               {step.sql}
             </pre>
           </div>
         </div>
 
-        <div className="mt-12 grid grid-cols-5 gap-3 md:max-w-[620px]">
+        <div className="mt-4 grid grid-cols-5 gap-2 md:mt-6 md:max-w-[620px] md:gap-3">
           {STEPS.map((s, i) => (
             <button
               key={s.caption}
@@ -645,8 +651,8 @@ export function PacketStepper() {
               aria-current={i === active ? "step" : undefined}
             >
               <div
-                className="aspect-square w-full border transition-all duration-300"
-                style={{ borderColor: i === active ? "#fff" : "rgba(255,255,255,0.18)", opacity: i <= active ? 1 : 0.5 }}
+                className="aspect-square border transition-all duration-300"
+                style={{ width: "min(96px, 10vh)", height: "min(96px, 10vh)", borderColor: i === active ? "#fff" : "rgba(255,255,255,0.18)", opacity: i <= active ? 1 : 0.5 }}
               >
                 <div className="h-full w-full p-2">
                   <Art kind={s.art} active={i === active} size="sm" />

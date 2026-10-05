@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { RoleHeader } from "@/app/access";
+import { RoleHeader, useRole } from "@/app/access";
 import type { ConstellationSat, Contact } from "../api";
-import { Panel } from "./Panel";
+import { Glass } from "./Glass";
 import { SatIcon } from "./SatIcon";
 import { HelpHint } from "./HelpHint";
 import type { FleetFilter } from "./types";
@@ -103,12 +103,18 @@ export function LeftRail({
   filter,
   onFilterChange,
 }: LeftRailProps) {
+  const { access } = useRole();
+  const [roleExpanded, setRoleExpanded] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(t);
   }, []);
+
+  const roleTitle = access
+    ? (access.who.split(":")[0]?.replace(/\s*\([^)]*\)\.?$/, "").trim() || "Operator")
+    : "Operator";
 
   // Summary counts
   const nominalCount = sats.filter((s) => s.state === "NOMINAL").length;
@@ -147,12 +153,43 @@ export function LeftRail({
 
   return (
     <div className="w-full flex flex-col gap-3">
-      {/* 0. Compact Role Header at the top of the left column */}
-      <RoleHeader note="Live constellation operations and ground pass scheduling." />
+      {/* 0. Compact Role Strip */}
+      <div className="w-full flex flex-col gap-2">
+        <div
+          className="flex items-center justify-between px-3.5 py-2 rounded-full border border-white/10 shadow-lg text-[11.5px] font-mono"
+          style={{
+            backgroundColor: "rgba(10, 14, 28, 0.85)",
+            backgroundImage:
+              "linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.025))",
+            backdropFilter: "blur(22px) saturate(170%)",
+            WebkitBackdropFilter: "blur(22px) saturate(170%)",
+            boxShadow:
+              "inset 0 1px 0 rgba(255,255,255,0.22), 0 8px 24px rgba(0,0,0,0.35)",
+          }}
+        >
+          <span className="text-[#dfe6f5] font-semibold truncate flex items-center gap-2">
+            <span className="size-2 rounded-full bg-[#7ee2b8] shrink-0" />
+            <span className="truncate">{roleTitle}</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setRoleExpanded((v) => !v)}
+            className="text-[10.5px] text-[#3d5bff] hover:text-white uppercase tracking-wider transition-colors cursor-pointer shrink-0 ml-2 font-semibold"
+            aria-expanded={roleExpanded}
+          >
+            {roleExpanded ? "Close" : "What can I do?"}
+          </button>
+        </div>
+        {roleExpanded && (
+          <div className="rounded-xl overflow-hidden">
+            <RoleHeader note="Live constellation operations and ground pass scheduling." />
+          </div>
+        )}
+      </div>
 
-      {/* 1. Constellation Title Panel */}
-      <Panel cut={8} className="w-full">
-        <div className="p-3.5 flex flex-col gap-2">
+      {/* 1. ONE Satellites card (merges title panel + filter chips) */}
+      <Glass>
+        <div className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[11px] font-semibold tracking-wider text-[#dfe6f5]">
               Satellites ({sats.length})
@@ -171,29 +208,30 @@ export function LeftRail({
             ))}
           </div>
 
-          {/* Count line */}
-          <div className="font-mono text-[11px] text-[#8b96b0] flex flex-wrap items-center gap-x-2">
+          {/* Legend line: "2 healthy · 1 in safe mode · 1 not yet deployed" (no stray commas) */}
+          <div className="font-mono text-[11px] text-[#8b96b0] flex flex-wrap items-center gap-x-1.5 leading-snug">
             <span className="text-[#7ee2b8]">{nominalCount} healthy</span>
             {safeCount > 0 && (
-              <span className="text-[#f5a524] inline-flex items-center">
-                , {safeCount} in safe mode
-                <HelpHint text="A low-power survival state where the satellite turns off payload systems and only listens for ground commands." />
-              </span>
+              <>
+                <span>·</span>
+                <span className="text-[#f5a524] inline-flex items-center">
+                  {safeCount} in safe mode
+                  <HelpHint text="A low-power survival state where the satellite turns off payload systems and only listens for ground commands." />
+                </span>
+              </>
             )}
             {stowedCount > 0 && (
-              <span className="text-[#8b96b0]">, {stowedCount} not yet deployed</span>
+              <>
+                <span>·</span>
+                <span className="text-[#8b96b0]">
+                  {stowedCount} not yet deployed
+                </span>
+              </>
             )}
           </div>
-        </div>
-      </Panel>
 
-      {/* 2. Filter Panel (2x2 chips) */}
-      <Panel cut={8} className="w-full">
-        <div className="p-3 flex flex-col gap-2">
-          <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
-            Show
-          </span>
-          <div className="grid grid-cols-2 gap-1.5">
+          {/* Filter chips directly under it */}
+          <div className="grid grid-cols-2 gap-1.5 pt-2.5 border-t border-white/[0.08]">
             {(
               [
                 { id: "ALL", label: "All", count: sats.length },
@@ -211,20 +249,21 @@ export function LeftRail({
               return (
                 <button
                   key={item.id}
+                  type="button"
                   onClick={() => onFilterChange(item.id)}
-                  className={`flex items-center justify-between px-2.5 py-1.5 rounded text-[11px] font-mono tracking-wider transition-all cursor-pointer ${
+                  className={`flex items-center justify-between px-3 py-1.5 rounded-full text-[11px] font-mono tracking-wider transition-all cursor-pointer ${
                     active
-                      ? "bg-[#3d5bff] text-white font-semibold shadow-[0_0_8px_rgba(61,91,255,0.4)]"
-                      : "bg-white/[0.03] text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/[0.06] border border-white/5"
+                      ? "bg-[#3d5bff]/85 text-white font-semibold shadow-[0_0_12px_rgba(61,91,255,0.4)] border border-[#3d5bff]"
+                      : "bg-white/[0.04] text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/[0.08] border border-white/10"
                   }`}
                 >
-                  <span className="inline-flex items-center">
+                  <span className="inline-flex items-center truncate">
                     {item.label}
                     {"hint" in item && item.hint && <HelpHint text={item.hint} />}
                   </span>
                   <span
-                    className={`text-[10px] px-1 rounded ${
-                      active ? "bg-white/20 text-white" : "text-[#8b96b0]"
+                    className={`text-[10px] px-1.5 py-0.2 rounded-full shrink-0 ml-1 ${
+                      active ? "bg-white/20 text-white" : "text-[#8b96b0] bg-white/[0.04]"
                     }`}
                   >
                     {item.count}
@@ -234,130 +273,133 @@ export function LeftRail({
             })}
           </div>
         </div>
-      </Panel>
+      </Glass>
 
-      {/* 3. Fleet Cards Stack */}
-      <div className="flex flex-col gap-2">
-        {filteredSats.map((sat) => {
-          const isSelected = selectedId === sat.node_id;
-          const statusCol = stateColor(sat.state);
-          const score = getBestLinkScore(sat.node_id);
-          const batV = sat.battery_v ?? 7.4;
-          const batPct = Math.max(
-            0,
-            Math.min(100, Math.round(((batV - 6.0) / (8.4 - 6.0)) * 100)),
-          );
-
-          return (
-            <Panel
-              key={sat.node_id}
-              cut={8}
-              selected={isSelected}
-              onClick={() => onSelect(isSelected ? null : sat.node_id)}
-              className="w-full transition-transform active:scale-[0.99]"
-            >
-              <div className="p-3 flex items-start gap-3">
-                {/* Left satellite SVG icon */}
-                <div className="shrink-0 flex items-center justify-center pt-0.5">
-                  <SatIcon
-                    size={48}
-                    color={isSelected ? "#7fb2ff" : "#dfe6f5"}
-                    className={sat.state === "SAFE" ? "motion-safe:animate-pulse" : ""}
-                  />
-                </div>
-
-                {/* Right details */}
-                <div className="min-w-0 flex-1 flex flex-col gap-1.5">
-                  {/* Name and State Badge */}
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="font-mono text-[13px] font-semibold tracking-wide text-[#dfe6f5] truncate">
-                      {sat.display_name || sat.node_id}
-                    </span>
-                    <span
-                      className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 rounded-sm border shrink-0 inline-flex items-center"
-                      style={{
-                        color: statusCol,
-                        borderColor: `color-mix(in srgb, ${statusCol} 30%, transparent)`,
-                        backgroundColor: `color-mix(in srgb, ${statusCol} 10%, transparent)`,
-                      }}
-                    >
-                      {formatSatState(sat.state)}
-                      {sat.state === "SAFE" && (
-                        <HelpHint text="A low-power survival state where the satellite turns off payload systems and only listens for ground commands." />
-                      )}
-                    </span>
-                  </div>
-
-                  {/* Subline: Orbit & position, Altitude */}
-                  <div className="font-mono text-[10px] text-[#8b96b0] flex items-center justify-between">
-                    <span>
-                      Orbit {sat.plane}, position {sat.slot}
-                    </span>
-                    <span>525 km up</span>
-                  </div>
-
-                  {/* Next ground pass countdown */}
-                  <div className="flex items-center justify-between font-mono text-[10px] bg-black/30 px-2 py-0.5 rounded border border-white/5">
-                    <span className="text-[#8b96b0]">
-                      {sat.next_downlink_start ? "Next ground pass in" : "Ground pass"}
-                    </span>
-                    <span
-                      className={`tabular-nums ${
-                        sat.next_downlink_start
-                          ? "text-[#7ee2b8]"
-                          : "text-[#8b96b0]"
-                      }`}
-                    >
-                      {formatCountdown(sat.next_downlink_start, now)}
-                    </span>
-                  </div>
-
-                  {/* Two dashed progress bars: Link quality & Battery */}
-                  <div className="flex flex-col gap-1 pt-0.5">
-                    {/* Link quality */}
-                    <div className="flex flex-col gap-0.5">
-                      <div className="flex items-center justify-between font-mono text-[9px]">
-                        <span className="text-[#8b96b0] inline-flex items-center">
-                          Link quality
-                          <HelpHint text="Expected radio signal strength and packet success rate for this link." />
-                        </span>
-                        <span className="text-[#dfe6f5] tabular-nums">
-                          {score}%
-                        </span>
-                      </div>
-                      <DashedBar
-                        value={score}
-                        segments={10}
-                        fillColor="#3d5bff"
-                      />
-                    </div>
-
-                    {/* Battery */}
-                    <div className="flex flex-col gap-0.5">
-                      <div className="flex items-center justify-between font-mono text-[9px]">
-                        <span className="text-[#8b96b0]">Battery</span>
-                        <span className="text-[#dfe6f5] tabular-nums">
-                          {batPct}% ({batV.toFixed(2)} V)
-                        </span>
-                      </div>
-                      <DashedBar
-                        value={batPct}
-                        segments={10}
-                        fillColor={batPct < 30 ? "#f5a524" : "#3d5bff"}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Panel>
-          );
-        })}
-        {filteredSats.length === 0 && (
-          <div className="p-4 text-center font-mono text-xs text-[#8b96b0] border border-dashed border-white/10 rounded-lg">
+      {/* 2. Fleet List inside ONE glass card */}
+      <Glass noPadding className="overflow-hidden">
+        {filteredSats.length === 0 ? (
+          <div className="p-4 text-center font-mono text-xs text-[#8b96b0]">
             No satellites match filter "{filter}".
           </div>
+        ) : (
+          <div className="divide-y divide-white/[0.08]">
+            {filteredSats.map((sat) => {
+              const isSelected = selectedId === sat.node_id;
+              const statusCol = stateColor(sat.state);
+              const score = getBestLinkScore(sat.node_id);
+              const batV = sat.battery_v ?? 7.4;
+              const batPct = Math.max(
+                0,
+                Math.min(100, Math.round(((batV - 6.0) / (8.4 - 6.0)) * 100)),
+              );
+
+              return (
+                <div
+                  key={sat.node_id}
+                  onClick={() => onSelect(isSelected ? null : sat.node_id)}
+                  className={`p-3.5 flex items-start gap-3 cursor-pointer transition-all duration-150 ${
+                    isSelected
+                      ? "border-l-4 border-l-[#3d5bff] bg-white/[0.09] shadow-[inset_0_0_24px_rgba(61,91,255,0.08)]"
+                      : "border-l-4 border-l-transparent hover:bg-white/[0.04]"
+                  }`}
+                >
+                  {/* Left satellite SVG icon */}
+                  <div className="shrink-0 flex items-center justify-center pt-0.5">
+                    <SatIcon
+                      size={44}
+                      color={isSelected ? "#7fb2ff" : "#dfe6f5"}
+                      className={sat.state === "SAFE" ? "motion-safe:animate-pulse" : ""}
+                    />
+                  </div>
+
+                  {/* Right details */}
+                  <div className="min-w-0 flex-1 flex flex-col gap-1.5">
+                    {/* Name and State Badge */}
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="font-mono text-[13px] font-semibold tracking-wide text-[#dfe6f5] truncate">
+                        {sat.display_name || sat.node_id}
+                      </span>
+                      <span
+                        className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full border shrink-0 inline-flex items-center"
+                        style={{
+                          color: statusCol,
+                          borderColor: `color-mix(in srgb, ${statusCol} 35%, transparent)`,
+                          backgroundColor: `color-mix(in srgb, ${statusCol} 12%, transparent)`,
+                        }}
+                      >
+                        {formatSatState(sat.state)}
+                        {sat.state === "SAFE" && (
+                          <HelpHint text="A low-power survival state where the satellite turns off payload systems and only listens for ground commands." />
+                        )}
+                      </span>
+                    </div>
+
+                    {/* Subline: Orbit & position, Altitude */}
+                    <div className="font-mono text-[10px] text-[#8b96b0] flex items-center justify-between">
+                      <span>
+                        Orbit {sat.plane}, position {sat.slot}
+                      </span>
+                      <span>525 km up</span>
+                    </div>
+
+                    {/* Next ground pass countdown */}
+                    <div className="flex items-center justify-between font-mono text-[10px] bg-black/40 px-2.5 py-1 rounded-md border border-white/5">
+                      <span className="text-[#8b96b0]">
+                        {sat.next_downlink_start ? "Next ground pass in" : "Ground pass"}
+                      </span>
+                      <span
+                        className={`tabular-nums font-medium ${
+                          sat.next_downlink_start
+                            ? "text-[#7ee2b8]"
+                            : "text-[#8b96b0]"
+                        }`}
+                      >
+                        {formatCountdown(sat.next_downlink_start, now)}
+                      </span>
+                    </div>
+
+                    {/* Two dashed progress bars: Link quality & Battery */}
+                    <div className="flex flex-col gap-1 pt-0.5">
+                      {/* Link quality */}
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center justify-between font-mono text-[9px]">
+                          <span className="text-[#8b96b0] inline-flex items-center">
+                            Link quality
+                            <HelpHint text="Expected radio signal strength and packet success rate for this link." />
+                          </span>
+                          <span className="text-[#dfe6f5] tabular-nums font-medium">
+                            {score}%
+                          </span>
+                        </div>
+                        <DashedBar
+                          value={score}
+                          segments={10}
+                          fillColor="#3d5bff"
+                        />
+                      </div>
+
+                      {/* Battery */}
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center justify-between font-mono text-[9px]">
+                          <span className="text-[#8b96b0]">Battery</span>
+                          <span className="text-[#dfe6f5] tabular-nums font-medium">
+                            {batPct}% ({batV.toFixed(2)} V)
+                          </span>
+                        </div>
+                        <DashedBar
+                          value={batPct}
+                          segments={10}
+                          fillColor={batPct < 30 ? "#f5a524" : "#3d5bff"}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
-      </div>
+      </Glass>
     </div>
   );
 }

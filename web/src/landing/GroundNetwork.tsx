@@ -8,7 +8,7 @@ const STATIONS = [
   { id: "GS-HEL", name: "ReOrbit Espoo", lat: 60.2055, lng: 24.6559, passes: 22 },
   { id: "GS-BLR", name: "Bengaluru", lat: 12.9716, lng: 77.5946, passes: 14, below: true },
   { id: "GS-TYO", name: "Tokyo", lat: 35.6762, lng: 139.6503, passes: 18 },
-  { id: "GS-SVB", name: "Svalbard", lat: 78.2232, lng: 15.6267, passes: 57 },
+  { id: "GS-SVB", name: "Svalbard", lat: 78.2232, lng: 15.6267, passes: 57, below: true },
   { id: "GS-CPT", name: "Cape Town", lat: -33.9249, lng: 18.4241, passes: 18, below: true },
 ];
 
@@ -45,7 +45,7 @@ export function GroundNetwork() {
       const blooms = STATIONS.map((s) => ({
         x: toX(s.lng),
         y: toY(s.lat),
-        r: 34 + (s.passes / maxPasses) * 46, // bloom radius by pass count
+        r: 14 + (s.passes / maxPasses) * 16, // bloom radius by pass count
       }));
       for (let y = STEP / 2; y < H; y += STEP) {
         for (let x = STEP / 2; x < W; x += STEP) {
@@ -62,7 +62,7 @@ export function GroundNetwork() {
           if (k > 0) {
             ctx.fillStyle = `rgba(61, 91, 255, ${0.35 + k * 0.65})`;
             ctx.beginPath();
-            ctx.arc(x, y, 1.2 + k * 3.6, 0, Math.PI * 2);
+            ctx.arc(x, y, 1.6 + k * 2.4, 0, Math.PI * 2);
             ctx.fill();
           } else if (land) {
             let alphaMod = 1.0;

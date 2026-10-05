@@ -75,13 +75,18 @@ export function TopBar({
           </div>
         </div>
 
-        {/* Center chamfered pill tab bar (wraps on narrow screens) */}
+        {/* Center rounded-full glass tab bar */}
         <nav
           aria-label="Ops navigation"
-          className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-0.5 p-1 rounded-lg border border-white/10 bg-[#060b17]/85 backdrop-blur-xl shadow-2xl"
+          className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1 p-1 rounded-full border border-white/10 shadow-2xl"
           style={{
-            clipPath:
-              "polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)",
+            backgroundColor: "rgba(10, 14, 28, 0.85)",
+            backgroundImage:
+              "linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.025))",
+            backdropFilter: "blur(22px) saturate(170%)",
+            WebkitBackdropFilter: "blur(22px) saturate(170%)",
+            boxShadow:
+              "inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.04), 0 12px 40px rgba(0, 0, 0, 0.45)",
           }}
         >
           {TABS.map((tab) => {
@@ -89,16 +94,13 @@ export function TopBar({
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => onTabChange(tab.id)}
-                className={`relative px-4 py-1.5 text-[11px] font-mono tracking-wider transition-all duration-200 cursor-pointer ${
+                className={`relative px-4 py-1.5 rounded-full text-[11px] font-mono tracking-wider transition-all duration-200 cursor-pointer ${
                   active
-                    ? "bg-[#3d5bff] text-white font-semibold shadow-[0_0_12px_rgba(61,91,255,0.4)]"
-                    : "text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/5"
+                    ? "bg-[#3d5bff]/85 text-white font-semibold shadow-[0_0_12px_rgba(61,91,255,0.4)] border border-[#3d5bff]"
+                    : "text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/10 border border-transparent"
                 }`}
-                style={{
-                  clipPath:
-                    "polygon(4px 0%, calc(100% - 4px) 0%, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0% calc(100% - 4px), 0% 4px)",
-                }}
               >
                 {tab.label}
               </button>

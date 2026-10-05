@@ -35,24 +35,30 @@ export function BottomDock({
   return (
     <div className="relative w-full pb-3 px-4 flex justify-center items-center pointer-events-none z-20">
       <div
-        className="pointer-events-auto flex flex-wrap items-center gap-2 p-1.5 rounded-lg border border-white/10 bg-[#060b17]/85 backdrop-blur-xl shadow-2xl"
+        className="pointer-events-auto flex flex-wrap items-center gap-2 p-1.5 rounded-full border border-white/10 shadow-2xl"
         style={{
-          clipPath:
-            "polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)",
+          backgroundColor: "rgba(10, 14, 28, 0.85)",
+          backgroundImage:
+            "linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.025))",
+          backdropFilter: "blur(22px) saturate(170%)",
+          WebkitBackdropFilter: "blur(22px) saturate(170%)",
+          boxShadow:
+            "inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.04), 0 12px 40px rgba(0, 0, 0, 0.45)",
         }}
       >
         {/* View toggles: Whole Earth / Mumbai / Espoo / Selected satellite */}
-        <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-md border border-white/5">
+        <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-full border border-white/5">
           {views.map((v) => {
             const active = currentView === v.id;
             return (
               <button
                 key={v.id}
+                type="button"
                 onClick={() => onViewChange(v.id)}
-                className={`px-3 py-1 text-[11px] font-mono tracking-wider transition-all cursor-pointer rounded ${
+                className={`px-3 py-1 text-[11px] font-mono tracking-wider transition-all cursor-pointer rounded-full ${
                   active
-                    ? "bg-[#3d5bff] text-white font-semibold shadow-[0_0_8px_rgba(61,91,255,0.5)]"
-                    : "text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/5"
+                    ? "bg-[#3d5bff]/85 text-white font-semibold shadow-[0_0_8px_rgba(61,91,255,0.5)] border border-[#3d5bff]"
+                    : "text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/5 border border-transparent"
                 }`}
               >
                 {v.label}
@@ -63,12 +69,12 @@ export function BottomDock({
 
         {/* Live or Mock pill */}
         {mock ? (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#f5a524]/60 bg-[#f5a524]/10 text-[#f5a524] text-[11px] font-mono tracking-wider">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#f5a524]/60 bg-[#f5a524]/10 text-[#f5a524] text-[11px] font-mono tracking-wider">
             <span className="size-1.5 rounded-full bg-[#f5a524]" />
             <span>Mock data</span>
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-[#ff3b4f]/60 bg-[#ff3b4f]/10 text-[#ff3b4f] text-[11px] font-mono tracking-wider">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#ff3b4f]/60 bg-[#ff3b4f]/10 text-[#ff3b4f] text-[11px] font-mono tracking-wider">
             <span className="relative flex size-2">
               <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ff3b4f] opacity-75" />
               <span className="relative inline-flex size-2 rounded-full bg-[#ff3b4f]" />
@@ -78,15 +84,16 @@ export function BottomDock({
         )}
 
         {/* UTC Clock box */}
-        <div className="px-3 py-1 bg-black/50 border border-white/5 rounded text-[11px] font-mono tabular-nums text-[#dfe6f5] tracking-wider">
+        <div className="px-3 py-1 bg-black/50 border border-white/5 rounded-full text-[11px] font-mono tabular-nums text-[#dfe6f5] tracking-wider">
           {p(clock.getUTCHours())}:{p(clock.getUTCMinutes())}:
           {p(clock.getUTCSeconds())} <span className="text-[#8b96b0]">UTC</span>
         </div>
 
         {/* Demo route button */}
         <button
+          type="button"
           onClick={onDemoRoute}
-          className="flex items-center gap-1.5 px-3 py-1 rounded border border-[#3d5bff]/40 bg-[#3d5bff]/15 text-[#dfe6f5] hover:bg-[#3d5bff]/30 hover:border-[#3d5bff] text-[11px] font-mono tracking-wider transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#3d5bff]/40 bg-[#3d5bff]/15 text-[#dfe6f5] hover:bg-[#3d5bff]/30 hover:border-[#3d5bff] text-[11px] font-mono tracking-wider transition-colors cursor-pointer"
         >
           <span className="text-[#3d5bff]">▶</span>
           <span>Show a sample route</span>
