@@ -17,7 +17,7 @@ import { Footer } from "@/landing/Footer";
  */
 export default function Landing() {
   return (
-    <div className="min-h-screen overflow-x-hidden font-light" style={{ background: "#000", color: "#ffffff" }}>
+    <div className="min-h-screen overflow-x-clip font-light" style={{ background: "#000", color: "#ffffff" }}>
       <SiteHeader />
       <main>
         <CinematicHero />
