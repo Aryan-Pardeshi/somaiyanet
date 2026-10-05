@@ -167,8 +167,8 @@ function Dish({
 function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" | "sm" }) {
   const reducedMotion = usePrefersReducedMotion();
   const s = active ? "#ffffff" : "rgba(255,255,255,0.45)";
-  const blue = "#3d5bff";
-  const red = "#ff3b4f";
+  const accent = "#ffffff";
+  const red = "#ff453a";
   const strokeWidth = size === "lg" ? 1.3 : 2.4;
   const draw = active && size === "lg" ? "draw-in" : "";
   const canAnimate = active && size === "lg" && !reducedMotion;
@@ -183,12 +183,12 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
           {/* Sat top-left */}
           <Sat x={42} y={36} scale={0.78} stroke={s} strokeWidth={strokeWidth} />
 
-          {/* Dashed blue field-of-view cone from sat to Earth limb */}
-          <line x1={42} y1={42} x2={16} y2={168} stroke={blue} strokeDasharray="4 3" strokeWidth={strokeWidth} />
-          <line x1={42} y1={42} x2={94} y2={154} stroke={blue} strokeDasharray="4 3" strokeWidth={strokeWidth} />
+          {/* Dashed accent field-of-view cone from sat to Earth limb */}
+          <line x1={42} y1={42} x2={16} y2={168} stroke={accent} strokeDasharray="4 3" strokeWidth={strokeWidth} />
+          <line x1={42} y1={42} x2={94} y2={154} stroke={accent} strokeDasharray="4 3" strokeWidth={strokeWidth} />
           <path
             d="M 16 168 Q 55 158 94 154"
-            stroke={blue}
+            stroke={accent}
             strokeDasharray="3 3"
             strokeWidth={strokeWidth}
             fill="none"
@@ -198,10 +198,10 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
           {/* SSTV 4:3 frame on the right */}
           <rect x={102} y={32} width={84} height={63} stroke={s} strokeWidth={strokeWidth} fill="none" rx={2} />
 
-          {/* Horizontal scan lines drawing in top-to-bottom, one blue */}
+          {/* Horizontal scan lines drawing in top-to-bottom, one accent */}
           {Array.from({ length: 8 }).map((_, i) => {
             const y = 37 + i * 7.5;
-            const isScanBlue = i === 4;
+            const isScanAccent = i === 4;
             return (
               <line
                 key={i}
@@ -209,9 +209,9 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
                 y1={y}
                 x2={181}
                 y2={y}
-                stroke={isScanBlue ? blue : s}
+                stroke={isScanAccent ? accent : s}
                 strokeWidth={strokeWidth}
-                opacity={isScanBlue ? 1 : 0.65}
+                opacity={isScanAccent ? 1 : 0.65}
                 pathLength={1}
                 className={draw}
                 style={{ animationDelay: `${i * 0.09}s` }}
@@ -225,7 +225,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
               x={144}
               y={107}
               textAnchor="middle"
-              fill="#8b96b0"
+              fill="rgba(255,255,255,0.5)"
               fontFamily="monospace"
               fontSize={7}
               letterSpacing="0.05em"
@@ -258,7 +258,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
             y1={35}
             x2={150}
             y2={69}
-            stroke={blue}
+            stroke={accent}
             strokeWidth={strokeWidth}
             pathLength={1}
             className={draw}
@@ -290,7 +290,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
             y1={87}
             x2={133}
             y2={125}
-            stroke={blue}
+            stroke={accent}
             strokeWidth={strokeWidth}
             pathLength={1}
             className={draw}
@@ -307,7 +307,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
           />
 
           {/* Root node: battery_v */}
-          <rect x={72} y={17} width={56} height={18} rx={3} stroke={blue} strokeWidth={strokeWidth} fill="#000" />
+          <rect x={72} y={17} width={56} height={18} rx={3} stroke={accent} strokeWidth={strokeWidth} fill="#000" />
           {size === "lg" && (
             <text x={100} y={29} textAnchor="middle" fill="#fff" fontFamily="monospace" fontSize={6.5}>
               battery_v
@@ -323,7 +323,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
           )}
 
           {/* Level 1: contact_s (on path) */}
-          <rect x={123} y={69} width={54} height={18} rx={3} stroke={blue} strokeWidth={strokeWidth} fill="#000" />
+          <rect x={123} y={69} width={54} height={18} rx={3} stroke={accent} strokeWidth={strokeWidth} fill="#000" />
           {size === "lg" && (
             <text x={150} y={81} textAnchor="middle" fill="#fff" fontFamily="monospace" fontSize={6.5}>
               contact_s
@@ -346,8 +346,8 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
             </text>
           )}
 
-          {/* Leaf: RELAY_VIA_ISL (chosen leaf with blue outline) */}
-          <rect x={104} y={125} width={58} height={18} rx={3} stroke={blue} strokeWidth={strokeWidth} fill="#000" />
+          {/* Leaf: RELAY_VIA_ISL (chosen leaf with accent outline) */}
+          <rect x={104} y={125} width={58} height={18} rx={3} stroke={accent} strokeWidth={strokeWidth} fill="#000" />
           {size === "lg" && (
             <text x={133} y={137} textAnchor="middle" fill="#fff" fontFamily="monospace" fontSize={5.5}>
               RELAY_VIA_ISL
@@ -368,7 +368,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
               x={133}
               y={156}
               textAnchor="middle"
-              fill={blue}
+              fill={accent}
               fontFamily="monospace"
               fontSize={6.5}
               letterSpacing="0.08em"
@@ -403,11 +403,11 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
           <Sat x={154} y={54} scale={0.62} stroke={s} strokeWidth={strokeWidth} />
 
           {/* Dashed ISL links between satellites */}
-          <line x1={48} y1={50} x2={83} y2={40} stroke={blue} strokeDasharray="3 3" strokeWidth={strokeWidth} />
-          <line x1={107} y1={40} x2={142} y2={50} stroke={blue} strokeDasharray="3 3" strokeWidth={strokeWidth} />
+          <line x1={48} y1={50} x2={83} y2={40} stroke={accent} strokeDasharray="3 3" strokeWidth={strokeWidth} />
+          <line x1={107} y1={40} x2={142} y2={50} stroke={accent} strokeDasharray="3 3" strokeWidth={strokeWidth} />
 
           {/* Downlink beam from last sat down to ground station dish */}
-          <line x1={154} y1={62} x2={137} y2={127} stroke={blue} strokeDasharray="4 3" strokeWidth={strokeWidth} />
+          <line x1={154} y1={62} x2={137} y2={127} stroke={accent} strokeDasharray="4 3" strokeWidth={strokeWidth} />
 
           {/* Ground station dish on Earth limb */}
           <Dish x={152} y={160} stroke={s} strokeWidth={strokeWidth} />
@@ -455,13 +455,13 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
             className={draw}
           />
 
-          {/* Dashed blue centre line */}
+          {/* Dashed accent centre line */}
           <line
             x1={44}
             y1={44}
             x2={137}
             y2={127}
-            stroke={blue}
+            stroke={accent}
             strokeWidth={strokeWidth}
             strokeDasharray="4 3"
           />
@@ -470,9 +470,9 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
           <Dish x={152} y={160} stroke={s} strokeWidth={strokeWidth} />
 
           {/* 3 short arcs ('signal received') next to the dish */}
-          <path d="M 161 123 A 12 12 0 0 1 161 137" stroke={blue} strokeWidth={strokeWidth} fill="none" opacity={0.9} />
-          <path d="M 167 119 A 18 18 0 0 1 167 141" stroke={blue} strokeWidth={strokeWidth} fill="none" opacity={0.65} />
-          <path d="M 173 115 A 24 24 0 0 1 173 145" stroke={blue} strokeWidth={strokeWidth} fill="none" opacity={0.4} />
+          <path d="M 161 123 A 12 12 0 0 1 161 137" stroke={accent} strokeWidth={strokeWidth} fill="none" opacity={0.9} />
+          <path d="M 167 119 A 18 18 0 0 1 167 141" stroke={accent} strokeWidth={strokeWidth} fill="none" opacity={0.65} />
+          <path d="M 173 115 A 24 24 0 0 1 173 145" stroke={accent} strokeWidth={strokeWidth} fill="none" opacity={0.4} />
 
           {/* Red dot moving down centre line (lg only) */}
           {canAnimate ? (
@@ -496,19 +496,19 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
           {/* Header row mono text */}
           {size === "lg" && (
             <g>
-              <text x={22} y={43} fill="#8b96b0" fontFamily="monospace" fontSize={7} letterSpacing="0.05em">
+              <text x={22} y={43} fill="rgba(255,255,255,0.5)" fontFamily="monospace" fontSize={7} letterSpacing="0.05em">
                 op
               </text>
-              <text x={64} y={43} fill="#8b96b0" fontFamily="monospace" fontSize={7} letterSpacing="0.05em">
+              <text x={64} y={43} fill="rgba(255,255,255,0.5)" fontFamily="monospace" fontSize={7} letterSpacing="0.05em">
                 table
               </text>
-              <text x={138} y={43} fill="#8b96b0" fontFamily="monospace" fontSize={7} letterSpacing="0.05em">
+              <text x={138} y={43} fill="rgba(255,255,255,0.5)" fontFamily="monospace" fontSize={7} letterSpacing="0.05em">
                 changed_at
               </text>
             </g>
           )}
 
-          {/* 4 table rows, first row blue, rows fade in staggered */}
+          {/* 4 table rows, first row accent, rows fade in staggered */}
           {[
             { op: "INSERT", table: "packet", time: "12:04:31" },
             { op: "UPDATE", table: "satellite", time: "12:04:32" },
@@ -516,7 +516,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
             { op: "INSERT", table: "telecommand", time: "12:04:35" },
           ].map((row, r) => {
             const isFirst = r === 0;
-            const textColor = isFirst ? blue : s;
+            const textColor = isFirst ? accent : s;
             return (
               <g
                 key={r}
@@ -550,13 +550,13 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
                   </>
                 ) : (
                   <>
-                    <rect x={22} y={64 + r * 28} width={24} height={5} fill={isFirst ? blue : s} rx={1} />
+                    <rect x={22} y={64 + r * 28} width={24} height={5} fill={isFirst ? accent : s} rx={1} />
                     <rect
                       x={58}
                       y={64 + r * 28}
                       width={56}
                       height={5}
-                      fill={isFirst ? blue : s}
+                      fill={isFirst ? accent : s}
                       opacity={isFirst ? 0.9 : 0.6}
                       rx={1}
                     />
@@ -565,7 +565,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
                       y={64 + r * 28}
                       width={34}
                       height={5}
-                      fill={isFirst ? blue : s}
+                      fill={isFirst ? accent : s}
                       opacity={isFirst ? 0.8 : 0.4}
                       rx={1}
                     />
@@ -605,34 +605,45 @@ export function PacketStepper() {
   }, [reducedMotion]);
 
   const step = STEPS[active];
+  const progress = STEPS.length > 1 ? active / (STEPS.length - 1) : 0;
   return (
-    <section className="border-t border-white/10" style={{ background: "#000" }}>
+    <section id="journey" style={{ background: "#000" }}>
       <div
         ref={root}
-        className="mx-auto flex h-screen max-w-[1180px] flex-col justify-center overflow-hidden px-6 py-4 md:py-6"
+        className="mx-auto flex h-screen max-w-[1200px] flex-col justify-center overflow-hidden px-6 py-4 md:py-6"
       >
-        <div className="flex items-end justify-end gap-4">
-          <span className="font-mono text-[11px] tracking-[0.08em] text-[#5f6f93]">
+        <div className="flex items-center justify-between gap-4">
+          <span className="sx-eyebrow">Step {active + 1} of {STEPS.length}</span>
+          <span className="sx-num text-[13px] text-white">
             {String(active + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")}
           </span>
+        </div>
+        {/* 1px progress track at 15% white with a white fill */}
+        <div aria-hidden="true" className="mt-4 h-px w-full" style={{ background: "rgba(255,255,255,0.15)" }}>
+          <div className="h-px bg-white transition-[width] duration-300" style={{ width: `${progress * 100}%` }} />
         </div>
 
         <div className="mt-4 grid items-center gap-4 md:mt-6 md:grid-cols-[minmax(0,auto)_minmax(0,1fr)] md:gap-10 lg:gap-16">
           <div
-            className="relative aspect-square max-w-full shrink-0 border border-white/80"
-            style={{ width: "min(420px, 44vh)", height: "min(420px, 44vh)" }}
+            className="relative aspect-square max-w-full shrink-0"
+            style={{
+              width: "min(420px, 44vh)",
+              height: "min(420px, 44vh)",
+              background: "var(--sx-surface)",
+              borderRadius: 14,
+            }}
           >
-            <span className="font-mono absolute left-3 top-3 text-[10px] tracking-[0.1em] text-[#5f6f93]">{step.caption}</span>
+            <span className="sx-eyebrow absolute left-4 top-4">{step.caption}</span>
             <div key={active} className="absolute inset-6">
               <Art kind={step.art} active size="lg" />
             </div>
           </div>
           <div key={`t${active}`} className="fade-step min-w-0 max-w-[520px]">
-            <h3 className="font-light text-white" style={{ fontSize: "clamp(24px, 2.6vw, 34px)", lineHeight: 1.12, letterSpacing: "-0.02em" }}>
+            <h3 className="sx-h2">
               {step.title}
             </h3>
-            <p className="mt-3 text-[15px] leading-relaxed text-[#9aa3b8]">{step.body}</p>
-            <pre className="font-mono mt-4 max-w-full whitespace-pre-wrap break-words border border-white/15 bg-[#05070d] p-4 text-[12.5px] leading-relaxed text-[#dfe6f5]">
+            <p className="sx-lead mt-4">{step.body}</p>
+            <pre className="sx-code mt-4 max-w-full whitespace-pre-wrap break-words">
               {step.sql}
             </pre>
           </div>
@@ -644,19 +655,30 @@ export function PacketStepper() {
               key={s.caption}
               type="button"
               onClick={() => setActive(i)}
-              className="flex flex-col gap-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3d5bff]"
+              className="flex flex-col items-start gap-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white"
               aria-label={`Step ${i + 1}: ${s.caption} — ${s.title}`}
               aria-current={i === active ? "step" : undefined}
             >
+              <span
+                aria-hidden="true"
+                className="inline-block size-2 rounded-full"
+                style={{ background: i === active ? "#ffffff" : "rgba(255,255,255,0.25)" }}
+              />
               <div
-                className="aspect-square border transition-all duration-300"
-                style={{ width: "min(96px, 10vh)", height: "min(96px, 10vh)", borderColor: i === active ? "#fff" : "rgba(255,255,255,0.18)", opacity: i <= active ? 1 : 0.5 }}
+                className="aspect-square transition-opacity duration-300"
+                style={{
+                  width: "min(96px, 10vh)",
+                  height: "min(96px, 10vh)",
+                  background: "var(--sx-surface)",
+                  borderRadius: 14,
+                  opacity: i <= active ? 1 : 0.5,
+                }}
               >
                 <div className="h-full w-full p-2">
                   <Art kind={s.art} active={i === active} size="sm" />
                 </div>
               </div>
-              <span className="font-mono text-[10px] tracking-[0.08em] transition-colors" style={{ color: i === active ? "#fff" : "#5f6f93" }}>
+              <span className="sx-eyebrow" style={{ color: i === active ? "#fff" : "rgba(255,255,255,0.5)" }}>
                 {s.caption}
               </span>
             </button>

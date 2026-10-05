@@ -29,67 +29,53 @@ const ROWS: Constraint[] = [
 
 function ConstraintIcon({ kind }: { kind: "window" | "power" | "audit" }) {
   return (
-    <svg viewBox="0 0 32 32" className="size-6 text-white/70" fill="none" stroke="currentColor" strokeWidth={1.2}>
+    <svg viewBox="0 0 32 32" className="size-5 text-white" fill="none" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
       {kind === "window" && (
         <>
           <circle cx="16" cy="16" r="13" strokeDasharray="3 3" opacity={0.4} />
-          <path d="M 16 3 A 13 13 0 0 1 29 16" stroke="#3d5bff" strokeWidth={1.5} />
+          <path d="M 16 3 A 13 13 0 0 1 29 16" />
           <line x1="16" y1="16" x2="16" y2="7" />
-          <line x1="16" y1="16" x2="23" y2="16" stroke="#3d5bff" />
-          <circle cx="16" cy="16" r="1.5" fill="#fff" />
+          <line x1="16" y1="16" x2="23" y2="16" />
+          <circle cx="16" cy="16" r="1.5" fill="#fff" stroke="none" />
         </>
       )}
       {kind === "power" && (
         <>
           <rect x="6" y="9" width="18" height="14" rx="2" />
           <path d="M 24 13 L 26 13 L 26 19 L 24 19" />
-          <line x1="11" y1="13" x2="11" y2="19" stroke="#3d5bff" strokeWidth={1.5} />
-          <line x1="15" y1="13" x2="15" y2="19" stroke="#3d5bff" strokeWidth={1.5} />
+          <line x1="11" y1="13" x2="11" y2="19" />
+          <line x1="15" y1="13" x2="15" y2="19" />
           <line x1="19" y1="13" x2="19" y2="19" opacity={0.3} />
         </>
       )}
       {kind === "audit" && (
         <>
           <rect x="7" y="6" width="18" height="20" rx="1.5" />
-          <line x1="11" y1="11" x2="21" y2="11" stroke="#3d5bff" />
+          <line x1="11" y1="11" x2="21" y2="11" />
           <line x1="11" y1="16" x2="21" y2="16" />
           <line x1="11" y1="21" x2="17" y2="21" opacity={0.6} />
-          <circle cx="21" cy="21" r="1.5" fill="#3d5bff" />
+          <circle cx="21" cy="21" r="1.5" fill="#fff" stroke="none" />
         </>
       )}
     </svg>
   );
 }
 
-/** Numbered hairline rows: label right, light Geist headline left, plain English. */
+/** Three hard limits: title, then three spaced columns with minimal white icons. */
 export function Constraints() {
   return (
-    <section className="border-t border-white/10 py-28" style={{ background: "#000" }}>
+    <section className="sx-section" style={{ background: "#000" }}>
       <div className="mx-auto max-w-[1200px] px-6">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <h2
-            className="max-w-[18ch] font-light text-white"
-            style={{ fontSize: "clamp(30px, 3.4vw, 46px)", lineHeight: 1.08, letterSpacing: "-0.02em" }}
-          >
-            Minutes of contact. Milliwatts of power. Zero room for error.
-          </h2>
-        </div>
-        <div className="mt-12 border-t border-white/10">
+        <h2 className="sx-h2 max-w-[20ch]">
+          Minutes of contact. Milliwatts of power. Zero room for error.
+        </h2>
+        <div className="mt-16 grid gap-12 md:grid-cols-3 md:gap-10">
           {ROWS.map((row) => (
-            <div
-              key={row.n}
-              className="grid items-start gap-4 border-b border-white/10 py-8 md:grid-cols-[60px_40px_1fr_1.5fr]"
-            >
-              <span className="font-mono text-[12px]" style={{ color: "#3d5bff", letterSpacing: "0.08em" }}>
-                [{row.n}]
-              </span>
-              <div className="hidden md:block">
-                <ConstraintIcon kind={row.art} />
-              </div>
-              <h3 className="text-[20px] font-light text-white">{row.title}</h3>
-              <p className="max-w-[62ch] text-[15px] leading-relaxed text-[#9aa3b8]">
-                {row.desc}
-              </p>
+            <div key={row.n} className="min-w-0">
+              <ConstraintIcon kind={row.art} />
+              <p className="sx-eyebrow mt-6">{row.n}</p>
+              <h3 className="sx-h3 mt-3">{row.title}</h3>
+              <p className="sx-body mt-3">{row.desc}</p>
             </div>
           ))}
         </div>

@@ -15,50 +15,44 @@ const SPECS: Array<[string, string]> = [
 ];
 
 /**
- * Blueprint block: the spacecraft drawn as a blue technical outline, with the
- * rendered model floating in front of it, and the mission specs on the right.
+ * SpaceX product band: big title, lead line, the model, and specs as an
+ * Apple inset-grouped list.
  */
 export function Spacecraft() {
   return (
-    <section className="border-t border-white/10" style={{ background: "#000" }}>
-      <div className="mx-auto max-w-[1180px] px-6 py-28">
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <h2 className="max-w-[16ch] font-light text-white" style={{ fontSize: "clamp(30px, 3.4vw, 46px)", lineHeight: 1.08, letterSpacing: "-0.02em" }}>
-            Small enough to fit in your hand.
-          </h2>
-        </div>
+    <section id="spacecraft" className="sx-section" style={{ background: "#000" }}>
+      <div className="mx-auto max-w-[1200px] px-6">
+        <h2 className="sx-h1 max-w-[16ch]">
+          Small enough to fit in your hand.
+        </h2>
+        <p className="sx-lead mt-6">
+          A PocketQube that makes its own routing decisions and records every one of them.
+        </p>
 
-        <div className="mt-12 grid items-center gap-12 lg:grid-cols-[1.25fr_1fr]">
-          <div className="relative aspect-[4/3] w-full overflow-hidden border border-white/10">
-            {/* faint blueprint grid */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-0"
-              style={{
-                backgroundImage:
-                  "linear-gradient(rgba(61,91,255,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(61,91,255,0.12) 1px, transparent 1px)",
-                backgroundSize: "32px 32px",
-              }}
-            />
+        <div className="mt-12 grid items-start gap-12 lg:grid-cols-[1.25fr_1fr]">
+          <div
+            className="relative aspect-[4/3] w-full overflow-hidden"
+            style={{ background: "var(--sx-surface)", borderRadius: 14 }}
+          >
             <Canvas
               className="!absolute inset-0"
               dpr={[1, 2]}
               camera={{ position: [0, 0.25, 6.2], fov: 32 }}
               gl={{ alpha: true, antialias: true }}
-              aria-label="3D blueprint model of SomaiyaSat PocketQube satellite"
+              aria-label="3D model of SomaiyaSat PocketQube satellite"
             >
               <Blueprint />
             </Canvas>
-            <div className="font-mono pointer-events-none absolute bottom-3 left-3 text-[10px] tracking-[0.1em] text-[#3d5bff]">
-              DWG SN-01 · SOMAIYASAT · NOT TO SCALE
+            <div className="sx-eyebrow pointer-events-none absolute bottom-3 left-4">
+              SomaiyaSat · Not to scale
             </div>
           </div>
 
-          <dl className="divide-y divide-white/10 border-y border-white/10">
+          <dl className="sx-group">
             {SPECS.map(([k, v]) => (
-              <div key={k} className="flex items-baseline justify-between gap-6 py-4">
-                <dt className="text-[14px] text-[#9aa3b8]">{k}</dt>
-                <dd className="font-mono text-right text-[13px] text-white">{v}</dd>
+              <div key={k} className="sx-row">
+                <dt className="sx-body">{k}</dt>
+                <dd className="sx-num text-right text-[13px] text-white">{v}</dd>
               </div>
             ))}
           </dl>
@@ -95,10 +89,10 @@ function Blueprint() {
     <>
       <ambientLight intensity={0.5} />
       <directionalLight position={[4, 3, 5]} intensity={2.4} />
-      <directionalLight position={[-4, -1, 2]} intensity={0.6} color="#8fa8ff" />
+      <directionalLight position={[-4, -1, 2]} intensity={0.6} color="#ffffff" />
       {/* the outline drawing behind, front view */}
       <group position={[-0.15, 0.3, -2.4]} scale={0.95}>
-        <Satellite lineArt lineColor="#3d5bff" />
+        <Satellite lineArt lineColor="#ffffff" />
       </group>
       {/* the rendered spacecraft in front, three-quarter view */}
       <group ref={model} position={[0.45, -0.35, 1.0]} rotation={[0.25, -0.55, 0.12]} scale={0.78}>

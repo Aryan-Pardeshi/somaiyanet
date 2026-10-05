@@ -25,7 +25,7 @@ const lerp = (
 });
 
 const FULL_QUERY = "SELECT * FROM cgr_routes('SS-1', now(), 41216);";
-const RING_CIRCUMFERENCE = 150.8; // 2 * PI * 24
+const RING_CIRCUMFERENCE = 56.55; // 2 * PI * 9
 
 // Circular orbit: center (360, 980), radius 860
 function getOrbitPos(baseX: number, drift: number): { x: number; y: number } {
@@ -56,20 +56,17 @@ export function RouteDiagram({
   // Link 1: SS-1 -> SS-2
   const link1InactiveRef = useRef<SVGLineElement>(null);
   const link1ActiveRef = useRef<SVGLineElement>(null);
-  const link1GlowRef = useRef<SVGLineElement>(null);
   const link1BadgeRef = useRef<SVGGElement>(null);
   const link1BadgeTextRef = useRef<SVGTextElement>(null);
 
   // Link 2: SS-2 -> SS-3
   const link2InactiveRef = useRef<SVGLineElement>(null);
   const link2ActiveRef = useRef<SVGLineElement>(null);
-  const link2GlowRef = useRef<SVGLineElement>(null);
   const link2BadgeRef = useRef<SVGGElement>(null);
 
   // Link 3: SS-3 -> Ground
   const link3InactiveRef = useRef<SVGLineElement>(null);
   const link3ActiveRef = useRef<SVGLineElement>(null);
-  const link3GlowRef = useRef<SVGLineElement>(null);
   const link3BadgeRef = useRef<SVGGElement>(null);
 
   // Decoy Link: SS-1 -> Ground (t=52..58)
@@ -79,11 +76,8 @@ export function RouteDiagram({
 
   // Traveled red routes
   const redPath1Ref = useRef<SVGLineElement>(null);
-  const redPath1GlowRef = useRef<SVGLineElement>(null);
   const redPath2Ref = useRef<SVGLineElement>(null);
-  const redPath2GlowRef = useRef<SVGLineElement>(null);
   const redPath3Ref = useRef<SVGLineElement>(null);
-  const redPath3GlowRef = useRef<SVGLineElement>(null);
 
   // Waiting countdown rings & labels
   const waitRing1Ref = useRef<SVGCircleElement>(null);
@@ -180,7 +174,7 @@ export function RouteDiagram({
         link1InactiveRef.current.setAttribute("y1", String(pos1.y));
         link1InactiveRef.current.setAttribute("x2", String(pos2.x));
         link1InactiveRef.current.setAttribute("y2", String(pos2.y));
-        link1InactiveRef.current.style.opacity = isL1Active ? "0" : "0.35";
+        link1InactiveRef.current.style.opacity = isL1Active ? "0" : "1";
       }
       if (link1ActiveRef.current) {
         link1ActiveRef.current.setAttribute("x1", String(pos1.x));
@@ -188,13 +182,6 @@ export function RouteDiagram({
         link1ActiveRef.current.setAttribute("x2", String(pos2.x));
         link1ActiveRef.current.setAttribute("y2", String(pos2.y));
         link1ActiveRef.current.style.opacity = isL1Active ? "1" : "0";
-      }
-      if (link1GlowRef.current) {
-        link1GlowRef.current.setAttribute("x1", String(pos1.x));
-        link1GlowRef.current.setAttribute("y1", String(pos1.y));
-        link1GlowRef.current.setAttribute("x2", String(pos2.x));
-        link1GlowRef.current.setAttribute("y2", String(pos2.y));
-        link1GlowRef.current.style.opacity = isL1Active ? "0.75" : "0";
       }
       if (link1BadgeRef.current) {
         const midX = (pos1.x + pos2.x) / 2;
@@ -213,7 +200,7 @@ export function RouteDiagram({
         link2InactiveRef.current.setAttribute("y1", String(pos2.y));
         link2InactiveRef.current.setAttribute("x2", String(pos3.x));
         link2InactiveRef.current.setAttribute("y2", String(pos3.y));
-        link2InactiveRef.current.style.opacity = isL2Active ? "0" : "0.35";
+        link2InactiveRef.current.style.opacity = isL2Active ? "0" : "1";
       }
       if (link2ActiveRef.current) {
         link2ActiveRef.current.setAttribute("x1", String(pos2.x));
@@ -221,13 +208,6 @@ export function RouteDiagram({
         link2ActiveRef.current.setAttribute("x2", String(pos3.x));
         link2ActiveRef.current.setAttribute("y2", String(pos3.y));
         link2ActiveRef.current.style.opacity = isL2Active ? "1" : "0";
-      }
-      if (link2GlowRef.current) {
-        link2GlowRef.current.setAttribute("x1", String(pos2.x));
-        link2GlowRef.current.setAttribute("y1", String(pos2.y));
-        link2GlowRef.current.setAttribute("x2", String(pos3.x));
-        link2GlowRef.current.setAttribute("y2", String(pos3.y));
-        link2GlowRef.current.style.opacity = isL2Active ? "0.75" : "0";
       }
       if (link2BadgeRef.current) {
         const midX = (pos2.x + pos3.x) / 2;
@@ -243,7 +223,7 @@ export function RouteDiagram({
         link3InactiveRef.current.setAttribute("y1", String(pos3.y));
         link3InactiveRef.current.setAttribute("x2", String(posGround.x));
         link3InactiveRef.current.setAttribute("y2", String(posGround.y));
-        link3InactiveRef.current.style.opacity = isL3Active ? "0" : "0.35";
+        link3InactiveRef.current.style.opacity = isL3Active ? "0" : "1";
       }
       if (link3ActiveRef.current) {
         link3ActiveRef.current.setAttribute("x1", String(pos3.x));
@@ -251,13 +231,6 @@ export function RouteDiagram({
         link3ActiveRef.current.setAttribute("x2", String(posGround.x));
         link3ActiveRef.current.setAttribute("y2", String(posGround.y));
         link3ActiveRef.current.style.opacity = isL3Active ? "1" : "0";
-      }
-      if (link3GlowRef.current) {
-        link3GlowRef.current.setAttribute("x1", String(pos3.x));
-        link3GlowRef.current.setAttribute("y1", String(pos3.y));
-        link3GlowRef.current.setAttribute("x2", String(posGround.x));
-        link3GlowRef.current.setAttribute("y2", String(posGround.y));
-        link3GlowRef.current.style.opacity = isL3Active ? "0.75" : "0";
       }
       if (link3BadgeRef.current) {
         const midX = (pos3.x + posGround.x) / 2 + 18;
@@ -273,14 +246,14 @@ export function RouteDiagram({
         decoyInactiveRef.current.setAttribute("y1", String(pos1.y));
         decoyInactiveRef.current.setAttribute("x2", String(posGround.x));
         decoyInactiveRef.current.setAttribute("y2", String(posGround.y));
-        decoyInactiveRef.current.style.opacity = isDecoyActive ? "0" : "0.15";
+        decoyInactiveRef.current.style.opacity = isDecoyActive ? "0" : "0.6";
       }
       if (decoyActiveRef.current) {
         decoyActiveRef.current.setAttribute("x1", String(pos1.x));
         decoyActiveRef.current.setAttribute("y1", String(pos1.y));
         decoyActiveRef.current.setAttribute("x2", String(posGround.x));
         decoyActiveRef.current.setAttribute("y2", String(posGround.y));
-        decoyActiveRef.current.style.opacity = isDecoyActive ? "0.6" : "0";
+        decoyActiveRef.current.style.opacity = isDecoyActive ? "1" : "0";
       }
       if (decoyBadgeRef.current) {
         const midX = (pos1.x + posGround.x) / 2 - 20;
@@ -359,7 +332,7 @@ export function RouteDiagram({
       const hop3Progress = clamp((t - 36.0) / 1.5, 0, 1);
 
       // Red path 1
-      if (redPath1Ref.current && redPath1GlowRef.current) {
+      if (redPath1Ref.current) {
         if (hop1Progress > 0) {
           const end1 = lerp(pos1, pos2, hop1Progress);
           redPath1Ref.current.setAttribute("x1", String(pos1.x));
@@ -367,20 +340,13 @@ export function RouteDiagram({
           redPath1Ref.current.setAttribute("x2", String(end1.x));
           redPath1Ref.current.setAttribute("y2", String(end1.y));
           redPath1Ref.current.style.opacity = "1";
-
-          redPath1GlowRef.current.setAttribute("x1", String(pos1.x));
-          redPath1GlowRef.current.setAttribute("y1", String(pos1.y));
-          redPath1GlowRef.current.setAttribute("x2", String(end1.x));
-          redPath1GlowRef.current.setAttribute("y2", String(end1.y));
-          redPath1GlowRef.current.style.opacity = "0.75";
         } else {
           redPath1Ref.current.style.opacity = "0";
-          redPath1GlowRef.current.style.opacity = "0";
         }
       }
 
       // Red path 2
-      if (redPath2Ref.current && redPath2GlowRef.current) {
+      if (redPath2Ref.current) {
         if (hop2Progress > 0) {
           const end2 = lerp(pos2, pos3, hop2Progress);
           redPath2Ref.current.setAttribute("x1", String(pos2.x));
@@ -388,20 +354,13 @@ export function RouteDiagram({
           redPath2Ref.current.setAttribute("x2", String(end2.x));
           redPath2Ref.current.setAttribute("y2", String(end2.y));
           redPath2Ref.current.style.opacity = "1";
-
-          redPath2GlowRef.current.setAttribute("x1", String(pos2.x));
-          redPath2GlowRef.current.setAttribute("y1", String(pos2.y));
-          redPath2GlowRef.current.setAttribute("x2", String(end2.x));
-          redPath2GlowRef.current.setAttribute("y2", String(end2.y));
-          redPath2GlowRef.current.style.opacity = "0.75";
         } else {
           redPath2Ref.current.style.opacity = "0";
-          redPath2GlowRef.current.style.opacity = "0";
         }
       }
 
       // Red path 3
-      if (redPath3Ref.current && redPath3GlowRef.current) {
+      if (redPath3Ref.current) {
         if (hop3Progress > 0) {
           const end3 = lerp(pos3, posGround, hop3Progress);
           redPath3Ref.current.setAttribute("x1", String(pos3.x));
@@ -409,15 +368,8 @@ export function RouteDiagram({
           redPath3Ref.current.setAttribute("x2", String(end3.x));
           redPath3Ref.current.setAttribute("y2", String(end3.y));
           redPath3Ref.current.style.opacity = "1";
-
-          redPath3GlowRef.current.setAttribute("x1", String(pos3.x));
-          redPath3GlowRef.current.setAttribute("y1", String(pos3.y));
-          redPath3GlowRef.current.setAttribute("x2", String(end3.x));
-          redPath3GlowRef.current.setAttribute("y2", String(end3.y));
-          redPath3GlowRef.current.style.opacity = "0.75";
         } else {
           redPath3Ref.current.style.opacity = "0";
-          redPath3GlowRef.current.style.opacity = "0";
         }
       }
 
@@ -491,7 +443,7 @@ export function RouteDiagram({
         }
       }
 
-      // ─── Table Rows (Slide in & Blue Highlight) ───
+      // ─── Table Rows (Slide in & Neutral Highlight) ───
       // Row 1: inserts t=6.0..7.5, highlighted t=6..10
       if (row1Ref.current) {
         const pRow1 = clamp((t - 6.0) / 1.5, 0, 1);
@@ -499,11 +451,9 @@ export function RouteDiagram({
         row1Ref.current.style.transform = `translateY(${(1 - pRow1) * 10}px)`;
         if (t >= 6.0 && t <= 10.0) {
           const hl = 1 - (t - 6.0) / 4.0;
-          row1Ref.current.style.backgroundColor = `rgba(61, 91, 255, ${0.22 * hl})`;
-          row1Ref.current.style.borderColor = `rgba(61, 91, 255, ${0.45 * hl})`;
+          row1Ref.current.style.backgroundColor = `rgba(28, 28, 30, ${hl})`;
         } else {
           row1Ref.current.style.backgroundColor = "transparent";
-          row1Ref.current.style.borderColor = "transparent";
         }
       }
 
@@ -514,11 +464,9 @@ export function RouteDiagram({
         row2Ref.current.style.transform = `translateY(${(1 - pRow2) * 10}px)`;
         if (t >= 20.0 && t <= 24.0) {
           const hl = 1 - (t - 20.0) / 4.0;
-          row2Ref.current.style.backgroundColor = `rgba(61, 91, 255, ${0.22 * hl})`;
-          row2Ref.current.style.borderColor = `rgba(61, 91, 255, ${0.45 * hl})`;
+          row2Ref.current.style.backgroundColor = `rgba(28, 28, 30, ${hl})`;
         } else {
           row2Ref.current.style.backgroundColor = "transparent";
-          row2Ref.current.style.borderColor = "transparent";
         }
       }
 
@@ -529,11 +477,9 @@ export function RouteDiagram({
         row3Ref.current.style.transform = `translateY(${(1 - pRow3) * 10}px)`;
         if (t >= 36.0 && t <= 40.0) {
           const hl = 1 - (t - 36.0) / 4.0;
-          row3Ref.current.style.backgroundColor = `rgba(61, 91, 255, ${0.22 * hl})`;
-          row3Ref.current.style.borderColor = `rgba(61, 91, 255, ${0.45 * hl})`;
+          row3Ref.current.style.backgroundColor = `rgba(28, 28, 30, ${hl})`;
         } else {
           row3Ref.current.style.backgroundColor = "transparent";
-          row3Ref.current.style.borderColor = "transparent";
         }
       }
 
@@ -588,50 +534,44 @@ export function RouteDiagram({
       className="pointer-events-none absolute inset-0 z-[6] flex flex-col items-center justify-center overflow-hidden px-4 py-4 select-none sm:px-6 md:px-8"
       style={{
         backgroundColor: "#000000",
-        backgroundImage:
-          "radial-gradient(circle at 45% 45%, rgba(11, 26, 74, 0.55) 0%, rgba(4, 9, 26, 0.3) 50%, rgba(0, 0, 0, 0.95) 80%)",
         opacity: reduced ? 1 : 0,
         visibility: reduced ? "visible" : "hidden",
       }}
     >
       <div className="my-auto flex w-full max-w-[1200px] flex-col items-center justify-center gap-3 sm:gap-4 md:gap-5">
         {/* Mission Clock + Progress Bar */}
-        <div className="flex w-full flex-col items-center gap-1.5">
-          <div className="flex items-center gap-2 font-mono text-white sm:gap-3">
-            <span className="text-[10px] tracking-[0.14em] text-white/40 uppercase sm:text-[11px]">
+        <div className="flex w-full flex-col items-center gap-2">
+          <div className="flex items-center gap-2 text-white sm:gap-3">
+            <span className="sx-eyebrow text-white/40">
               MISSION CLOCK
             </span>
-            <span className="text-white/25">·</span>
+            <span className="text-white/20">·</span>
             <span
               ref={clockTextRef}
-              className="text-sm font-semibold tracking-wider tabular-nums text-white sm:text-base"
+              className="sx-num text-sm text-white sm:text-base"
             >
               {reduced ? "T+01:00" : "T+00:00"}
             </span>
             <span
               ref={clockMinRef}
-              className="text-[11px] tabular-nums text-white/50 sm:text-xs"
+              className="sx-num text-[11px] text-white/50 sm:text-xs"
             >
               {reduced ? "(T+60 min)" : "(T+0 min)"}
             </span>
-            <span className="hidden text-white/25 sm:inline">·</span>
-            <span className="hidden rounded border border-[#3d5bff]/30 bg-[#3d5bff]/10 px-2 py-0.5 text-[10px] tracking-wider text-[#3d5bff] sm:inline">
+            <span className="hidden text-white/20 sm:inline">·</span>
+            <span className="hidden sx-eyebrow text-white/40 sm:inline">
               PACKET #412 · 41 KB
             </span>
           </div>
 
-          {/* Thin progress bar with moving dot */}
-          <div className="relative h-[2px] w-52 rounded-full bg-white/15 sm:w-80">
+          {/* Thin progress bar: 1px white at 15% track, white fill */}
+          <div className="relative h-px w-52 bg-white/15 sm:w-80">
             <div
               ref={clockBarFillRef}
-              className="absolute top-0 left-0 h-full rounded-full bg-[#3d5bff]"
+              className="absolute top-0 left-0 h-full bg-white"
               style={{ width: reduced ? "100%" : "0%" }}
             />
-            <div
-              ref={clockDotRef}
-              className="absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_8px_#3d5bff]"
-              style={{ left: reduced ? "100%" : "0%" }}
-            />
+            <div ref={clockDotRef} className="hidden" />
           </div>
         </div>
 
@@ -653,125 +593,13 @@ export function RouteDiagram({
               className="h-auto max-h-[48vh] w-full overflow-visible sm:max-h-[54vh] md:max-h-[62vh]"
               aria-label="Satellite contact routing network diagram"
             >
-              <defs>
-                {/* Earth sphere radial fill */}
-                <radialGradient id="earth-gradient" cx="50%" cy="10%" r="85%">
-                  <stop offset="0%" stopColor="#0d246c" stopOpacity="0.95" />
-                  <stop offset="35%" stopColor="#081438" stopOpacity="0.9" />
-                  <stop offset="70%" stopColor="#040a1c" stopOpacity="0.55" />
-                  <stop offset="100%" stopColor="#000208" stopOpacity="0" />
-                </radialGradient>
-
-                {/* Soft atmospheric limb glow */}
-                <filter
-                  id="earth-limb-glow"
-                  x="-20%"
-                  y="-50%"
-                  width="140%"
-                  height="200%"
-                >
-                  <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-
-                {/* Packet red glow */}
-                <filter
-                  id="packet-glow"
-                  x="-100%"
-                  y="-100%"
-                  width="300%"
-                  height="300%"
-                >
-                  <feGaussianBlur
-                    in="SourceGraphic"
-                    stdDeviation="3.5"
-                    result="blur"
-                  />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-
-                {/* Royal blue link glow */}
-                <filter
-                  id="link-glow"
-                  x="-20%"
-                  y="-50%"
-                  width="140%"
-                  height="200%"
-                >
-                  <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
-
-              {/* ─── Earth Limb & Atmosphere ─── */}
+              {/* ─── Earth Limb ─── */}
               <g id="earth-group">
-                {/* Earth slice body */}
-                <path
-                  d="M 0,427 A 660 660 0 0 1 720,427 L 720,440 L 0,440 Z"
-                  fill="url(#earth-gradient)"
-                />
-
-                {/* Soft atmospheric blue glow */}
+                {/* Thin white limb arc (1px, 30%) */}
                 <path
                   d="M 0,427 A 660 660 0 0 1 720,427"
                   fill="none"
-                  stroke="#3d5bff"
-                  strokeWidth="7"
-                  opacity="0.35"
-                  filter="url(#earth-limb-glow)"
-                />
-
-                {/* Crisp bright limb stroke */}
-                <path
-                  d="M 0,427 A 660 660 0 0 1 720,427"
-                  fill="none"
-                  stroke="rgba(160, 190, 255, 0.6)"
-                  strokeWidth="1.5"
-                />
-
-                {/* Faint longitude curves */}
-                <path
-                  d="M 160,429 Q 220,360 260,326"
-                  fill="none"
-                  stroke="rgba(160, 190, 255, 0.08)"
-                  strokeWidth="1"
-                  strokeDasharray="4 4"
-                />
-                <line
-                  x1="360"
-                  y1="440"
-                  x2="360"
-                  y2="320"
-                  stroke="rgba(160, 190, 255, 0.12)"
-                  strokeWidth="1"
-                  strokeDasharray="4 4"
-                />
-                <path
-                  d="M 560,429 Q 500,360 460,326"
-                  fill="none"
-                  stroke="rgba(160, 190, 255, 0.08)"
-                  strokeWidth="1"
-                  strokeDasharray="4 4"
-                />
-                <path
-                  d="M 80,435 Q 120,380 150,345"
-                  fill="none"
-                  stroke="rgba(160, 190, 255, 0.05)"
-                  strokeWidth="1"
-                />
-                <path
-                  d="M 640,435 Q 600,380 570,345"
-                  fill="none"
-                  stroke="rgba(160, 190, 255, 0.05)"
+                  stroke="rgba(255, 255, 255, 0.3)"
                   strokeWidth="1"
                 />
 
@@ -784,63 +612,50 @@ export function RouteDiagram({
                     cy="-4"
                     r="4"
                     fill="none"
-                    stroke="#3d5bff"
-                    strokeWidth="1.5"
+                    stroke="rgba(255, 255, 255, 0.4)"
+                    strokeWidth="1"
                     style={{ opacity: 0 }}
                   />
 
                   {/* Dish glyph */}
                   <path
-                    d="M -7,-2 Q 0,4 7,-2"
+                    d="M -6,-2 Q 0,3 6,-2"
                     fill="none"
                     stroke="#ffffff"
-                    strokeWidth="1.6"
+                    strokeWidth="1.2"
                     strokeLinecap="round"
                   />
                   <line
                     x1="0"
                     y1="1"
                     x2="0"
-                    y2="-7"
-                    stroke="#3d5bff"
-                    strokeWidth="1.2"
+                    y2="-6"
+                    stroke="#ffffff"
+                    strokeWidth="1"
                   />
                   <path
-                    d="M -5,4 L 0,1 L 5,4"
+                    d="M -4,3 L 0,1 L 4,3"
                     fill="none"
-                    stroke="#3d5bff"
-                    strokeWidth="1.2"
+                    stroke="#ffffff"
+                    strokeWidth="1"
                     strokeLinecap="round"
                   />
-                  <circle cx="0" cy="-7" r="1.4" fill="#ff3b4f" />
 
-                  {/* Mumbai labels */}
+                  {/* Mumbai label in DIN caps */}
                   <text
                     x="0"
-                    y="22"
+                    y="18"
                     textAnchor="middle"
-                    fill="#ffffff"
+                    fill="rgba(255, 255, 255, 0.75)"
                     style={{
-                      fontFamily: "var(--font-mono)",
+                      fontFamily: "var(--font-display)",
                       fontSize: 11,
                       fontWeight: 600,
-                      letterSpacing: "0.03em",
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
                     }}
                   >
-                    KJSIT Mumbai
-                  </text>
-                  <text
-                    x="0"
-                    y="33"
-                    textAnchor="middle"
-                    fill="rgba(160, 190, 255, 0.65)"
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 8.5,
-                      letterSpacing: "0.04em",
-                    }}
-                  >
-                    GS-BOM · 19.08°N
+                    KJSIT MUMBAI
                   </text>
                 </g>
               </g>
@@ -854,7 +669,7 @@ export function RouteDiagram({
                 strokeWidth="1.2"
               />
 
-              {/* ─── Contact Links (OFF dashed / ON royal blue) ─── */}
+              {/* ─── Contact Links (OFF dashed / ON white) ─── */}
               <g id="contact-links">
                 {/* Link 1: SS-1 -> SS-2 */}
                 <line
@@ -863,21 +678,10 @@ export function RouteDiagram({
                   y1="141"
                   x2="360"
                   y2="120"
-                  stroke="rgba(255, 255, 255, 0.12)"
-                  strokeDasharray="4 4"
+                  stroke="rgba(255, 255, 255, 0.18)"
+                  strokeDasharray="2 4"
                   strokeWidth="1"
-                  style={{ opacity: 0.35 }}
-                />
-                <line
-                  ref={link1GlowRef}
-                  x1="170"
-                  y1="141"
-                  x2="360"
-                  y2="120"
-                  stroke="rgba(61, 91, 255, 0.4)"
-                  strokeWidth="4"
-                  filter="url(#link-glow)"
-                  style={{ opacity: 0 }}
+                  style={{ opacity: 1 }}
                 />
                 <line
                   ref={link1ActiveRef}
@@ -885,8 +689,8 @@ export function RouteDiagram({
                   y1="141"
                   x2="360"
                   y2="120"
-                  stroke="#3d5bff"
-                  strokeWidth="1.5"
+                  stroke="rgba(255, 255, 255, 0.7)"
+                  strokeWidth="1"
                   style={{ opacity: 0 }}
                 />
 
@@ -897,21 +701,10 @@ export function RouteDiagram({
                   y1="120"
                   x2="540"
                   y2="139"
-                  stroke="rgba(255, 255, 255, 0.12)"
-                  strokeDasharray="4 4"
+                  stroke="rgba(255, 255, 255, 0.18)"
+                  strokeDasharray="2 4"
                   strokeWidth="1"
-                  style={{ opacity: 0.35 }}
-                />
-                <line
-                  ref={link2GlowRef}
-                  x1="360"
-                  y1="120"
-                  x2="540"
-                  y2="139"
-                  stroke="rgba(61, 91, 255, 0.4)"
-                  strokeWidth="4"
-                  filter="url(#link-glow)"
-                  style={{ opacity: 0 }}
+                  style={{ opacity: 1 }}
                 />
                 <line
                   ref={link2ActiveRef}
@@ -919,8 +712,8 @@ export function RouteDiagram({
                   y1="120"
                   x2="540"
                   y2="139"
-                  stroke="#3d5bff"
-                  strokeWidth="1.5"
+                  stroke="rgba(255, 255, 255, 0.7)"
+                  strokeWidth="1"
                   style={{ opacity: 0 }}
                 />
 
@@ -931,21 +724,10 @@ export function RouteDiagram({
                   y1="139"
                   x2="520"
                   y2="340"
-                  stroke="rgba(255, 255, 255, 0.12)"
-                  strokeDasharray="4 4"
+                  stroke="rgba(255, 255, 255, 0.18)"
+                  strokeDasharray="2 4"
                   strokeWidth="1"
-                  style={{ opacity: 0.35 }}
-                />
-                <line
-                  ref={link3GlowRef}
-                  x1="540"
-                  y1="139"
-                  x2="520"
-                  y2="340"
-                  stroke="rgba(61, 91, 255, 0.4)"
-                  strokeWidth="4"
-                  filter="url(#link-glow)"
-                  style={{ opacity: 0 }}
+                  style={{ opacity: 1 }}
                 />
                 <line
                   ref={link3ActiveRef}
@@ -953,8 +735,8 @@ export function RouteDiagram({
                   y1="139"
                   x2="520"
                   y2="340"
-                  stroke="#3d5bff"
-                  strokeWidth="1.5"
+                  stroke="rgba(255, 255, 255, 0.7)"
+                  strokeWidth="1"
                   style={{ opacity: 0 }}
                 />
 
@@ -965,10 +747,10 @@ export function RouteDiagram({
                   y1="141"
                   x2="520"
                   y2="340"
-                  stroke="rgba(255, 255, 255, 0.08)"
-                  strokeDasharray="4 4"
+                  stroke="rgba(255, 255, 255, 0.18)"
+                  strokeDasharray="2 4"
                   strokeWidth="1"
-                  style={{ opacity: 0.15 }}
+                  style={{ opacity: 0.6 }}
                 />
                 <line
                   ref={decoyActiveRef}
@@ -976,9 +758,8 @@ export function RouteDiagram({
                   y1="141"
                   x2="520"
                   y2="340"
-                  stroke="rgba(61, 91, 255, 0.55)"
-                  strokeDasharray="4 4"
-                  strokeWidth="1.2"
+                  stroke="rgba(255, 255, 255, 0.7)"
+                  strokeWidth="1"
                   style={{ opacity: 0 }}
                 />
               </g>
@@ -986,38 +767,15 @@ export function RouteDiagram({
               {/* ─── Traveled Red Routes (permanent completed hops) ─── */}
               <g id="red-routes">
                 <line
-                  ref={redPath1GlowRef}
-                  x1="170"
-                  y1="141"
-                  x2="170"
-                  y2="141"
-                  stroke="rgba(255, 59, 79, 0.4)"
-                  strokeWidth="4.5"
-                  strokeLinecap="round"
-                  style={{ opacity: reduced ? 0.75 : 0 }}
-                />
-                <line
                   ref={redPath1Ref}
                   x1="170"
                   y1="141"
                   x2={reduced ? "360" : "170"}
                   y2={reduced ? "120" : "141"}
-                  stroke="#ff3b4f"
-                  strokeWidth="1.8"
+                  stroke="#ff453a"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
                   style={{ opacity: reduced ? 1 : 0 }}
-                />
-
-                <line
-                  ref={redPath2GlowRef}
-                  x1="360"
-                  y1="120"
-                  x2="360"
-                  y2="120"
-                  stroke="rgba(255, 59, 79, 0.4)"
-                  strokeWidth="4.5"
-                  strokeLinecap="round"
-                  style={{ opacity: reduced ? 0.75 : 0 }}
                 />
                 <line
                   ref={redPath2Ref}
@@ -1025,22 +783,10 @@ export function RouteDiagram({
                   y1="120"
                   x2={reduced ? "540" : "360"}
                   y2={reduced ? "139" : "120"}
-                  stroke="#ff3b4f"
-                  strokeWidth="1.8"
+                  stroke="#ff453a"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
                   style={{ opacity: reduced ? 1 : 0 }}
-                />
-
-                <line
-                  ref={redPath3GlowRef}
-                  x1="540"
-                  y1="139"
-                  x2="540"
-                  y2="139"
-                  stroke="rgba(255, 59, 79, 0.4)"
-                  strokeWidth="4.5"
-                  strokeLinecap="round"
-                  style={{ opacity: reduced ? 0.75 : 0 }}
                 />
                 <line
                   ref={redPath3Ref}
@@ -1048,8 +794,8 @@ export function RouteDiagram({
                   y1="139"
                   x2={reduced ? "520" : "540"}
                   y2={reduced ? "340" : "139"}
-                  stroke="#ff3b4f"
-                  strokeWidth="1.8"
+                  stroke="#ff453a"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
                   style={{ opacity: reduced ? 1 : 0 }}
                 />
@@ -1063,26 +809,22 @@ export function RouteDiagram({
                   transform="translate(265, 118)"
                   style={{ opacity: 0 }}
                 >
-                  <rect
-                    x="-18"
-                    y="-8"
-                    width="36"
-                    height="16"
-                    rx="3"
-                    fill="rgba(6, 12, 32, 0.9)"
-                    stroke="#3d5bff"
-                    strokeWidth="0.8"
-                  />
                   <text
                     ref={link1BadgeTextRef}
                     x="0"
-                    y="3.5"
+                    y="0"
                     textAnchor="middle"
-                    fill="#dbe4ff"
+                    fill="rgba(255, 255, 255, 0.5)"
                     style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 9.5,
-                      fontWeight: 500,
+                      fontFamily: "var(--font-display)",
+                      fontSize: 10,
+                      fontWeight: 600,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      paintOrder: "stroke",
+                      stroke: "#000000",
+                      strokeWidth: 3,
+                      strokeLinejoin: "round",
                     }}
                   >
                     q 91
@@ -1095,25 +837,21 @@ export function RouteDiagram({
                   transform="translate(450, 118)"
                   style={{ opacity: 0 }}
                 >
-                  <rect
-                    x="-18"
-                    y="-8"
-                    width="36"
-                    height="16"
-                    rx="3"
-                    fill="rgba(6, 12, 32, 0.9)"
-                    stroke="#3d5bff"
-                    strokeWidth="0.8"
-                  />
                   <text
                     x="0"
-                    y="3.5"
+                    y="0"
                     textAnchor="middle"
-                    fill="#dbe4ff"
+                    fill="rgba(255, 255, 255, 0.5)"
                     style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 9.5,
-                      fontWeight: 500,
+                      fontFamily: "var(--font-display)",
+                      fontSize: 10,
+                      fontWeight: 600,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      paintOrder: "stroke",
+                      stroke: "#000000",
+                      strokeWidth: 3,
+                      strokeLinejoin: "round",
                     }}
                   >
                     q 91
@@ -1126,25 +864,21 @@ export function RouteDiagram({
                   transform="translate(548, 240)"
                   style={{ opacity: 0 }}
                 >
-                  <rect
-                    x="-18"
-                    y="-8"
-                    width="36"
-                    height="16"
-                    rx="3"
-                    fill="rgba(6, 12, 32, 0.9)"
-                    stroke="#3d5bff"
-                    strokeWidth="0.8"
-                  />
                   <text
                     x="0"
-                    y="3.5"
+                    y="0"
                     textAnchor="middle"
-                    fill="#dbe4ff"
+                    fill="rgba(255, 255, 255, 0.5)"
                     style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 9.5,
-                      fontWeight: 500,
+                      fontFamily: "var(--font-display)",
+                      fontSize: 10,
+                      fontWeight: 600,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      paintOrder: "stroke",
+                      stroke: "#000000",
+                      strokeWidth: 3,
+                      strokeLinejoin: "round",
                     }}
                   >
                     q 84
@@ -1157,25 +891,21 @@ export function RouteDiagram({
                   transform="translate(325, 260)"
                   style={{ opacity: 0 }}
                 >
-                  <rect
-                    x="-65"
-                    y="-9"
-                    width="130"
-                    height="18"
-                    rx="4"
-                    fill="rgba(6, 12, 32, 0.92)"
-                    stroke="rgba(61, 91, 255, 0.45)"
-                    strokeWidth="0.8"
-                  />
                   <text
                     x="0"
-                    y="3.5"
+                    y="0"
                     textAnchor="middle"
-                    fill="#818ea8"
+                    fill="rgba(255, 255, 255, 0.5)"
                     style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 9,
-                      letterSpacing: "0.02em",
+                      fontFamily: "var(--font-display)",
+                      fontSize: 10,
+                      fontWeight: 500,
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      paintOrder: "stroke",
+                      stroke: "#000000",
+                      strokeWidth: 3,
+                      strokeLinejoin: "round",
                     }}
                   >
                     direct, arrives T+52
@@ -1190,10 +920,10 @@ export function RouteDiagram({
                   {/* Waiting ring */}
                   <circle
                     ref={waitRing1Ref}
-                    r="24"
+                    r="9"
                     fill="none"
-                    stroke="#ff3b4f"
-                    strokeWidth="1.5"
+                    stroke="rgba(255, 255, 255, 0.6)"
+                    strokeWidth="1"
                     strokeDasharray={RING_CIRCUMFERENCE}
                     strokeDashoffset={RING_CIRCUMFERENCE}
                     transform="rotate(-90)"
@@ -1202,69 +932,54 @@ export function RouteDiagram({
                   <text
                     ref={waitLabel1Ref}
                     x="0"
-                    y="-30"
+                    y="-14"
                     textAnchor="middle"
-                    fill="#ff3b4f"
+                    fill="rgba(255, 255, 255, 0.6)"
                     style={{
-                      fontFamily: "var(--font-mono)",
+                      fontFamily: "var(--font-display)",
                       fontSize: 9,
-                      fontWeight: 500,
+                      letterSpacing: "0.04em",
                       opacity: 0,
                     }}
                   >
                     waiting 00:06
                   </text>
 
-                  {/* Core & Ring */}
-                  <circle r="22" fill="#3d5bff" opacity="0.12" />
-                  <circle
-                    r="18"
-                    stroke="rgba(255,255,255,0.4)"
-                    strokeWidth="1"
-                    fill="none"
-                  />
-                  <circle r="5" fill="#ffffff" />
+                  {/* Solid white circle core */}
+                  <circle r="3.5" fill="#ffffff" />
 
-                  {/* Mono Label */}
+                  {/* DIN Label */}
                   <text
                     x="0"
-                    y="32"
+                    y="18"
                     textAnchor="middle"
-                    fill="#ffffff"
+                    fill="rgba(255, 255, 255, 0.75)"
                     style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 11,
-                      fontWeight: 500,
-                      letterSpacing: "0.04em",
+                      fontFamily: "var(--font-display)",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
                     }}
                   >
                     SS-1
                   </text>
 
-                  {/* State chip: healthy (green) */}
-                  <rect
-                    x="-24"
-                    y="38"
-                    width="48"
-                    height="15"
-                    rx="3"
-                    fill="rgba(34, 197, 94, 0.12)"
-                    stroke="rgba(34, 197, 94, 0.45)"
-                    strokeWidth="0.8"
-                  />
-                  <text
-                    x="0"
-                    y="49"
-                    textAnchor="middle"
-                    fill="#22c55e"
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 8.5,
-                      fontWeight: 500,
-                    }}
-                  >
-                    healthy
-                  </text>
+                  {/* Status: 5px dot + plain words */}
+                  <g transform="translate(0, 32)">
+                    <circle cx="-23" cy="-3.5" r="2.5" fill="#30d158" />
+                    <text
+                      x="-16"
+                      y="0"
+                      fill="rgba(255, 255, 255, 0.55)"
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: 11,
+                      }}
+                    >
+                      healthy
+                    </text>
+                  </g>
                 </g>
 
                 {/* SS-2 Node */}
@@ -1272,10 +987,10 @@ export function RouteDiagram({
                   {/* Waiting ring */}
                   <circle
                     ref={waitRing2Ref}
-                    r="24"
+                    r="9"
                     fill="none"
-                    stroke="#ff3b4f"
-                    strokeWidth="1.5"
+                    stroke="rgba(255, 255, 255, 0.6)"
+                    strokeWidth="1"
                     strokeDasharray={RING_CIRCUMFERENCE}
                     strokeDashoffset={RING_CIRCUMFERENCE}
                     transform="rotate(-90)"
@@ -1284,69 +999,54 @@ export function RouteDiagram({
                   <text
                     ref={waitLabel2Ref}
                     x="0"
-                    y="-30"
+                    y="-14"
                     textAnchor="middle"
-                    fill="#ff3b4f"
+                    fill="rgba(255, 255, 255, 0.6)"
                     style={{
-                      fontFamily: "var(--font-mono)",
+                      fontFamily: "var(--font-display)",
                       fontSize: 9,
-                      fontWeight: 500,
+                      letterSpacing: "0.04em",
                       opacity: 0,
                     }}
                   >
                     waiting 00:14
                   </text>
 
-                  {/* Core & Ring */}
-                  <circle r="22" fill="#3d5bff" opacity="0.12" />
-                  <circle
-                    r="18"
-                    stroke="rgba(255,255,255,0.4)"
-                    strokeWidth="1"
-                    fill="none"
-                  />
-                  <circle r="5" fill="#ffffff" />
+                  {/* Solid white circle core */}
+                  <circle r="3.5" fill="#ffffff" />
 
-                  {/* Mono Label */}
+                  {/* DIN Label */}
                   <text
                     x="0"
-                    y="32"
+                    y="18"
                     textAnchor="middle"
-                    fill="#ffffff"
+                    fill="rgba(255, 255, 255, 0.75)"
                     style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 11,
-                      fontWeight: 500,
-                      letterSpacing: "0.04em",
+                      fontFamily: "var(--font-display)",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
                     }}
                   >
                     SS-2
                   </text>
 
-                  {/* State chip: low battery (amber #f5a524) */}
-                  <rect
-                    x="-32"
-                    y="38"
-                    width="64"
-                    height="15"
-                    rx="3"
-                    fill="rgba(245, 165, 36, 0.12)"
-                    stroke="#f5a524"
-                    strokeWidth="0.8"
-                  />
-                  <text
-                    x="0"
-                    y="49"
-                    textAnchor="middle"
-                    fill="#f5a524"
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 8.5,
-                      fontWeight: 500,
-                    }}
-                  >
-                    low battery
-                  </text>
+                  {/* Status: 5px dot + plain words */}
+                  <g transform="translate(0, 32)">
+                    <circle cx="-33" cy="-3.5" r="2.5" fill="#ff9f0a" />
+                    <text
+                      x="-26"
+                      y="0"
+                      fill="rgba(255, 255, 255, 0.55)"
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: 11,
+                      }}
+                    >
+                      low battery
+                    </text>
+                  </g>
                 </g>
 
                 {/* SS-3 Node */}
@@ -1354,10 +1054,10 @@ export function RouteDiagram({
                   {/* Waiting ring */}
                   <circle
                     ref={waitRing3Ref}
-                    r="24"
+                    r="9"
                     fill="none"
-                    stroke="#ff3b4f"
-                    strokeWidth="1.5"
+                    stroke="rgba(255, 255, 255, 0.6)"
+                    strokeWidth="1"
                     strokeDasharray={RING_CIRCUMFERENCE}
                     strokeDashoffset={RING_CIRCUMFERENCE}
                     transform="rotate(-90)"
@@ -1366,87 +1066,72 @@ export function RouteDiagram({
                   <text
                     ref={waitLabel3Ref}
                     x="0"
-                    y="-30"
+                    y="-14"
                     textAnchor="middle"
-                    fill="#ff3b4f"
+                    fill="rgba(255, 255, 255, 0.6)"
                     style={{
-                      fontFamily: "var(--font-mono)",
+                      fontFamily: "var(--font-display)",
                       fontSize: 9,
-                      fontWeight: 500,
+                      letterSpacing: "0.04em",
                       opacity: 0,
                     }}
                   >
                     waiting 00:16
                   </text>
 
-                  {/* Core & Ring */}
-                  <circle r="22" fill="#3d5bff" opacity="0.12" />
-                  <circle
-                    r="18"
-                    stroke="rgba(255,255,255,0.4)"
-                    strokeWidth="1"
-                    fill="none"
-                  />
-                  <circle r="5" fill="#ffffff" />
+                  {/* Solid white circle core */}
+                  <circle r="3.5" fill="#ffffff" />
 
-                  {/* Mono Label */}
+                  {/* DIN Label */}
                   <text
                     x="0"
-                    y="32"
+                    y="18"
                     textAnchor="middle"
-                    fill="#ffffff"
+                    fill="rgba(255, 255, 255, 0.75)"
                     style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 11,
-                      fontWeight: 500,
-                      letterSpacing: "0.04em",
+                      fontFamily: "var(--font-display)",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
                     }}
                   >
                     SS-3
                   </text>
 
-                  {/* State chip: safe mode (amber) */}
-                  <rect
-                    x="-28"
-                    y="38"
-                    width="56"
-                    height="15"
-                    rx="3"
-                    fill="rgba(245, 165, 36, 0.12)"
-                    stroke="rgba(245, 165, 36, 0.6)"
-                    strokeWidth="0.8"
-                  />
-                  <text
-                    x="0"
-                    y="49"
-                    textAnchor="middle"
-                    fill="#f5a524"
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 8.5,
-                      fontWeight: 500,
-                    }}
-                  >
-                    safe mode
-                  </text>
+                  {/* Status: 5px dot + plain words */}
+                  <g transform="translate(0, 32)">
+                    <circle cx="-31" cy="-3.5" r="2.5" fill="#ff9f0a" />
+                    <text
+                      x="-24"
+                      y="0"
+                      fill="rgba(255, 255, 255, 0.55)"
+                      style={{
+                        fontFamily: "var(--font-sans)",
+                        fontSize: 11,
+                      }}
+                    >
+                      safe mode
+                    </text>
+                  </g>
                 </g>
               </g>
 
-              {/* ─── Moving Packet & Glow Trail ─── */}
+              {/* ─── Moving Packet & Trail ─── */}
               <circle
                 ref={trailDot2Ref}
                 cx="0"
                 cy="0"
-                r="2.2"
-                fill="#ff3b4f"
+                r="2"
+                fill="#ff453a"
                 style={{ opacity: 0 }}
               />
               <circle
                 ref={trailDot1Ref}
                 cx="0"
                 cy="0"
-                r="3.5"
-                fill="#ff3b4f"
+                r="2.8"
+                fill="#ff453a"
                 style={{ opacity: 0 }}
               />
 
@@ -1457,69 +1142,32 @@ export function RouteDiagram({
                   reduced ? "translate(520, 340)" : "translate(170, 141)"
                 }
               >
-                {/* Glow rings */}
-                <circle r="14" fill="#ff3b4f" opacity="0.22" />
-                <circle r="8" fill="#ff3b4f" opacity="0.45" />
-                {/* Solid red dot core */}
-                <circle
-                  r="5"
-                  fill="#ff3b4f"
-                  filter="url(#packet-glow)"
-                />
-                {/* Packet telemetry badge */}
-                <g transform="translate(0, -18)">
-                  <rect
-                    x="-20"
-                    y="-7"
-                    width="40"
-                    height="14"
-                    rx="3"
-                    fill="rgba(6, 12, 28, 0.9)"
-                    stroke="#ff3b4f"
-                    strokeWidth="0.8"
-                  />
-                  <text
-                    x="0"
-                    y="4"
-                    textAnchor="middle"
-                    fill="#ffccd0"
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 8,
-                      fontWeight: 600,
-                    }}
-                  >
-                    #412
-                  </text>
-                </g>
+                <circle r="3.5" fill="#ff453a" />
               </g>
             </svg>
           </div>
 
-          {/* Right Column: route_hop Glass Card (~35% desktop, full-width mobile) */}
+          {/* Right Column: route_hop Inset-Grouped Card (~35% desktop, full-width mobile) */}
           <div
             className={`flex flex-col gap-3 ${
               mobile ? "w-full" : "w-full md:w-[36%]"
             }`}
           >
-            {/* Glass Card */}
-            <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-md sm:p-5">
-              {/* Card Header: title + postgres chip */}
-              <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-                <div className="flex items-center gap-2">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-[#3d5bff]" />
-                  <span className="font-mono text-xs font-semibold tracking-wider text-white sm:text-sm">
-                    route_hop
-                  </span>
-                </div>
-                <span className="rounded border border-blue-500/25 bg-blue-500/10 px-2 py-0.5 font-mono text-[10px] tracking-wider text-blue-300">
+            {/* Apple inset-grouped Card */}
+            <div className="flex flex-col rounded-[14px] bg-[#111113] p-4 sm:p-5">
+              {/* Card Header: title + postgres eyebrow */}
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+                <span className="font-mono text-[13px] font-medium text-white">
+                  route_hop
+                </span>
+                <span className="sx-eyebrow text-white/40">
                   PostgreSQL
                 </span>
               </div>
 
               {/* Table Column Headers */}
               <div
-                className={`grid items-center px-2 py-1 font-mono text-[11px] tracking-wider text-white/40 uppercase ${
+                className={`grid items-center px-3 py-2 sx-eyebrow text-white/40 ${
                   mobile ? "grid-cols-3" : "grid-cols-3 md:grid-cols-5"
                 }`}
               >
@@ -1535,11 +1183,11 @@ export function RouteDiagram({
               </div>
 
               {/* Table Rows (slide in upon hop completion) */}
-              <div className="flex flex-col gap-1.5 font-mono text-xs">
+              <div className="flex flex-col font-mono text-[12px]">
                 {/* Row 1 */}
                 <div
                   ref={row1Ref}
-                  className={`grid items-center rounded-lg border border-transparent px-2 py-1.5 transition-colors duration-200 ${
+                  className={`grid items-center px-3 py-2 text-white/85 transition-colors duration-200 ${
                     mobile ? "grid-cols-3" : "grid-cols-3 md:grid-cols-5"
                   }`}
                   style={{
@@ -1547,16 +1195,16 @@ export function RouteDiagram({
                     transform: reduced ? "none" : "translateY(10px)",
                   }}
                 >
-                  <div className="text-white/60">1</div>
-                  <div className="font-medium text-white">SS-1</div>
-                  <div className="font-medium text-white">SS-2</div>
+                  <div className="text-white/50">1</div>
+                  <div>SS-1</div>
+                  <div>SS-2</div>
                   {!mobile && (
-                    <div className="hidden text-right text-white/70 md:block">
+                    <div className="hidden text-right text-white/60 md:block">
                       T+06
                     </div>
                   )}
                   {!mobile && (
-                    <div className="hidden text-right font-semibold text-[#3d5bff] md:block">
+                    <div className="hidden text-right text-white/85 md:block">
                       T+06
                     </div>
                   )}
@@ -1565,7 +1213,7 @@ export function RouteDiagram({
                 {/* Row 2 */}
                 <div
                   ref={row2Ref}
-                  className={`grid items-center rounded-lg border border-transparent px-2 py-1.5 transition-colors duration-200 ${
+                  className={`grid items-center border-t border-white/[0.08] px-3 py-2 text-white/85 transition-colors duration-200 ${
                     mobile ? "grid-cols-3" : "grid-cols-3 md:grid-cols-5"
                   }`}
                   style={{
@@ -1573,16 +1221,16 @@ export function RouteDiagram({
                     transform: reduced ? "none" : "translateY(10px)",
                   }}
                 >
-                  <div className="text-white/60">2</div>
-                  <div className="font-medium text-white">SS-2</div>
-                  <div className="font-medium text-white">SS-3</div>
+                  <div className="text-white/50">2</div>
+                  <div>SS-2</div>
+                  <div>SS-3</div>
                   {!mobile && (
-                    <div className="hidden text-right text-white/70 md:block">
+                    <div className="hidden text-right text-white/60 md:block">
                       T+20
                     </div>
                   )}
                   {!mobile && (
-                    <div className="hidden text-right font-semibold text-[#3d5bff] md:block">
+                    <div className="hidden text-right text-white/85 md:block">
                       T+20
                     </div>
                   )}
@@ -1591,7 +1239,7 @@ export function RouteDiagram({
                 {/* Row 3 */}
                 <div
                   ref={row3Ref}
-                  className={`grid items-center rounded-lg border border-transparent px-2 py-1.5 transition-colors duration-200 ${
+                  className={`grid items-center border-t border-white/[0.08] px-3 py-2 text-white/85 transition-colors duration-200 ${
                     mobile ? "grid-cols-3" : "grid-cols-3 md:grid-cols-5"
                   }`}
                   style={{
@@ -1599,16 +1247,16 @@ export function RouteDiagram({
                     transform: reduced ? "none" : "translateY(10px)",
                   }}
                 >
-                  <div className="text-white/60">3</div>
-                  <div className="font-medium text-white">SS-3</div>
-                  <div className="font-semibold text-[#3d5bff]">GS-BOM</div>
+                  <div className="text-white/50">3</div>
+                  <div>SS-3</div>
+                  <div>GS-BOM</div>
                   {!mobile && (
-                    <div className="hidden text-right text-white/70 md:block">
+                    <div className="hidden text-right text-white/60 md:block">
                       T+36
                     </div>
                   )}
                   {!mobile && (
-                    <div className="hidden text-right font-semibold text-[#3d5bff] md:block">
+                    <div className="hidden text-right text-white/85 md:block">
                       T+36
                     </div>
                   )}
@@ -1619,23 +1267,23 @@ export function RouteDiagram({
             {/* SQL Query typing chip */}
             <div
               ref={queryChipRef}
-              className="flex items-center justify-between rounded-xl border border-white/10 bg-black/70 px-3 py-2 font-mono text-xs text-[#dbe4ff] shadow-inner"
+              className="flex items-center justify-between rounded-[10px] bg-[#0a0a0a] px-4 py-2.5 font-mono text-[13px] text-[#f0f0fa]"
               style={{ opacity: reduced ? 1 : 0 }}
             >
-              <div className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
-                <span className="font-bold text-[#3d5bff] select-none">sql&gt;</span>
-                <span ref={queryTextRef} className="truncate text-white/90">
+              <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
+                <span className="text-white/40 select-none">sql&gt;</span>
+                <span ref={queryTextRef} className="truncate text-white">
                   {reduced ? FULL_QUERY : ""}
                 </span>
                 <span
                   ref={cursorRef}
-                  className="font-bold text-[#3d5bff]"
+                  className="text-white"
                   style={{ opacity: reduced ? 0 : 1 }}
                 >
                   █
                 </span>
               </div>
-              <span className="shrink-0 pl-2 font-mono text-[10px] tracking-widest text-white/30 uppercase">
+              <span className="shrink-0 pl-2 sx-eyebrow text-white/30">
                 RECURSIVE
               </span>
             </div>
@@ -1643,19 +1291,16 @@ export function RouteDiagram({
             {/* Result Caption */}
             <div
               ref={captionRef}
-              className="px-1 text-center text-xs font-light tracking-wide text-white/80 sm:text-[13px]"
+              className="px-1 text-center font-sans text-[15px] leading-relaxed text-white/[0.62]"
               style={{
                 opacity: reduced ? 1 : 0,
                 transform: reduced ? "none" : "translateY(6px)",
-                fontFamily: "var(--font-sans)",
               }}
             >
               <span>Earliest arrival </span>
-              <span className="font-mono font-semibold text-[#3d5bff]">
-                T+36
-              </span>
+              <span className="sx-num text-white">T+36</span>
               <span> · 3 hops · weakest link </span>
-              <span className="font-mono text-white">q 84</span>
+              <span className="sx-num text-white">q 84</span>
             </div>
           </div>
         </div>

@@ -108,23 +108,23 @@ export function CursorReadout({ targetRef }: { targetRef: RefObject<HTMLElement 
         ref={ring}
         className="absolute left-0 top-0 will-change-transform"
       >
-        <div className="-ml-[14px] -mt-[14px] h-7 w-7 rounded-full border border-[#7fb2ff]/50" />
+        <div className="-ml-[14px] -mt-[14px] h-7 w-7 rounded-full border border-white/35" />
       </div>
       <div ref={dot} className="absolute left-0 top-0 will-change-transform">
-        <div className="-ml-[3px] -mt-[3px] h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_8px_2px_rgba(127,178,255,0.8)]" />
+        <div className="-ml-[1.5px] -mt-[1.5px] h-[3px] w-[3px] rounded-full bg-white" />
       </div>
       <div
         ref={label}
-        className="absolute left-0 top-0 font-mono text-[10px] leading-[1.7] tracking-[0.12em] text-[#9fc2ff] will-change-transform"
-        style={{ width: LABEL_W }}
+        className="absolute left-0 top-0 text-[11px] leading-[1.6] will-change-transform"
+        style={{ width: LABEL_W, fontFamily: "var(--font-display)" }}
       >
         <div className="flex justify-between gap-2">
-          <span className="text-[#5f6f93]">LAT</span>
-          <span ref={latEl} className="tabular-nums" />
+          <span className="uppercase tracking-[0.1em] text-white/45">LAT</span>
+          <span ref={latEl} className="sx-num text-white/80" />
         </div>
         <div className="flex justify-between gap-2">
-          <span className="text-[#5f6f93]">LON</span>
-          <span ref={lonEl} className="tabular-nums" />
+          <span className="uppercase tracking-[0.1em] text-white/45">LON</span>
+          <span ref={lonEl} className="sx-num text-white/80" />
         </div>
       </div>
     </div>

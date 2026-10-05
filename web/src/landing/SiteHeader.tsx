@@ -9,6 +9,7 @@ import { Brand } from "@/components/story/Brand";
  */
 export function SiteHeader() {
   const [visible, setVisible] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [reduced, setReduced] = useState(() =>
     typeof window !== "undefined"
       ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -30,10 +31,11 @@ export function SiteHeader() {
       const hero = document.getElementById("hero");
       if (!hero) {
         setVisible(true);
-        return;
+      } else {
+        const rect = hero.getBoundingClientRect();
+        setVisible(rect.bottom <= 64);
       }
-      const rect = hero.getBoundingClientRect();
-      setVisible(rect.bottom <= 64);
+      setScrolled(window.scrollY > 8);
     };
 
     checkVisibility();
@@ -68,10 +70,15 @@ export function SiteHeader() {
     <header
       inert={!visible ? true : undefined}
       aria-hidden={!visible}
-      className={`fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur-md [-webkit-backdrop-filter:blur(12px)] ${motionClasses}`}
-      style={{ height: 64 }}
+      className={`fixed inset-x-0 top-0 z-40 ${motionClasses}`}
+      style={{
+        height: 64,
+        background: scrolled ? "rgba(0, 0, 0, 0.8)" : "transparent",
+        backdropFilter: scrolled ? "blur(20px)" : "none",
+        WebkitBackdropFilter: scrolled ? "blur(20px)" : "none",
+      }}
     >
-      <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between px-6">
+      <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between gap-4 overflow-hidden px-8">
         <Link
           to="/"
           aria-label="SomaiyaNet home"
@@ -79,14 +86,21 @@ export function SiteHeader() {
         >
           <Brand />
         </Link>
-        <div className="flex shrink-0 items-center gap-3">
-          <Link
-            to="/console"
-            className="font-mono inline-block border border-white/40 px-4 py-2 text-[12px] uppercase text-white transition-colors hover:border-white hover:bg-white hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3d5bff]"
-            style={{ letterSpacing: "0.08em" }}
-          >
+        <nav aria-label="Sections" className="hidden min-w-0 items-center md:flex">
+          <a href="#mission" className="sx-eyebrow px-8 py-6 text-white/75 transition-colors hover:text-white">
+            Mission
+          </a>
+          <a href="#journey" className="sx-eyebrow px-8 py-6 text-white/75 transition-colors hover:text-white">
+            Journey
+          </a>
+          <a href="#spacecraft" className="sx-eyebrow px-8 py-6 text-white/75 transition-colors hover:text-white">
+            Spacecraft
+          </a>
+        </nav>
+        <div className="flex shrink-0 items-center">
+          <Link to="/console" className="sx-btn sx-btn--sm">
             <span>Take the console</span>
-            <span aria-hidden="true" className="ml-1">↗</span>
+            <span aria-hidden="true">↗</span>
           </Link>
         </div>
       </div>

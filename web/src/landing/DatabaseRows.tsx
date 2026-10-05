@@ -64,36 +64,48 @@ const ROWS: LabRow[] = [
   },
 ];
 
-/** 9 DBMS experiments as numbered hairline rows linking to /labs/<slug>. */
+/** 9 DBMS experiments as an Apple inset-grouped list linking to /labs/<slug>. */
 export function DatabaseRows() {
   return (
-    <section className="border-t border-white/10 py-28" style={{ background: "#000" }}>
+    <section className="sx-section border-t border-[color:var(--sx-hairline)] bg-black">
       <div className="mx-auto max-w-[1200px] px-6">
         <div className="flex flex-wrap items-end justify-between gap-6">
-          <h2
-            className="max-w-[18ch] font-light text-white"
-            style={{ fontSize: "clamp(30px, 3.4vw, 46px)", lineHeight: 1.08, letterSpacing: "-0.02em" }}
-          >
-            Nine database labs. Built on live PostgreSQL.
-          </h2>
+          <div>
+            <p className="sx-eyebrow">Database architecture</p>
+            <h2 className="sx-h2 mt-3">Nine database labs. Built on live PostgreSQL.</h2>
+            <p className="sx-lead mt-4">
+              Every experiment runs against an operational schema with real-time telemetry, constraint verification, and recursive routing queries.
+            </p>
+          </div>
+          <Link to="/labs/sql" className="sx-btn self-start sm:self-end">
+            Open SQL console
+          </Link>
         </div>
-        <div className="mt-12 border-t border-white/10">
+
+        <div className="sx-group mt-12">
           {ROWS.map((row) => (
             <Link
               key={row.slug}
               to={`/labs/${row.slug}`}
-              className="group grid items-center gap-3 border-b border-white/10 py-6 transition-colors hover:bg-white/[0.03] focus-visible:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3d5bff] md:grid-cols-[70px_1.1fr_1.6fr_40px]"
+              className="sx-row group py-4 transition-colors hover:bg-[color:var(--sx-surface-2)] focus-visible:bg-[color:var(--sx-surface-2)] focus-visible:outline-none"
             >
-              <span className="font-mono text-[12px]" style={{ color: "#3d5bff", letterSpacing: "0.08em" }}>
-                [{row.n}]
-              </span>
-              <span className="text-[18px] font-light text-white transition-colors group-hover:text-white">
-                {row.title}
-              </span>
-              <span className="text-[14px] leading-relaxed text-[#9aa3b8]">
-                {row.desc}
-              </span>
-              <span className="text-right font-mono text-[16px] text-white opacity-0 transition-all duration-200 group-hover:translate-x-1 group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden="true">
+              <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1">
+                <span className="sx-num text-[13px] text-[color:var(--sx-text-3)] shrink-0 pt-0.5 sm:pt-0 w-6">
+                  {row.n}
+                </span>
+                <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6 min-w-0 flex-1">
+                  <span className="text-[15px] font-medium text-white shrink-0 sm:w-[210px]">
+                    {row.title}
+                  </span>
+                  <span className="sx-body text-[13px] sm:text-[14px] text-[color:var(--sx-text-2)] leading-normal">
+                    {row.desc}
+                  </span>
+                </div>
+              </div>
+              <span
+                className="text-[15px] text-[color:var(--sx-text-3)] transition-transform duration-200 group-hover:translate-x-1 group-hover:text-white shrink-0 pl-2"
+                aria-hidden="true"
+              >
                 →
               </span>
             </Link>

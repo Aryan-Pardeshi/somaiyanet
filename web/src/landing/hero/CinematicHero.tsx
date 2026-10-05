@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
@@ -409,14 +410,13 @@ export function CinematicHero() {
   return (
     <section ref={outer} id="hero" style={{ height: reduced ? "100vh" : "420vh", background: "#000" }}>
       <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {/* navy glow sits BEHIND the transparent canvas */}
+        {/* neutral background behind the transparent canvas */}
         <div
           ref={glowRef}
           id="hero-navy-glow"
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 bg-black"
           style={{
-            background: "radial-gradient(ellipse 90% 70% at 50% -10%, #0b1f6b 0%, #050b26 45%, #000 80%)",
             opacity: reduced ? 1 : 0,
           }}
         />
@@ -435,23 +435,23 @@ export function CinematicHero() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black transition-opacity duration-700"
         >
-          <div className="h-px w-40 animate-pulse bg-white/60" />
+          <div className="h-px w-40 bg-white/60" />
         </div>
         <div
           ref={headlineRef}
           className="pointer-events-none absolute bottom-10 left-6 z-10 max-w-[min(92vw,1100px)] md:bottom-14 md:left-12"
           style={{ opacity: reduced ? 0 : 1 }}
         >
-          <h1
-            className="text-white"
-            style={{ fontSize: "clamp(40px, 6.2vw, 104px)", lineHeight: 0.98, letterSpacing: "-0.035em", fontWeight: 300 }}
-          >
+          <h1 className="sx-display">
             <span className="block md:whitespace-nowrap">Satellites that</span>
             <span className="block md:whitespace-nowrap">route themselves.</span>
           </h1>
-          <p className="mt-5 max-w-[56ch] text-[17px] leading-relaxed text-[#9aa3b8]">
+          <p className="sx-lead mt-5">
             SomaiyaNet is a four-satellite PocketQube constellation (three flying, one waiting in its deployer) whose routing graphs, decision trees, and access permissions all live in PostgreSQL. Developed under specification KJS-SRS-01.
           </p>
+          <Link to="/console" className="sx-btn mt-8 pointer-events-auto">
+            Take the console
+          </Link>
         </div>
       </div>
       <CursorReadout targetRef={outer} />

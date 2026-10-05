@@ -23,7 +23,8 @@ export function Brand({ className }: { className?: string }) {
         className="relative z-10 uppercase"
         style={{ fontFamily: "Michroma, var(--font-sans)", letterSpacing: "0.14em", fontSize: "0.8em" }}
       >
-        Somaiya<span style={{ color: "#9fb2ff" }}>Net</span>
+        <span style={{ color: "#ffffff" }}>Somaiya</span>
+        <span style={{ color: "rgba(255, 255, 255, 0.7)" }}>Net</span>
       </span>
       <svg
         aria-hidden="true"
@@ -31,14 +32,7 @@ export function Brand({ className }: { className?: string }) {
         preserveAspectRatio="none"
         className="pointer-events-none absolute inset-0 h-full w-full"
       >
-        <defs>
-          <linearGradient id="sn-swoosh" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor="#3d5bff" stopOpacity="0.15" />
-            <stop offset="0.55" stopColor="#3d5bff" stopOpacity="0.9" />
-            <stop offset="1" stopColor="#ffffff" />
-          </linearGradient>
-        </defs>
-        <path d={SWOOSH} fill="url(#sn-swoosh)" />
+        <path d={SWOOSH} fill="#ffffff" />
       </svg>
       {/* The packet at the end of the trajectory (an HTML dot so it stays round). */}
       <span
@@ -49,8 +43,7 @@ export function Brand({ className }: { className?: string }) {
           height: "0.26em",
           right: "0.08em",
           top: "0.12em",
-          background: "#ff3b4f",
-          boxShadow: "0 0 0.35em rgba(255,59,79,0.8)",
+          background: "#ff453a",
         }}
       />
       <span className="sr-only">SomaiyaNet</span>
@@ -62,8 +55,8 @@ export function Brand({ className }: { className?: string }) {
 export function BrandMark({ size = 22, className }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={cn("shrink-0", className)}>
-      <path d="M 2 20 Q 15 24 21 5 L 20 4.6 Q 13.5 21.6 2 20 Z" fill="#3d5bff" />
-      <circle cx="21" cy="4" r="2.1" fill="#ff3b4f" />
+      <path d="M 2 20 Q 15 24 21 5 L 20 4.6 Q 13.5 21.6 2 20 Z" fill="#ffffff" />
+      <circle cx="21" cy="4" r="2.1" fill="#ff453a" />
     </svg>
   );
 }
