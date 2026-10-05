@@ -138,7 +138,7 @@ export function GroundNetwork() {
                     className={`absolute ${isEast ? "right-8 text-right" : "left-8 text-left"} whitespace-nowrap`}
                     style={{ top: isBelow ? 12 : -32 }}
                   >
-                    <span className="font-[family-name:var(--font-display)] uppercase text-[12px] font-semibold tracking-[0.04em] text-white block">
+                    <span className="font-[family-name:var(--font-display)] capitalize text-[12px] font-semibold text-white block">
                       {s.name}
                     </span>
                     <span className="font-[family-name:var(--font-sans)] text-[13px] text-white/60 block leading-tight mt-0.5">

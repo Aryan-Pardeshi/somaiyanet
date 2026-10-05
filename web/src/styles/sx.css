@@ -32,47 +32,47 @@
   .sx-display {
     font-family: var(--font-display);
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    line-height: 0.95;
+    text-transform: capitalize;
+    letter-spacing: -0.01em;
+    line-height: 1;
     font-size: clamp(40px, 6vw, 80px);
     color: var(--sx-text);
   }
   .sx-h1 {
+    text-transform: capitalize;
     font-family: var(--font-display);
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    line-height: 1.02;
-    font-size: clamp(34px, 4.4vw, 60px);
+    letter-spacing: -0.005em;
+    line-height: 1.04;
+    font-size: clamp(34px, 4.4vw, 56px);
     color: var(--sx-text);
   }
   .sx-h2 {
+    text-transform: capitalize;
     font-family: var(--font-display);
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    line-height: 1.08;
-    font-size: clamp(26px, 3.2vw, 44px);
+    letter-spacing: -0.005em;
+    line-height: 1.1;
+    font-size: clamp(26px, 3.2vw, 42px);
     color: var(--sx-text);
   }
   .sx-h3 {
+    text-transform: capitalize;
     font-family: var(--font-display);
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    line-height: 1.2;
+    letter-spacing: 0;
+    line-height: 1.25;
     font-size: 19px;
     color: var(--sx-text);
   }
-  /* Small all-caps label above a heading or on nav items. One per block, never stacked. */
+  /* Small label above a heading, a table header or a nav group. Title case, one per block. */
   .sx-eyebrow {
+    text-transform: capitalize;
     font-family: var(--font-display);
     font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    line-height: 1.6;
-    font-size: 12px;
+    letter-spacing: 0.01em;
+    line-height: 1.5;
+    font-size: 13px;
     color: var(--sx-text-2);
   }
   .sx-lead {
@@ -114,6 +114,7 @@
 
   /* ---------- buttons: ghost pill is the default; one filled primary per screen at most ---------- */
   .sx-btn {
+    text-transform: capitalize;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -126,9 +127,8 @@
     color: var(--sx-text);
     font-family: var(--font-display);
     font-weight: 600;
-    font-size: 13px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-size: 14px;
+    letter-spacing: 0.01em;
     white-space: nowrap;
     cursor: pointer;
     transition: background-color 200ms var(--sx-ease), color 200ms var(--sx-ease),
@@ -169,7 +169,7 @@
   .sx-btn--sm {
     min-height: 36px;
     padding: 0 18px;
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .sx-link {

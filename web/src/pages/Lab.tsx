@@ -67,7 +67,7 @@ const META: Record<
     chips: [],
     roleNote: "Catalog queries for tables, columns, and constraints run as the role you picked.",
     notice: [
-      "Ice d-circles are the disjoint EER splits: node and packet hierarchies.",
+      "The d-circles are the disjoint EER splits: node and packet hierarchies.",
       "Double borders are weak entities; ▤ is the RANGE-partitioned telemetry.",
       "Click any table for its comment, columns and constraint list.",
     ],
@@ -129,7 +129,7 @@ export default function Lab() {
       {/* Top Console Lab Navigation Bar (filtered to tabs the role can visit) */}
       <nav
         aria-label="Database labs"
-        className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none"
+        className="inline-flex p-1 bg-[var(--sx-surface)] rounded-[10px] gap-1 overflow-x-auto max-w-full scrollbar-none border border-[var(--sx-hairline)]"
       >
         {visibleLabs.map((item) => {
           const active = lab === item.slug;
@@ -137,11 +137,11 @@ export default function Lab() {
             <Link
               key={item.slug}
               to={`/labs/${item.slug}`}
-              className={`flex items-center gap-2 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.1em] transition-all shrink-0 rounded-[2px] ${
-                active
-                  ? "bg-[#3d5bff] text-white font-semibold shadow-[0_0_10px_rgba(61,91,255,0.4)]"
-                  : "bg-white/[0.03] text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/[0.06] border border-white/10"
-              }`}
+              className={`font-[var(--font-display)] text-[12px] capitalize font-semibold px-4 py-2 rounded-[8px] transition-colors whitespace-nowrap ${
+ active
+ ? "bg-[var(--sx-surface-2)] text-white shadow-none"
+ : "text-white/60 hover:text-white"
+ }`}
             >
               <span>{item.label}</span>
             </Link>

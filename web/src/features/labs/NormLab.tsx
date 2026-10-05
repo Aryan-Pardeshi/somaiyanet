@@ -10,7 +10,7 @@ export function NormLab() {
   const [anomalies, setAnomalies] = useState<NormAnomaly[]>([]);
   const [lossless, setLossless] = useState<LosslessRow[]>([]);
   const [bootError, setBootError] = useState<unknown>(null);
-  const [active, setActive] = useState(0);
+  const [stageFilter, setStageFilter] = useState<string>("ALL");
   const [anomalyKind, setAnomalyKind] = useState<"update" | "insert" | "delete">("update");
 
   const load = useCallback(async () => {
@@ -49,144 +49,156 @@ export function NormLab() {
   const shown: NormStage[] = stages.length > 0 ? stages : fallbackStages();
   const shownLossless: LosslessRow[] = lossless.length > 0 ? lossless : fallbackLossless();
   const shownAnomalies: NormAnomaly[] = anomalies.length > 0 ? anomalies : fallbackAnomalies();
-  const cur = shown[Math.min(active, shown.length - 1)];
   const anomaly = pickAnomaly(shownAnomalies, anomalyKind);
+
+  const filteredStages =
+    stageFilter === "ALL" ? shown : shown.filter((s) => s.stage === stageFilter);
 
   return (
     <div className="flex flex-col gap-6">
-      {/* 1. Normalization Stepper with Chamfered Tabs */}
-      <Card title="Decomposition pipeline" kicker="UNF → BCNF · Relational normal forms">
-        {/* Horizontal stepper of chamfered tabs */}
-        <div
-          className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none"
-          role="tablist"
-          aria-label="Normal forms stepper"
-        >
-          {shown.map((s, i) => {
-            const isCur = i === active;
-            const isDone = i < active;
+      {/* 1. Normalization Steps as a Vertical Sequence */}
+      <Panel className="w-full">
+        <div className="p-4 flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--sx-hairline)] pb-3">
+            <div>
+              <h2 className="sx-h3">
+                Decomposition pipeline
+              </h2>
+              <p className="sx-caption text-[var(--sx-text-3)]">
+                Lossless join decomposition from UNF to BCNF
+              </p>
+            </div>
 
-            return (
-              <div key={s.stage} className="flex items-center gap-2 shrink-0">
-                <button
-                  role="tab"
-                  aria-selected={isCur}
-                  onClick={() => setActive(i)}
-                  className={`font-mono text-[11px] uppercase tracking-[0.1em] px-3.5 py-1.5 transition-all cursor-pointer ${
-                    isCur
-                      ? "bg-[#3d5bff] text-white font-semibold shadow-[0_0_10px_rgba(61,91,255,0.4)]"
-                      : isDone
-                        ? "bg-[#7ee2b8]/10 text-[#7ee2b8] border border-[#7ee2b8]/40 hover:bg-[#7ee2b8]/20"
-                        : "bg-white/[0.03] text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/[0.06] border border-white/10"
-                  }`}
-                  style={{
-                    clipPath:
-                      "polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)",
-                  }}
-                >
-                  <span className="opacity-60 mr-1.5">{i + 1}.</span>
-                  <span>{s.stage}</span>
-                </button>
-                {i < shown.length - 1 && (
-                  <span className="font-mono text-[#5f6f93] text-[12px]">→</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        <DecompTree active={active} />
-
-        {/* Functional Dependencies in Mono */}
-        <div className="mt-4 flex flex-col gap-2">
-          <div className="flex items-center justify-between border-b border-white/[0.06] pb-1.5">
-            <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-              Active stage functional dependencies ({cur.stage})
-            </span>
-            <span className="font-mono text-[10px] text-[#5f6f93]">
-              {cur.fds.length} dependencies
-            </span>
+            {/* Stage filter segmented control */}
+            <div
+              className="inline-flex p-0.5 bg-[var(--sx-night)] rounded-[10px] gap-0.5 border border-[var(--sx-hairline)]"
+              role="tablist"
+              aria-label="Filter normal forms"
+            >
+              {["ALL", ...STAGES].map((tab) => {
+                const active = stageFilter === tab;
+                return (
+                  <button
+                    key={tab}
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setStageFilter(tab)}
+                    className={`font-[var(--font-display)] text-[12px] capitalize font-semibold px-3 py-1.5 rounded-[8px] transition-colors cursor-pointer ${
+ active
+ ? "bg-[var(--sx-surface-2)] text-white"
+ : "text-white/60 hover:text-white"
+ }`}
+                  >
+                    {tab}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            {cur.fds.map((f, i) => {
-              const hasViolation =
-                f.violates &&
-                f.violates !== "—" &&
-                f.violates.toLowerCase() !== "none";
-
+          {/* Vertical list of normalization steps */}
+          <div className="flex flex-col gap-8 pt-2">
+            {filteredStages.map((s, stepIdx) => {
+              const num = STAGES.indexOf(s.stage) + 1;
               return (
-                <div
-                  key={i}
-                  className={`border p-2.5 rounded-[2px] font-mono text-[12px] flex flex-wrap items-center justify-between gap-2 ${
-                    hasViolation
-                      ? "border-[#f5a524]/40 bg-[#f5a524]/5"
-                      : "border-white/10 bg-[#05070d]"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#7fb2ff] font-semibold">{f.fd}</span>
-                    {hasViolation && (
-                      <StatusBadge
-                        status="warn"
-                        label={`Violates ${f.violates}`}
-                      />
-                    )}
-                  </div>
-                  {f.fix && (
-                    <span className="text-[#8b96b0] text-[11px]">
-                      Action: {f.fix}
+                <div key={s.stage} className="flex flex-col gap-4">
+                  {/* Step label as .sx-eyebrow */}
+                  <div className="flex items-center justify-between border-b border-[var(--sx-hairline)] pb-2">
+                    <div className="flex items-center gap-3">
+                      <span className="sx-num text-white/40 text-[14px]">
+                        0{num}
+                      </span>
+                      <span className="sx-eyebrow text-white">
+                        {s.stage} stage
+                      </span>
+                    </div>
+                    <span className="sx-caption text-[var(--sx-text-3)]">
+                      {s.tables.length} {s.tables.length === 1 ? "relation" : "relations"} · {s.fds.length} FDs
                     </span>
+                  </div>
+
+                  {/* Functional Dependencies for this stage */}
+                  {s.fds.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                      {s.fds.map((f, fi) => {
+                        const hasViolation =
+                          f.violates &&
+                          f.violates !== "—" &&
+                          f.violates.toLowerCase() !== "none";
+
+                        return (
+                          <div
+                            key={fi}
+                            className="p-3 rounded-[10px] bg-[var(--sx-night)] border border-[var(--sx-hairline)] font-mono text-[12px] flex flex-wrap items-center justify-between gap-2"
+                          >
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-white font-medium">{f.fd}</span>
+                              {hasViolation && (
+                                <span className="font-mono text-[11px] text-[#ff9f0a]">
+                                  · Violates {f.violates}
+                                </span>
+                              )}
+                            </div>
+                            {f.fix && (
+                              <span className="sx-caption text-[var(--sx-text-3)]">
+                                Action: {f.fix}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Tables for this stage rendered as inset-grouped tables */}
+                  <div className="flex flex-col gap-4">
+                    {s.tables.map((t) => (
+                      <div key={t.name} className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between text-[12px]">
+                          <span className="font-mono text-white font-semibold">{t.name}</span>
+                          <span className="font-mono text-[11px] text-[var(--sx-text-3)]">
+                            Columns: {t.columns.join(", ")}
+                          </span>
+                        </div>
+                        <HighlightGrid rows={t.rows} highlight={dupColumns(t.rows)} />
+                      </div>
+                    ))}
+                  </div>
+
+                  {stepIdx < filteredStages.length - 1 && (
+                    <div className="border-b border-[var(--sx-hairline)] pt-2" />
                   )}
                 </div>
               );
             })}
           </div>
         </div>
+      </Panel>
 
-        {/* Tables in Shared Table Style */}
-        <div className="mt-5 flex flex-col gap-4">
-          <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-            Decomposed relation schema ({cur.stage})
-          </span>
-          {cur.tables.map((t) => (
-            <div key={t.name} className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between font-mono text-[11px]">
-                <span className="text-white font-semibold">{t.name}</span>
-                <span className="text-[#5f6f93] text-[10.5px]">
-                  Columns: {t.columns.join(", ")}
-                </span>
-              </div>
-              <HighlightGrid rows={t.rows} highlight={dupColumns(t.rows)} />
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* 2. Anomaly Theatre with Amber Badges */}
-      <Panel cut={8} className="w-full">
-        <div className="p-3.5 sm:p-4 flex flex-col gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-2.5">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#5f6f93]">
-                Anomalies before BCNF
-              </span>
-              <span className="text-[#5f6f93] text-[10px]">·</span>
-              <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b96b0]">
-                Anomaly isolation demos
-              </h2>
-            </div>
-            {/* Kind tabs */}
-            <div className="flex items-center gap-1.5">
+      {/* 2. Anomaly Isolation Demos with text #ff9f0a only */}
+      <Panel className="w-full">
+        <div className="p-4 flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--sx-hairline)] pb-2.5">
+            <h2 className="sx-h3">
+              Anomaly isolation demos
+            </h2>
+            {/* Kind tabs as segmented control */}
+            <div
+              className="inline-flex p-0.5 bg-[var(--sx-night)] rounded-[10px] gap-0.5 border border-[var(--sx-hairline)]"
+              role="tablist"
+              aria-label="Anomaly types"
+            >
               {(["update", "insert", "delete"] as const).map((k) => (
                 <button
                   key={k}
+                  role="tab"
+                  aria-selected={anomalyKind === k}
                   onClick={() => setAnomalyKind(k)}
-                  className={`font-mono text-[10px] uppercase tracking-[0.1em] px-2.5 py-1 rounded-[2px] transition-colors cursor-pointer ${
-                    anomalyKind === k
-                      ? "bg-[#3d5bff] text-white font-semibold"
-                      : "bg-white/[0.03] text-[#8b96b0] hover:text-[#dfe6f5] border border-white/10"
-                  }`}
+                  className={`font-[var(--font-display)] text-[12px] capitalize font-semibold px-3 py-1.5 rounded-[8px] transition-colors cursor-pointer ${
+ anomalyKind === k
+ ? "bg-[var(--sx-surface-2)] text-white"
+ : "text-white/60 hover:text-white"
+ }`}
                 >
                   {k}
                 </button>
@@ -201,64 +213,66 @@ export function NormLab() {
                   status="warn"
                   label={`${anomalyKind.charAt(0).toUpperCase() + anomalyKind.slice(1)} anomaly identified`}
                 />
-                <span className="font-mono text-[11px] text-[#8b96b0]">
+                <span className="sx-caption text-[var(--sx-text-3)]">
                   {anomaly.stage}
                 </span>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2">
                 {/* Before: Un-normalized State */}
-                <div className="border border-white/10 bg-[#05070d] p-3 rounded-[2px] flex flex-col gap-1.5">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
+                <div className="p-3.5 rounded-[10px] bg-[var(--sx-night)] border border-[var(--sx-hairline)] flex flex-col gap-1.5">
+                  <span className="sx-eyebrow text-[var(--sx-text-3)]">
                     Prior state (pre-decomposition)
                   </span>
-                  <p className="font-mono text-[12px] text-[#dfe6f5] leading-relaxed">
+                  <p className="font-mono text-[13px] text-white leading-relaxed">
                     {anomaly.before}
                   </p>
                 </div>
 
-                {/* After: Anomaly Consequence with Amber Badge */}
-                <div className="border border-[#f5a524]/40 bg-[#f5a524]/5 p-3 rounded-[2px] flex flex-col gap-1.5">
+                {/* After: Anomaly Consequence with #ff9f0a text only */}
+                <div className="p-3.5 rounded-[10px] bg-[var(--sx-night)] border border-[var(--sx-hairline)] flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#f5a524]">
+                    <span className="sx-eyebrow text-[#ff9f0a]">
                       Anomaly occurrence
                     </span>
-                    <StatusBadge status="warn" label="Inconsistent data" />
+                    <span className="sx-status" data-tone="warn">
+                      Inconsistent
+                    </span>
                   </div>
-                  <p className="font-mono text-[12px] text-[#f5a524] font-semibold leading-relaxed">
+                  <p className="font-mono text-[13px] text-[#ff9f0a] font-medium leading-relaxed">
                     {anomaly.after}
                   </p>
                 </div>
               </div>
 
-              <p className="text-[13px] leading-relaxed text-[#dfe6f5] pt-1">
+              <p className="sx-body pt-1">
                 {anomaly.explanation}
               </p>
             </div>
           ) : (
-            <p className="font-mono text-[11px] text-[#5f6f93]">
+            <p className="sx-caption text-[var(--sx-text-3)]">
               No anomaly output currently available.
             </p>
           )}
         </div>
       </Panel>
 
-      {/* 3. Lossless-Join Proof: Result as OK Badge */}
+      {/* 3. Lossless-Join Proof: Inset-grouped table */}
       <Card title="Lossless-join decomposition proof" kicker="NATURAL JOIN + EXCEPT both ways">
-        <div className="flex flex-col gap-2">
-          <p className="text-[13px] text-[#dfe6f5] leading-relaxed">
+        <div className="flex flex-col gap-3">
+          <p className="sx-body">
             Decomposition is lossless if and only if reconstructing the original relation via natural join produces
             zero missing tuples and zero spurious tuples: R = R₁ ⨝ R₂.
           </p>
 
-          <div className="overflow-x-auto border border-white/10 bg-[#05070d]">
+          <div className="sx-group overflow-x-auto">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b border-white/[0.08] bg-[#05070d]">
+                <tr className="border-b border-[var(--sx-hairline)]">
                   {["Stage transition", "Original rows", "Rejoined rows", "Missing tuples", "Spurious tuples", "Verification"].map((c) => (
                     <th
                       key={c}
-                      className="font-mono px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[#8b96b0] font-normal"
+                      className="sx-eyebrow px-4 py-3 font-normal text-[var(--sx-text-2)]"
                     >
                       {c}
                     </th>
@@ -271,30 +285,30 @@ export function NormLab() {
                   return (
                     <tr
                       key={r.stage}
-                      className="border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors"
+                      className="border-b border-[var(--sx-hairline)] last:border-b-0 hover:bg-[var(--sx-surface-2)] transition-colors h-[48px]"
                     >
-                      <td className="font-mono px-3 py-2 text-[12px] text-[#7fb2ff] font-semibold">
+                      <td className="font-mono px-4 py-3 text-[13px] text-white font-semibold">
                         {r.stage}
                       </td>
-                      <td className="font-mono px-3 py-2 text-[12px] tabular-nums text-right text-[#dfe6f5]">
-                        {r.rows_original}
+                      <td className="font-mono px-4 py-3 text-[13px] tabular-nums text-right text-white">
+                        <span className="sx-num">{r.rows_original}</span>
                       </td>
-                      <td className="font-mono px-3 py-2 text-[12px] tabular-nums text-right text-[#dfe6f5]">
-                        {r.rows_rejoined}
+                      <td className="font-mono px-4 py-3 text-[13px] tabular-nums text-right text-white">
+                        <span className="sx-num">{r.rows_rejoined}</span>
                       </td>
-                      <td className="font-mono px-3 py-2 text-[12px] tabular-nums text-right text-[#dfe6f5]">
-                        {r.missing}
+                      <td className="font-mono px-4 py-3 text-[13px] tabular-nums text-right text-white">
+                        <span className="sx-num">{r.missing}</span>
                       </td>
-                      <td className="font-mono px-3 py-2 text-[12px] tabular-nums text-right text-[#dfe6f5]">
-                        {r.spurious}
+                      <td className="font-mono px-4 py-3 text-[13px] tabular-nums text-right text-white">
+                        <span className="sx-num">{r.spurious}</span>
                       </td>
-                      <td className="px-3 py-2">
-                        {/* Lossless check result as ok badge */}
-                        {ok ? (
-                          <StatusBadge status="ok" label="Lossless ✓" />
-                        ) : (
-                          <StatusBadge status="critical" label="Lossy ✗" />
-                        )}
+                      <td className="px-4 py-3">
+                        <span
+                          className="sx-status"
+                          data-tone={ok ? "ok" : "critical"}
+                        >
+                          {ok ? "Lossless" : "Lossy"}
+                        </span>
                       </td>
                     </tr>
                   );
@@ -305,54 +319,6 @@ export function NormLab() {
         </div>
       </Card>
     </div>
-  );
-}
-
-function DecompTree({ active }: { active: number }) {
-  const labels = STAGES.slice(0, Math.max(active + 1, 2));
-  return (
-    <svg
-      viewBox={`0 0 ${labels.length * 120} 46`}
-      role="img"
-      aria-label="decomposition diagram"
-      className="mt-3 w-full max-w-[560px] border border-white/10 bg-[#05070d] p-2"
-    >
-      <g fontFamily="Geist Mono, monospace" fontSize="10">
-        {labels.map((s, i) => (
-          <g key={s}>
-            {i > 0 && (
-              <line
-                x1={i * 120 - 78}
-                y1="23"
-                x2={i * 120 - 42}
-                y2="23"
-                stroke="rgba(255,255,255,0.15)"
-                strokeWidth="1.5"
-                strokeDasharray="4 3"
-              />
-            )}
-            <rect
-              x={i * 120 + 6}
-              y="8"
-              width="72"
-              height="30"
-              fill={i === active ? "#3d5bff" : "rgba(255,255,255,0.03)"}
-              stroke={i === active ? "#7fb2ff" : "rgba(255,255,255,0.15)"}
-              strokeWidth={i === active ? 1.5 : 1}
-            />
-            <text
-              x={i * 120 + 42}
-              y="27"
-              textAnchor="middle"
-              fill={i === active ? "#ffffff" : "#8b96b0"}
-              fontWeight={i === active ? "bold" : "normal"}
-            >
-              {s}
-            </text>
-          </g>
-        ))}
-      </g>
-    </svg>
   );
 }
 
@@ -383,24 +349,23 @@ function HighlightGrid({
   highlight: Set<string>;
 }) {
   if (rows.length === 0)
-    return <p className="font-mono text-[11px] text-[#5f6f93]">0 rows returned.</p>;
+    return <p className="sx-caption text-[var(--sx-text-3)]">0 rows returned.</p>;
   const cols = Object.keys(rows[0] ?? {});
   return (
-    <div className="overflow-x-auto border border-white/10 bg-[#05070d]">
+    <div className="sx-group overflow-x-auto">
       <table className="w-full border-collapse text-left">
         <thead>
-          <tr className="border-b border-white/[0.08] bg-[#05070d]">
+          <tr className="border-b border-[var(--sx-hairline)]">
             {cols.map((c) => {
               const isDup = highlight.has(c);
               return (
                 <th
                   key={c}
-                  className={`font-mono px-3 py-2 text-[10px] uppercase tracking-[0.14em] font-normal ${
-                    isDup ? "text-[#f5a524]" : "text-[#8b96b0]"
+                  className={`sx-eyebrow px-4 py-2.5 font-normal ${
+                    isDup ? "text-[#ff9f0a]" : "text-[var(--sx-text-2)]"
                   }`}
                 >
                   {c}
-                  {isDup ? " [duplicate]" : ""}
                 </th>
               );
             })}
@@ -410,7 +375,7 @@ function HighlightGrid({
           {rows.slice(0, 12).map((r, i) => (
             <tr
               key={i}
-              className="border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors"
+              className="border-b border-[var(--sx-hairline)] last:border-b-0 hover:bg-[var(--sx-surface-2)] transition-colors h-[48px]"
             >
               {cols.map((c) => {
                 const v = r[c];
@@ -422,9 +387,9 @@ function HighlightGrid({
                 return (
                   <td
                     key={c}
-                    className={`font-mono max-w-[240px] truncate px-3 py-2 text-[12px] ${
+                    className={`font-mono max-w-[240px] truncate px-4 py-2.5 text-[12px] ${
                       numeric ? "text-right tabular-nums" : ""
-                    } ${isDup ? "text-[#f5a524]" : isNull ? "text-[#5f6f93] italic" : "text-[#dfe6f5]"}`}
+                    } ${isDup ? "text-[#ff9f0a]" : isNull ? "text-[var(--sx-text-3)] italic" : "text-white"}`}
                     title={s}
                   >
                     {s}
@@ -561,4 +526,3 @@ function fallbackAnomalies(): NormAnomaly[] {
     },
   ];
 }
-

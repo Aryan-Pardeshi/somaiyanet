@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/app/api";
 import { useRole } from "@/app/access";
-import { DataGrid, OfflineOrEmpty, Panel, PlanTree, SqlBlock, StatusBadge } from "./common";
+import { DataGrid, OfflineOrEmpty, Panel, PlanTree, RefusalCard, SqlBlock, StatusBadge } from "./common";
 import type { ConsolePreset, ConsoleResult } from "./types";
 
 const ROLES = [
@@ -96,12 +96,12 @@ export function SqlLab({ presetName }: { presetName?: string }) {
   const grouped = groupPresets(presets);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-      {/* 1. Presets as a list in a Panel */}
-      <Panel cut={8} className="w-full lg:sticky lg:top-16 lg:self-start">
-        <div className="p-3.5 sm:p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
-            <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+    <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+      {/* 1. Presets as a quiet list in a Panel */}
+      <Panel className="w-full lg:sticky lg:top-16 lg:self-start">
+        <div className="p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between border-b border-[var(--sx-hairline)] pb-2">
+            <span className="sx-eyebrow">
               Presets catalog
             </span>
           </div>
@@ -113,14 +113,14 @@ export function SqlLab({ presetName }: { presetName?: string }) {
               hint="GET /api/console/presets"
             />
           ) : (
-            <div className="flex max-h-[70vh] flex-col gap-3 overflow-y-auto scrollbar-none">
+            <div className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto scrollbar-none">
               {(Object.keys(grouped).length > 0 ? Object.entries(grouped) : Object.entries(groupFallback())).map(
                 ([g, list]) => (
-                  <div key={g} className="flex flex-col gap-1">
-                    <span className="font-mono text-[10px] tracking-[0.12em] uppercase text-[#8b96b0] font-semibold">
+                  <div key={g} className="flex flex-col gap-1.5">
+                    <span className="sx-eyebrow text-[var(--sx-text-3)]">
                       {g}
                     </span>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-0.5">
                       {(list as ConsolePreset[]).map((p) => (
                         <button
                           key={p.name}
@@ -128,7 +128,7 @@ export function SqlLab({ presetName }: { presetName?: string }) {
                             setQuery(p.sql);
                             void runQuery(p.sql, explain);
                           }}
-                          className="border border-white/5 bg-[#05070d] p-2 text-left font-mono text-[11px] text-[#8b96b0] hover:text-white hover:border-white/20 hover:bg-white/[0.04] transition-all rounded-[2px] cursor-pointer"
+                          className="w-full text-left px-3 py-2 text-[13px] text-[var(--sx-text-2)] hover:text-white hover:bg-[var(--sx-surface-2)] rounded-[8px] transition-colors cursor-pointer"
                         >
                           <span className="block truncate">{p.name}</span>
                         </button>
@@ -143,65 +143,64 @@ export function SqlLab({ presetName }: { presetName?: string }) {
       </Panel>
 
       {/* 2. Editor & Results in Panels */}
-      <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-6">
         {/* Editor Panel */}
-        <Panel cut={8} className="w-full">
-          <div className="p-3.5 sm:p-4 flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.06] pb-2.5">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#5f6f93]">
-                  Interactive SQL
-                </span>
-                <span className="text-[#5f6f93] text-[10px]">·</span>
-                <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b96b0]">
-                  Command editor
-                </h2>
-              </div>
+        <Panel className="w-full">
+          <div className="p-4 flex flex-col gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--sx-hairline)] pb-2.5">
+              <h2 className="sx-h3">
+                Command editor
+              </h2>
 
-              {/* Role selector as chips */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#5f6f93] mr-1">
-                  Role:
-                </span>
-                {ROLES.map((r) => {
-                  const activeRole = (role || "mission_director") === r;
-                  return (
-                    <button
-                      key={r}
-                      onClick={() => void handleRoleChange(r)}
-                      aria-pressed={activeRole}
-                      className={`font-mono text-[9px] uppercase tracking-[0.1em] px-2 py-0.5 rounded-[1px] transition-all cursor-pointer ${
-                        activeRole
-                          ? "bg-[#3d5bff] text-white font-semibold shadow-[0_0_8px_rgba(61,91,255,0.4)]"
-                          : "bg-white/[0.03] text-[#8b96b0] hover:text-[#dfe6f5] border border-white/10"
-                      }`}
-                    >
-                      {shortRole(r)}
-                    </button>
-                  );
-                })}
+              {/* Role selector as a segmented control */}
+              <div className="flex items-center gap-2">
+                <span className="sx-eyebrow">Role</span>
+                <div
+                  className="inline-flex p-0.5 bg-[var(--sx-night)] rounded-[10px] gap-0.5 border border-[var(--sx-hairline)]"
+                  role="radiogroup"
+                  aria-label="Database role"
+                >
+                  {ROLES.map((r) => {
+                    const activeRole = (role || "mission_director") === r;
+                    return (
+                      <button
+                        key={r}
+                        role="radio"
+                        aria-checked={activeRole}
+                        onClick={() => void handleRoleChange(r)}
+                        className={`font-[var(--font-display)] text-[12px] capitalize font-semibold px-2.5 py-1 rounded-[8px] transition-colors cursor-pointer ${
+ activeRole
+ ? "bg-[var(--sx-surface-2)] text-white"
+ : "text-white/60 hover:text-white"
+ }`}
+                      >
+                        {shortRole(r)}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            <div className="border border-dashed border-white/10 bg-[#05070d] p-2.5 text-[12px] leading-relaxed text-[#8b96b0] font-mono flex items-center justify-between gap-2">
-              <span>
+            <div className="p-3 bg-[var(--sx-night)] rounded-[10px] border border-[var(--sx-hairline)] flex flex-wrap items-center justify-between gap-2">
+              <span className="sx-caption text-[var(--sx-text-2)]">
                 Safety constraint: queries execute within BEGIN READ ONLY with a 5s timeout. Writes fail with 25006.
               </span>
-              <label className="font-mono flex items-center gap-1.5 text-[10px] tracking-[0.14em] uppercase text-[#dfe6f5] cursor-pointer shrink-0">
+              <label className="flex items-center gap-2 sx-eyebrow cursor-pointer shrink-0">
                 <input
                   type="checkbox"
                   checked={explain}
                   onChange={(e) => setExplain(e.target.checked)}
-                  className="accent-[#3d5bff]"
+                  className="accent-white cursor-pointer"
                 />
-                Explain plan
+                <span>Explain plan</span>
               </label>
             </div>
 
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="sql-editor"
-                className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]"
+                className="sx-eyebrow"
               >
                 SQL statement · Ctrl+Enter runs
               </label>
@@ -217,7 +216,7 @@ export function SqlLab({ presetName }: { presetName?: string }) {
                 }}
                 rows={6}
                 spellCheck={false}
-                className="font-mono min-h-[140px] w-full border border-white/10 bg-[#05070d] p-3 text-[12.5px] leading-relaxed text-[#dfe6f5] focus:border-[#3d5bff] focus:outline-none rounded-[2px]"
+                className="font-mono min-h-[140px] w-full bg-[var(--sx-night)] text-[#f0f0fa] p-3.5 rounded-[10px] border border-[var(--sx-hairline)] text-[13px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-white transition-all"
               />
             </div>
 
@@ -225,11 +224,11 @@ export function SqlLab({ presetName }: { presetName?: string }) {
               <button
                 onClick={() => void runQuery(query, explain)}
                 disabled={running || query.trim() === ""}
-                className="font-mono text-[11px] uppercase tracking-[0.1em] px-4 py-2 bg-[#3d5bff] hover:bg-[#324dd8] text-white rounded-[2px] font-semibold transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] disabled:opacity-40 cursor-pointer"
+                className="sx-btn sx-btn--filled"
               >
-                {running ? "Executing…" : "Run query"}
+                {running ? "Running…" : "Run"}
               </button>
-              <span className="font-mono text-[10px] text-[#5f6f93]">
+              <span className="sx-caption text-[var(--sx-text-3)]">
                 Read-only transaction (5s timeout)
               </span>
             </div>
@@ -237,12 +236,12 @@ export function SqlLab({ presetName }: { presetName?: string }) {
         </Panel>
 
         {/* Results Panel */}
-        <Panel cut={8} className="w-full">
-          <div className="p-3.5 sm:p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
-              <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+        <Panel className="w-full">
+          <div className="p-4 flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-[var(--sx-hairline)] pb-2.5">
+              <h2 className="sx-h3">
                 Query output & execution plan
-              </span>
+              </h2>
               {result && (
                 <StatusBadge
                   status="nominal"
@@ -252,38 +251,22 @@ export function SqlLab({ presetName }: { presetName?: string }) {
             </div>
 
             {error !== null && (
-              <Panel
-                cut={6}
-                borderColor="rgba(255, 59, 79, 0.45)"
-                glowColor="rgba(255, 59, 79, 0.15)"
-                className="w-full"
-              >
-                <div role="alert" className="p-3 flex flex-col gap-1">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#ff3b4f] font-semibold">
-                    {error.sqlstate === "42501" || error.message.includes("42501")
-                      ? "Permission denied by PostgreSQL (42501)"
-                      : "PostgreSQL execution refused"}
-                  </span>
-                  <p className="font-mono text-[12px] text-[#dfe6f5] whitespace-pre-wrap">
-                    {error.message}
-                  </p>
-                </div>
-              </Panel>
+              <RefusalCard error={error} />
             )}
 
             {result !== null && (
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-4">
                 {explain && result.plan !== undefined && result.plan !== null ? (
-                  <div className="border border-white/10 bg-[#05070d] p-3 rounded-[2px]">
-                    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#8b96b0] block mb-2">
+                  <div className="flex flex-col gap-2">
+                    <span className="sx-eyebrow">
                       Plan tree visualizer
                     </span>
                     <PlanTree plan={result.plan} />
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-1.5">
-                    <p className="font-mono text-[10.5px] text-[#8b96b0]">
-                      {result.rowcount} rows returned {result.rows.length === 500 ? "(capped at 500)" : ""} · NULL values italicized
+                  <div className="flex flex-col gap-2">
+                    <p className="sx-caption text-[var(--sx-text-3)]">
+                      <span className="sx-num">{result.rowcount}</span> rows returned {result.rows.length === 500 ? "(capped at 500)" : ""} · NULL values italicized
                     </p>
                     <DataGrid rows={result.rows} limit={500} />
                   </div>
@@ -292,7 +275,7 @@ export function SqlLab({ presetName }: { presetName?: string }) {
             )}
 
             {!result && !error && (
-              <p className="font-mono text-[11px] text-[#5f6f93] p-4 text-center border border-dashed border-white/5">
+              <p className="sx-caption text-[var(--sx-text-3)] p-6 text-center">
                 Select a preset or enter a query to run.
               </p>
             )}
@@ -339,4 +322,3 @@ function groupFallback(): Record<string, ConsolePreset[]> {
   ];
   return groupPresets(list);
 }
-

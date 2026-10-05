@@ -10,20 +10,23 @@ export function DashedBar({
   value,
   max = 100,
   segments = 14,
-  fillColor = "#3d5bff",
+  fillColor = "rgba(255, 255, 255, 0.7)",
   className = "",
 }: DashedBarProps) {
   const ratio = Math.max(0, Math.min(1, value / max));
   const activeCount = Math.round(ratio * segments);
 
   return (
-    <div className={`flex items-center gap-[2px] h-1.5 w-full ${className}`}>
+    <div
+      className={`flex items-center gap-[2px] h-1.5 w-full ${className}`}
+      role="presentation"
+    >
       {Array.from({ length: segments }, (_, i) => {
         const isActive = i < activeCount;
         return (
           <span
             key={i}
-            className="flex-1 h-full rounded-[1px] transition-colors"
+            className="flex-1 h-full rounded-[1px]"
             style={{
               backgroundColor: isActive
                 ? fillColor

@@ -7,7 +7,7 @@ interface SatIconProps extends React.SVGProps<SVGSVGElement> {
 }
 
 export function SatIcon({
-  size = 56,
+  size = 44,
   color = "currentColor",
   className = "",
   ...rest
@@ -23,11 +23,11 @@ export function SatIcon({
       aria-hidden="true"
       {...rest}
     >
-      {/* Dish antenna atop the bus */}
+      {/* Antenna */}
       <path
         d="M23 15C25.5 17.5 30.5 17.5 33 15"
         stroke={color}
-        strokeWidth="1.3"
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
       <line
@@ -36,19 +36,9 @@ export function SatIcon({
         x2="28"
         y2="22"
         stroke={color}
-        strokeWidth="1.3"
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
-      <line
-        x1="28"
-        y1="16.5"
-        x2="28"
-        y2="13.5"
-        stroke={color}
-        strokeWidth="1.3"
-        strokeLinecap="round"
-      />
-      <circle cx="28" cy="13" r="0.9" fill={color} />
 
       {/* Central satellite bus (square) */}
       <rect
@@ -58,18 +48,7 @@ export function SatIcon({
         height="12"
         rx="1"
         stroke={color}
-        strokeWidth="1.4"
-        fill="rgba(255, 255, 255, 0.04)"
-      />
-      {/* Central sensor core */}
-      <circle cx="28" cy="28" r="1.8" fill={color} fillOpacity="0.8" />
-      <circle
-        cx="28"
-        cy="28"
-        r="3.5"
-        stroke={color}
-        strokeWidth="0.8"
-        strokeDasharray="1.5 1.5"
+        strokeWidth="1.5"
       />
 
       {/* Left solar wing boom */}
@@ -79,7 +58,7 @@ export function SatIcon({
         x2="22"
         y2="28"
         stroke={color}
-        strokeWidth="1.4"
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
       {/* Left solar wing */}
@@ -88,38 +67,25 @@ export function SatIcon({
         y="21"
         width="14"
         height="14"
-        rx="0.5"
+        rx="1"
         stroke={color}
-        strokeWidth="1.2"
-        fill="rgba(61, 91, 255, 0.08)"
+        strokeWidth="1.5"
       />
-      {/* Left solar wing cell grid */}
       <line
         x1="4"
         y1="28"
         x2="18"
         y2="28"
         stroke={color}
-        strokeWidth="0.9"
-        strokeOpacity="0.6"
+        strokeWidth="1.5"
       />
       <line
-        x1="8.6"
+        x1="11"
         y1="21"
-        x2="8.6"
+        x2="11"
         y2="35"
         stroke={color}
-        strokeWidth="0.9"
-        strokeOpacity="0.6"
-      />
-      <line
-        x1="13.3"
-        y1="21"
-        x2="13.3"
-        y2="35"
-        stroke={color}
-        strokeWidth="0.9"
-        strokeOpacity="0.6"
+        strokeWidth="1.5"
       />
 
       {/* Right solar wing boom */}
@@ -129,7 +95,7 @@ export function SatIcon({
         x2="38"
         y2="28"
         stroke={color}
-        strokeWidth="1.4"
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
       {/* Right solar wing */}
@@ -138,38 +104,25 @@ export function SatIcon({
         y="21"
         width="14"
         height="14"
-        rx="0.5"
+        rx="1"
         stroke={color}
-        strokeWidth="1.2"
-        fill="rgba(61, 91, 255, 0.08)"
+        strokeWidth="1.5"
       />
-      {/* Right solar wing cell grid */}
       <line
         x1="38"
         y1="28"
         x2="52"
         y2="28"
         stroke={color}
-        strokeWidth="0.9"
-        strokeOpacity="0.6"
+        strokeWidth="1.5"
       />
       <line
-        x1="42.6"
+        x1="45"
         y1="21"
-        x2="42.6"
+        x2="45"
         y2="35"
         stroke={color}
-        strokeWidth="0.9"
-        strokeOpacity="0.6"
-      />
-      <line
-        x1="47.3"
-        y1="21"
-        x2="47.3"
-        y2="35"
-        stroke={color}
-        strokeWidth="0.9"
-        strokeOpacity="0.6"
+        strokeWidth="1.5"
       />
 
       {/* Bottom thruster nozzles */}
@@ -177,20 +130,21 @@ export function SatIcon({
         x1="25.5"
         y1="34"
         x2="24.5"
-        y2="37"
+        y2="38"
         stroke={color}
-        strokeWidth="1.1"
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
       <line
         x1="30.5"
         y1="34"
         x2="31.5"
-        y2="37"
+        y2="38"
         stroke={color}
-        strokeWidth="1.1"
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
     </svg>
   );
 }
+

@@ -543,7 +543,7 @@ export function RouteDiagram({
         <div className="flex w-full flex-col items-center gap-2">
           <div className="flex items-center gap-2 text-white sm:gap-3">
             <span className="sx-eyebrow text-white/40">
-              MISSION CLOCK
+              Mission clock
             </span>
             <span className="text-white/20">·</span>
             <span
@@ -560,7 +560,7 @@ export function RouteDiagram({
             </span>
             <span className="hidden text-white/20 sm:inline">·</span>
             <span className="hidden sx-eyebrow text-white/40 sm:inline">
-              PACKET #412 · 41 KB
+              Packet #412, 41 KB
             </span>
           </div>
 
@@ -588,7 +588,7 @@ export function RouteDiagram({
             }`}
           >
             <svg
-              viewBox="0 0 720 440"
+              viewBox={mobile ? "120 80 480 300" : "0 0 720 440"}
               preserveAspectRatio="xMidYMid meet"
               className="h-auto max-h-[48vh] w-full overflow-visible sm:max-h-[54vh] md:max-h-[62vh]"
               aria-label="Satellite contact routing network diagram"
@@ -652,10 +652,10 @@ export function RouteDiagram({
                       fontSize: 11,
                       fontWeight: 600,
                       letterSpacing: "0.1em",
-                      textTransform: "uppercase",
+                      textTransform: "capitalize",
                     }}
                   >
-                    KJSIT MUMBAI
+                    KJSIT Mumbai
                   </text>
                 </g>
               </g>
@@ -820,7 +820,7 @@ export function RouteDiagram({
                       fontSize: 10,
                       fontWeight: 600,
                       letterSpacing: "0.08em",
-                      textTransform: "uppercase",
+                      textTransform: "capitalize",
                       paintOrder: "stroke",
                       stroke: "#000000",
                       strokeWidth: 3,
@@ -847,7 +847,7 @@ export function RouteDiagram({
                       fontSize: 10,
                       fontWeight: 600,
                       letterSpacing: "0.08em",
-                      textTransform: "uppercase",
+                      textTransform: "capitalize",
                       paintOrder: "stroke",
                       stroke: "#000000",
                       strokeWidth: 3,
@@ -874,7 +874,7 @@ export function RouteDiagram({
                       fontSize: 10,
                       fontWeight: 600,
                       letterSpacing: "0.08em",
-                      textTransform: "uppercase",
+                      textTransform: "capitalize",
                       paintOrder: "stroke",
                       stroke: "#000000",
                       strokeWidth: 3,
@@ -901,7 +901,7 @@ export function RouteDiagram({
                       fontSize: 10,
                       fontWeight: 500,
                       letterSpacing: "0.06em",
-                      textTransform: "uppercase",
+                      textTransform: "capitalize",
                       paintOrder: "stroke",
                       stroke: "#000000",
                       strokeWidth: 3,
@@ -959,7 +959,7 @@ export function RouteDiagram({
                       fontSize: 12,
                       fontWeight: 600,
                       letterSpacing: "0.1em",
-                      textTransform: "uppercase",
+                      textTransform: "capitalize",
                     }}
                   >
                     SS-1
@@ -1026,7 +1026,7 @@ export function RouteDiagram({
                       fontSize: 12,
                       fontWeight: 600,
                       letterSpacing: "0.1em",
-                      textTransform: "uppercase",
+                      textTransform: "capitalize",
                     }}
                   >
                     SS-2
@@ -1093,7 +1093,7 @@ export function RouteDiagram({
                       fontSize: 12,
                       fontWeight: 600,
                       letterSpacing: "0.1em",
-                      textTransform: "uppercase",
+                      textTransform: "capitalize",
                     }}
                   >
                     SS-3

@@ -442,6 +442,12 @@ export function CinematicHero() {
           className="pointer-events-none absolute bottom-10 left-6 z-10 max-w-[min(92vw,1100px)] md:bottom-14 md:left-12"
           style={{ opacity: reduced ? 0 : 1 }}
         >
+          {/* phones only: neutral grade under the copy so it stays readable over the Earth */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-x-6 -top-24 -bottom-10 -z-10 md:hidden"
+            style={{ background: "linear-gradient(to top, rgba(0,0,0,0.92) 45%, rgba(0,0,0,0))" }}
+          />
           <h1 className="sx-display">
             <span className="block md:whitespace-nowrap">Satellites that</span>
             <span className="block md:whitespace-nowrap">route themselves.</span>

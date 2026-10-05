@@ -1,28 +1,23 @@
-import type { ReactNode } from "react"
-import { cn } from "@/lib/utils"
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 /**
- * Bordered line-art box: the landing's repeating visual frame. A 1 px
- * --line square-ish box on transparent ground holding a white/ice SVG or
- * canvas drawing, with a 12 px caption under it in --text-2.
+ * Quiet framed figure: one inset-grouped surface with a `.sx-caption`
+ * underneath. No coloured borders, no glows.
  */
 export function LineArtBox({
   caption,
   children,
   className,
 }: {
-  caption: string
-  children: ReactNode
-  className?: string
+  caption: string;
+  children: ReactNode;
+  className?: string;
 }) {
   return (
     <figure className={cn("w-full", className)}>
-      <div className="border border-[var(--line)] bg-transparent p-4">
-        {children}
-      </div>
-      <figcaption className="mt-2 text-[12px] leading-snug text-[var(--text-2)]">
-        {caption}
-      </figcaption>
+      <div className="sx-group p-4">{children}</div>
+      <figcaption className="sx-caption mt-2">{caption}</figcaption>
     </figure>
-  )
+  );
 }

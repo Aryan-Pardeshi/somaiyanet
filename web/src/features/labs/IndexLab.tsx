@@ -124,22 +124,17 @@ export function IndexLab() {
   const msA = result ? (result.ms_after ?? totalMs(result.plan_after)) : null;
   const maxMs = Math.max(msB ?? 0, msA ?? 0, 1);
   const speedup = msB !== null && msA !== null && msA > 0 ? (msB / msA).toFixed(1) : null;
+  const isAfterFaster = msA !== null && msB !== null ? msA <= msB : true;
 
   return (
     <div className="flex flex-col gap-6">
-      {/* 1. Index Types as Panels with size in big light number */}
+      {/* 1. Index Types as Panels with size in .sx-num */}
       <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#5f6f93]">
-              bench_index_catalog()
-            </span>
-            <span className="text-[#5f6f93] text-[10px]">·</span>
-            <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b96b0]">
-              Index storage architecture & footprint
-            </h2>
-          </div>
-          <span className="font-mono text-[10px] text-[#5f6f93]">
+        <div className="flex items-center justify-between border-b border-[var(--sx-hairline)] pb-2.5">
+          <h2 className="sx-h3">
+            Index storage architecture & footprint
+          </h2>
+          <span className="sx-caption text-[var(--sx-text-3)]">
             {shownCatalog.length} index types
           </span>
         </div>
@@ -148,34 +143,34 @@ export function IndexLab() {
           {shownCatalog.map((c) => {
             const sizeVal = result ? sizeFor(result, c.key) : c.size ?? "run to measure";
             return (
-              <Panel key={c.key} cut={8} className="w-full">
-                <div className="p-3.5 sm:p-4 flex flex-col gap-3">
-                  <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+              <Panel key={c.key} className="w-full">
+                <div className="p-4 flex flex-col gap-3">
+                  <div className="flex items-center justify-between border-b border-[var(--sx-hairline)] pb-2">
                     <StatusBadge
                       status={c.kind.includes("brin") ? "nominal" : "info"}
-                      label={c.kind.toUpperCase()}
+                      label={c.kind}
                     />
                   </div>
 
-                  <div className="flex items-baseline justify-between gap-2">
-                    <div>
-                      <span className="font-mono text-[13px] font-bold text-white tracking-wide block">
-                        {c.key}
-                      </span>
-                      <p className="mt-1 text-[12px] leading-relaxed text-[#8b96b0]">
-                        {c.purpose}
-                      </p>
-                    </div>
+                  <div>
+                    <span className="font-mono text-[14px] font-bold text-white tracking-wide block">
+                      {c.key}
+                    </span>
+                    <p className="mt-1 sx-body text-[13px]">
+                      {c.purpose}
+                    </p>
                   </div>
 
-                  {/* Size in big light number (Geist Sans weight 300) */}
-                  <div className="border border-white/5 bg-black/40 p-2.5 rounded-[2px] flex flex-col gap-0.5">
-                    <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8b96b0]">
+                  {/* Size in .sx-num */}
+                  <div className="p-3 rounded-[10px] bg-[var(--sx-night)] border border-[var(--sx-hairline)] flex flex-col gap-0.5">
+                    <span className="sx-eyebrow text-[var(--sx-text-3)]">
                       Index footprint
                     </span>
-                    <div className="font-sans text-[28px] sm:text-[32px] font-light text-white tracking-tight leading-none">
-                      {sizeVal}
-                    </div>
+                    {sizeVal === "run to measure" ? (
+                      <div className="sx-caption">Run the benchmark to measure</div>
+                    ) : (
+                      <div className="sx-num text-[28px] text-white leading-none">{sizeVal}</div>
+                    )}
                   </div>
 
                   <SqlBlock sql={c.ddl} />
@@ -194,7 +189,7 @@ export function IndexLab() {
                           void run(c.key);
                         }}
                         disabled={running}
-                        className="font-mono text-[10px] uppercase tracking-[0.1em] px-2.5 py-1 border border-[#3d5bff]/40 text-[#7fb2ff] hover:bg-[#3d5bff]/10 rounded-[2px] transition-colors cursor-pointer"
+                        className="sx-btn sx-btn--sm"
                       >
                         Benchmark index
                       </button>
@@ -207,8 +202,8 @@ export function IndexLab() {
         </div>
 
         {sizes.length > 0 && (
-          <div className="mt-2">
-            <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0] block mb-1">
+          <div className="mt-2 flex flex-col gap-2">
+            <span className="sx-eyebrow">
               Live index sizes (pg_relation_size)
             </span>
             <DataGrid rows={sizes} limit={20} />
@@ -217,23 +212,17 @@ export function IndexLab() {
       </div>
 
       {/* 2. Benchmark Runner & Timing Comparison as Horizontal Bars */}
-      <Panel cut={8} className="w-full">
-        <div className="p-3.5 sm:p-4 flex flex-col gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-2.5">
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#5f6f93]">
-                Drop → EXPLAIN → Apply → EXPLAIN
-              </span>
-              <span className="text-[#5f6f93] text-[10px]">·</span>
-              <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b96b0]">
-                Live benchmark runner
-              </h2>
-            </div>
+      <Panel className="w-full">
+        <div className="p-4 flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--sx-hairline)] pb-2.5">
+            <h2 className="sx-h3">
+              Live benchmark runner
+            </h2>
             <Locked action="bench_index" onTry={() => void bulk()}>
               <button
                 onClick={() => void bulk()}
                 title="Director only: bench_bulk_telemetry(50000)"
-                className="font-mono text-[10px] uppercase tracking-[0.1em] px-3 py-1 border border-[#f5a524]/40 text-[#f5a524] hover:bg-[#f5a524]/10 rounded-[2px] transition-colors cursor-pointer"
+                className="sx-btn sx-btn--sm"
               >
                 Bulk load 50,000 rows
               </button>
@@ -241,22 +230,20 @@ export function IndexLab() {
           </div>
 
           {bulkMsg !== null && (
-            <p className="font-mono text-[11px] text-[#f5a524] bg-[#f5a524]/10 border border-[#f5a524]/30 px-3 py-1.5 rounded-[2px]">
+            <p className="sx-caption text-[var(--sx-text-2)] p-3 rounded-[10px] bg-[var(--sx-night)] border border-[var(--sx-hairline)]">
               {bulkMsg}
             </p>
           )}
 
           {error !== null && (
-            <div className="mt-1">
-              <RefusalCard error={error} />
-            </div>
+            <RefusalCard error={error} />
           )}
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto">
               <label
                 htmlFor="idx-q"
-                className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]"
+                className="sx-eyebrow"
               >
                 Query
               </label>
@@ -268,7 +255,7 @@ export function IndexLab() {
                   const q = shownQueries.find((x) => x.key === e.target.value);
                   if (q) setIndexKey(q.best_index);
                 }}
-                className="min-w-0 max-w-full flex-1 truncate font-mono border border-white/10 bg-[#05070d] px-3 py-1.5 text-[12px] text-[#dfe6f5] focus:border-[#3d5bff] focus:outline-none rounded-[2px]"
+                className="min-w-0 max-w-full flex-1 truncate bg-[var(--sx-surface)] text-white border border-[var(--sx-hairline)] rounded-[10px] h-[44px] px-3.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-white transition-all cursor-pointer"
               >
                 {shownQueries.map((q) => (
                   <option key={q.key} value={q.key}>
@@ -281,7 +268,7 @@ export function IndexLab() {
             <div className="flex items-center gap-2 min-w-0">
               <label
                 htmlFor="idx-i"
-                className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]"
+                className="sx-eyebrow"
               >
                 Index
               </label>
@@ -289,7 +276,7 @@ export function IndexLab() {
                 id="idx-i"
                 value={indexKey || activeQuery?.best_index}
                 onChange={(e) => setIndexKey(e.target.value)}
-                className="font-mono border border-white/10 bg-[#05070d] px-3 py-1.5 text-[12px] text-[#dfe6f5] focus:border-[#3d5bff] focus:outline-none rounded-[2px]"
+                className="bg-[var(--sx-surface)] text-white border border-[var(--sx-hairline)] rounded-[10px] h-[44px] px-3.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-white transition-all cursor-pointer"
               >
                 {shownCatalog.map((c) => (
                   <option key={c.key} value={c.key}>
@@ -304,7 +291,7 @@ export function IndexLab() {
                 <button
                   onClick={() => void run()}
                   disabled={running}
-                  className="font-mono text-[10px] uppercase tracking-[0.1em] px-3 py-1.5 border border-white/15 text-[#dfe6f5] hover:border-white/40 hover:bg-white/5 rounded-[2px] transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] cursor-pointer"
+                  className="sx-btn sx-btn--quiet"
                 >
                   Reset indexes
                 </button>
@@ -313,9 +300,9 @@ export function IndexLab() {
                 <button
                   onClick={() => void run()}
                   disabled={running}
-                  className="font-mono text-[11px] uppercase tracking-[0.1em] px-4 py-1.5 bg-[#3d5bff] hover:bg-[#324dd8] text-white rounded-[2px] font-semibold transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] disabled:opacity-40 cursor-pointer"
+                  className="sx-btn sx-btn--filled"
                 >
-                  {running ? "Benchmarking…" : "Run benchmark"}
+                  {running ? "Running…" : "Run"}
                 </button>
               </Locked>
             </div>
@@ -327,12 +314,12 @@ export function IndexLab() {
             </div>
           )}
 
-          {/* Timing Comparison as horizontal bars (royal blue vs muted) */}
+          {/* Timing Comparison as white horizontal bars (100% vs 35%, no blue) */}
           {result !== null && (
             <div className="mt-4 flex flex-col gap-4">
-              <div className="border border-white/10 bg-[#05070d] p-3.5 rounded-[2px] flex flex-col gap-3">
+              <div className="p-4 rounded-[10px] bg-[var(--sx-night)] border border-[var(--sx-hairline)] flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                  <span className="sx-eyebrow">
                     Execution latency comparison · EXPLAIN ANALYZE
                   </span>
                   {speedup && (
@@ -343,58 +330,58 @@ export function IndexLab() {
                   )}
                 </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
-                  {/* Before: Muted bar */}
-                  <div className="border border-white/5 bg-black/40 p-3 rounded-[2px] flex flex-col gap-2">
-                    <div className="flex items-center justify-between font-mono text-[11px]">
-                      <span className="text-[#8b96b0]">Before (no index)</span>
-                      <span className="text-[#f5a524] uppercase font-semibold">
+                <div className="grid gap-4 md:grid-cols-2">
+                  {/* Before bar */}
+                  <div className="p-3.5 rounded-[10px] bg-[var(--sx-surface)] border border-[var(--sx-hairline)] flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="sx-caption text-[var(--sx-text-2)]">Before (no index)</span>
+                      <span className="font-mono text-[12px] text-white/60 capitalize">
                         {before ?? "SEQ SCAN"}
                       </span>
                     </div>
-                    {/* Horizontal muted bar */}
-                    <div className="h-3 w-full bg-white/[0.06] rounded-[1px] overflow-hidden">
+                    {/* Horizontal white bar: 100% if faster, 35% if slower */}
+                    <div className="h-3 w-full bg-white/[0.08] rounded-[2px] overflow-hidden">
                       <div
-                        className="h-full bg-[#5f6f93] transition-all"
+                        className={`h-full transition-all ${isAfterFaster ? "bg-white/35" : "bg-white"}`}
                         style={{
                           width: `${msB !== null ? Math.max(4, (msB / maxMs) * 100) : 4}%`,
                         }}
                       />
                     </div>
                     <div className="flex items-baseline justify-between font-mono">
-                      <span className="font-sans text-[20px] font-light text-[#dfe6f5]">
+                      <span className="sx-num text-[22px] text-white">
                         {msB !== null ? `${msB.toFixed(2)} ms` : "n/a"}
                       </span>
-                      <span className="text-[10.5px] text-[#5f6f93]">
+                      <span className="font-mono text-[11px] text-[var(--sx-text-3)]">
                         {result.nodes_before?.join(" → ") ?? before}
                       </span>
                     </div>
                   </div>
 
-                  {/* After: Royal blue bar */}
-                  <div className="border border-[#3d5bff]/30 bg-[#3d5bff]/5 p-3 rounded-[2px] flex flex-col gap-2 shadow-[0_0_12px_rgba(61,91,255,0.15)]">
-                    <div className="flex items-center justify-between font-mono text-[11px]">
-                      <span className="text-[#7fb2ff] font-semibold">
+                  {/* After bar */}
+                  <div className="p-3.5 rounded-[10px] bg-[var(--sx-surface)] border border-[var(--sx-hairline)] flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="sx-caption text-white font-medium">
                         After (using {indexKey})
                       </span>
-                      <span className="text-[#7ee2b8] uppercase font-semibold">
+                      <span className="font-mono text-[12px] text-white capitalize font-semibold">
                         {after ?? "INDEX SCAN"}
                       </span>
                     </div>
-                    {/* Horizontal royal blue bar */}
-                    <div className="h-3 w-full bg-white/[0.06] rounded-[1px] overflow-hidden">
+                    {/* Horizontal white bar: 100% if faster, 35% if slower */}
+                    <div className="h-3 w-full bg-white/[0.08] rounded-[2px] overflow-hidden">
                       <div
-                        className="h-full bg-[#3d5bff] shadow-[0_0_8px_rgba(61,91,255,0.8)] transition-all"
+                        className={`h-full transition-all ${isAfterFaster ? "bg-white" : "bg-white/35"}`}
                         style={{
                           width: `${msA !== null ? Math.max(4, (msA / maxMs) * 100) : 4}%`,
                         }}
                       />
                     </div>
                     <div className="flex items-baseline justify-between font-mono">
-                      <span className="font-sans text-[20px] font-light text-white">
+                      <span className="sx-num text-[22px] text-white font-semibold">
                         {msA !== null ? `${msA.toFixed(2)} ms` : "n/a"}
                       </span>
-                      <span className="text-[10.5px] text-[#7ee2b8]">
+                      <span className="font-mono text-[11px] text-white/80">
                         {result.nodes_after?.join(" → ") ?? after}
                       </span>
                     </div>
@@ -402,21 +389,21 @@ export function IndexLab() {
                 </div>
               </div>
 
-              {/* EXPLAIN ANALYZE Output in Code Style */}
+              {/* EXPLAIN ANALYZE Output in .sx-code style */}
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
-                  <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                  <span className="sx-eyebrow">
                     EXPLAIN ANALYZE plan · Without index
                   </span>
-                  <div className="border border-white/10 bg-[#05070d] p-3 rounded-[2px]">
+                  <div className="p-3 rounded-[10px] bg-[var(--sx-night)] border border-[var(--sx-hairline)]">
                     <PlanTree plan={result.plan_before} />
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                  <span className="sx-eyebrow">
                     EXPLAIN ANALYZE plan · With {indexKey}
                   </span>
-                  <div className="border border-white/10 bg-[#05070d] p-3 rounded-[2px]">
+                  <div className="p-3 rounded-[10px] bg-[var(--sx-night)] border border-[var(--sx-hairline)]">
                     <PlanTree plan={result.plan_after} />
                   </div>
                 </div>
@@ -429,7 +416,7 @@ export function IndexLab() {
       {/* 3. Partition Pruning Panel */}
       <Card title="Telemetry partition pruning" kicker="telemetry_YYYYMMDD">
         <div className="flex flex-col gap-2">
-          <p className="text-[13px] leading-relaxed text-[#dfe6f5]">
+          <p className="sx-body">
             Queries bounded by short time windows touch only the relevant daily partitions. The planner prunes
             non-matching ranges during query optimization, avoiding scanning millions of historical rows.
           </p>
@@ -442,27 +429,27 @@ export function IndexLab() {
 
       {/* 4. Lesson / What to look for */}
       <Card title="What to look for" kicker="Index selection strategy">
-        <ul className="flex flex-col gap-2 text-[13px] leading-relaxed text-[#dfe6f5]">
-          <li className="flex items-start gap-2">
-            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#3d5bff]" />
+        <ul className="flex flex-col gap-2 sx-body">
+          <li className="flex items-start gap-2.5">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--sx-text-3)]" />
             <span>
               <strong className="text-white font-mono">BRIN:</strong> Block Range Index requires mere kilobytes for append-only timestamp telemetry columns.
             </span>
           </li>
-          <li className="flex items-start gap-2">
-            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#3d5bff]" />
+          <li className="flex items-start gap-2.5">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--sx-text-3)]" />
             <span>
               <strong className="text-white font-mono">GIN:</strong> Generalized Inverted Index enables accelerated JSONB containment operations on nested housekeeping payloads.
             </span>
           </li>
-          <li className="flex items-start gap-2">
-            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#3d5bff]" />
+          <li className="flex items-start gap-2.5">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--sx-text-3)]" />
             <span>
               <strong className="text-white font-mono">Partial Index:</strong> Filters with WHERE status = 'QUEUED' index only active dispatch rows, keeping size trivial.
             </span>
           </li>
-          <li className="flex items-start gap-2">
-            <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#3d5bff]" />
+          <li className="flex items-start gap-2.5">
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--sx-text-3)]" />
             <span>
               <strong className="text-white font-mono">Covering (INCLUDE):</strong> Stores payload columns directly in leaf pages, bypassing table heap lookups entirely (Index-Only Scan).
             </span>
@@ -567,4 +554,3 @@ function fallbackQueries(): IndexQuery[] {
     },
   ];
 }
-

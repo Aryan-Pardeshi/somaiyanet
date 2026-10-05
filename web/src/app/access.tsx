@@ -156,30 +156,36 @@ export function useRole(): RoleCtx {
  * page, and the Postgres grants behind it. `note` adds a page-specific line.
  */
 export function RoleHeader({ note }: { note?: string }) {
-  const { access } = useRole();
+  const { role, access } = useRole();
   const [open, setOpen] = useState(false);
   if (!access) return null;
+  const roleName = role ? role.replace(/_/g, " ") : "Role";
   return (
-    <div className="mt-3 border border-white/[0.08] bg-white/[0.02] px-3 py-2 text-[12.5px] text-[#9aa3b8]">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="text-[#dfe6f5]">{access.who}</span>
-        <span>You can: {access.can.join(", ")}.</span>
-        {note && <span className="text-[#dfe6f5]">{note}</span>}
+    <div className="mt-4 rounded-[14px] bg-[var(--sx-surface)] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="sx-eyebrow text-white">{roleName}</span>
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="ml-auto font-mono text-[10px] uppercase tracking-[0.12em] text-[#3d5bff] hover:text-white"
+          className="sx-btn sx-btn--quiet sx-btn--sm"
           aria-expanded={open}
         >
           {open ? "Hide grants" : "Postgres grants"}
         </button>
       </div>
+      <p className="sx-body mt-2 mb-0 text-[14px]">
+        <span>{access.who}</span>{" "}
+        <span className="text-[var(--sx-text-3)]">You can: {access.can.join(", ")}.</span>
+        {note && <span className="block text-white mt-1">{note}</span>}
+      </p>
       {open && (
-        <ul className="mt-2 space-y-0.5 font-mono text-[11px] text-[#8b96b0]">
+        <div className="sx-group mt-3 bg-[var(--sx-night)]">
           {access.grants.map((g) => (
-            <li key={g}>GRANT {g}</li>
+            <div key={g} className="sx-row min-h-[36px] py-1.5 px-3 font-mono text-[12px] text-[var(--sx-text-2)]">
+              GRANT {g}
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
@@ -194,34 +200,62 @@ export function Locked({
   action,
   reason,
   onTry,
+  denial,
   children,
 }: {
   action: Action;
   reason?: string;
-  onTry?: () => void;
+  onTry?: () => void | Promise<unknown>;
+  denial?: string | null;
   children: ReactNode;
 }) {
   const { can, access } = useRole();
+  const [tryDenial, setTryDenial] = useState<string | null>(null);
+
   if (can(action)) return <>{children}</>;
+
   const why = reason ?? `${access?.who.split(":")[0] ?? "This role"} is not allowed to do this.`;
+
+  const handleTry = async () => {
+    setTryDenial(null);
+    try {
+      await onTry?.();
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && ("sqlstate" in err || "message" in err || "status" in err)) {
+        const e = err as { sqlstate?: string; status?: number; message?: string };
+        setTryDenial(`${e.sqlstate ?? e.status ?? "42501"}: ${e.message ?? "Permission denied"}`);
+      } else if (err instanceof Error) {
+        setTryDenial(err.message);
+      } else {
+        setTryDenial("42501 permission denied");
+      }
+    }
+  };
+
+  const activeDenial = tryDenial ?? denial;
+
   return (
-    <div className="inline-flex flex-wrap items-center gap-2">
-      <span
-        className="inline-flex cursor-not-allowed items-center gap-1.5 border border-white/10 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-[#5f6f93]"
-        title={why}
-      >
-        <Lock size={12} aria-hidden="true" />
-        Locked
-      </span>
-      <span className="text-[12px] text-[#8b96b0]">{why}</span>
+    <div className="inline-flex flex-wrap items-center gap-2.5">
+      <div className="opacity-40 pointer-events-none select-none">
+        {children}
+      </div>
+      <div className="inline-flex items-center gap-1.5">
+        <Lock size={14} className="text-white/50 shrink-0" aria-hidden="true" />
+        <span className="sx-caption">{why}</span>
+      </div>
       {onTry && (
         <button
           type="button"
-          onClick={onTry}
-          className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#ff3b4f] underline-offset-2 hover:underline"
+          onClick={() => void handleTry()}
+          className="sx-btn sx-btn--sm"
         >
           Try anyway
         </button>
+      )}
+      {activeDenial && (
+        <span className="font-mono text-[12px] text-[var(--sx-red)]">
+          {activeDenial}
+        </span>
       )}
     </div>
   );

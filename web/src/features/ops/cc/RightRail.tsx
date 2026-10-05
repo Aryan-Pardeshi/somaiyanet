@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle } from "lucide-react";
-import { Locked, useRole } from "@/app/access";
+import { Locked } from "@/app/access";
 import { apiFetch, ApiError } from "@/app/api";
 import type {
   Alert,
@@ -27,17 +26,11 @@ interface RightRailProps {
   onRefetchAlerts?: () => Promise<void>;
 }
 
-function stateColor(state: string): string {
-  switch (state) {
-    case "NOMINAL":
-      return "#7ee2b8";
-    case "SAFE":
-      return "#f5a524";
-    case "CRITICAL":
-      return "#ff3b4f";
-    default:
-      return "#4a5a8a";
-  }
+function stateTone(state: string): "ok" | "warn" | "critical" | undefined {
+  if (state === "NOMINAL") return "ok";
+  if (state === "SAFE") return "warn";
+  if (state === "CRITICAL") return "critical";
+  return undefined;
 }
 
 function formatSatState(state: string): string {
@@ -95,15 +88,15 @@ function BatteryBarChart({ values }: { values: number[] }) {
               title={`${v.toFixed(2)} V`}
               className={`flex-1 rounded-[1px] transition-all ${
                 isLatest
-                  ? "bg-white shadow-[0_0_8px_white]"
-                  : "bg-[#3d5bff] opacity-80 hover:opacity-100"
+                  ? "bg-white"
+                  : "bg-white/30 hover:bg-white/60"
               }`}
               style={{ height: `${Math.round(ratio * 100)}%` }}
             />
           );
         })}
       </div>
-      <div className="flex items-center justify-between font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
+      <div className="flex items-center justify-between sx-caption">
         <span>-10 min</span>
         <span>NOW</span>
       </div>
@@ -122,7 +115,6 @@ export function RightRail({
   decisions,
   onRefetchAlerts,
 }: RightRailProps) {
-  const { access } = useRole();
   const navigate = useNavigate();
   const [acking, setAcking] = useState(false);
   const [ackError, setAckError] = useState<{
@@ -167,7 +159,6 @@ export function RightRail({
 
   const activeAlert = unackAlerts[0] ?? null;
   const isCritical = activeAlert?.severity === "CRITICAL";
-  const alertColor = isCritical ? "#ff3b4f" : "#f5a524";
 
   const handleAckAlert = async () => {
     if (!activeAlert) return;
@@ -225,73 +216,54 @@ export function RightRail({
       <div className="w-full flex flex-col gap-3">
         <Glass>
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
-              <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#dfe6f5]">
+            <div className="flex items-center justify-between border-b border-[var(--sx-hairline)] pb-2">
+              <span className="sx-eyebrow text-white">
                 Upcoming passes
               </span>
-              <span className="font-mono text-[10px] text-[#8b96b0]">
+              <span className="sx-caption">
                 {sortedContacts.length} scheduled
               </span>
             </div>
 
-            {access?.station && (
-              <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-[11px] text-[#dfe6f5] leading-relaxed">
-                Only passes involving your station are listed: row-level security on contact
-              </div>
-            )}
-
-            <div className="flex flex-col gap-2 max-h-[calc(100vh-14rem)] overflow-y-auto pr-1">
+            <div className="divide-y divide-[var(--sx-hairline)] max-h-[calc(100vh-14rem)] overflow-y-auto">
               {sortedContacts.map((c) => {
                 const isIsl = c.kind === "ISL";
                 return (
                   <div
                     key={c.contact_id}
-                    className="p-2.5 rounded-xl liquid-glass-inset flex flex-col gap-1.5"
+                    className="py-3 flex flex-col gap-1.5"
                   >
                     <div className="flex items-center justify-between gap-1">
-                      <span className="font-mono text-[11.5px] font-semibold text-[#dfe6f5]">
-                        {isIsl
-                          ? `${c.from_node} to ${c.to_node} (satellite-to-satellite link)`
-                          : `${c.from_node} to ${c.to_node} (to ground)`}
+                      <span className="font-[family-name:var(--font-display)] text-[13px] font-bold capitalize text-white">
+                        {c.from_node} → {c.to_node}
                       </span>
-                      <span
-                        className={`font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full border shrink-0 ${
-                          isIsl
-                            ? "text-[#7fb2ff] border-[#7fb2ff]/30 bg-[#7fb2ff]/10"
-                            : "text-[#7ee2b8] border-[#7ee2b8]/30 bg-[#7ee2b8]/10"
-                        }`}
-                      >
+                      <span className="sx-caption text-[var(--sx-text-3)] capitalize ">
                         {isIsl ? "ISL" : "Ground"}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between font-mono text-[10px]">
-                      <span className="text-[#8b96b0]">Countdown</span>
-                      <span className="text-[#7ee2b8] tabular-nums font-medium">
+                    <div className="flex items-center justify-between sx-caption">
+                      <span>Countdown</span>
+                      <span className="sx-num text-white tabular-nums">
                         {formatContactCountdown(c.start_ts, now)}
                       </span>
                     </div>
 
                     {/* Link quality bar */}
-                    <div className="flex flex-col gap-0.5">
-                      <div className="flex justify-between items-center font-mono text-[9px] text-[#8b96b0]">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex justify-between items-center sx-caption">
                         <span className="inline-flex items-center">
                           Link quality
                           <HelpHint text="Expected radio signal strength and packet success rate for this link." />
                         </span>
-                        <span className="text-[#dfe6f5] tabular-nums font-medium">{c.link_score}%</span>
+                        <span className="sx-num text-white tabular-nums">{c.link_score}%</span>
                       </div>
-                      <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                      <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all"
                           style={{
                             width: `${c.link_score}%`,
-                            backgroundColor:
-                              c.link_score >= 70
-                                ? "#7ee2b8"
-                                : c.link_score >= 40
-                                  ? "#f5a524"
-                                  : "#ff3b4f",
+                            backgroundColor: "rgba(255, 255, 255, 0.7)",
                           }}
                         />
                       </div>
@@ -300,7 +272,7 @@ export function RightRail({
                 );
               })}
               {sortedContacts.length === 0 && (
-                <div className="p-4 text-center font-mono text-xs text-[#8b96b0]">
+                <div className="py-4 text-center sx-caption">
                   No upcoming passes scheduled.
                 </div>
               )}
@@ -318,45 +290,41 @@ export function RightRail({
         {/* Live Data Ticker */}
         <Glass>
           <div className="flex flex-col gap-2.5">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
-              <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#dfe6f5]">
+            <div className="flex items-center justify-between border-b border-[var(--sx-hairline)] pb-2">
+              <span className="sx-eyebrow text-white">
                 Live data
               </span>
-              <span className="font-mono text-[10px] text-[#7ee2b8] flex items-center gap-1.5">
-                <span className="size-1.5 rounded-full bg-[#7ee2b8] motion-safe:animate-pulse" />
-                STREAMING
+              <span className="sx-status" data-tone="ok">
+                Streaming
               </span>
             </div>
 
-            <div className="flex flex-col gap-1.5 max-h-[300px] overflow-y-auto pr-1">
+            <div className="divide-y divide-[var(--sx-hairline)] max-h-[300px] overflow-y-auto">
               {[...telemetry].reverse().map((t, idx) => (
                 <div
                   key={`${t.sat_id}-${t.ts}-${idx}`}
-                  className={`p-2.5 rounded-xl font-mono text-[11px] flex flex-col gap-0.5 border ${
-                    idx === 0
-                      ? "bg-[#3d5bff]/10 border-[#3d5bff]/40 text-white"
-                      : "liquid-glass-inset text-[#8b96b0]"
-                  }`}
+                  className="py-2.5 flex flex-col gap-1"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[#dfe6f5] font-semibold">{t.sat_id}</span>
-                    <span className="text-[10px] text-[#8b96b0]">
+                    <span className="font-[family-name:var(--font-display)] text-[13px] font-bold capitalize text-white">
+                      {t.sat_id}
+                    </span>
+                    <span className="sx-caption tabular-nums">
                       {new Date(t.ts).toISOString().slice(11, 19)}Z
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span>
-                      {t.battery_v.toFixed(2)} V • {t.temp_c}°C
+                  <div className="flex items-center justify-between sx-caption">
+                    <span className="sx-num tabular-nums text-white">
+                      {t.battery_v.toFixed(2)} V · {t.temp_c}°C
                     </span>
-                    <span>
-                      {t.rssi_dbm !== null ? `${t.rssi_dbm} dBm` : "—"} •{" "}
-                      {t.mode_active ?? "IDLE"}
+                    <span className="sx-num tabular-nums text-[var(--sx-text-3)]">
+                      {t.rssi_dbm !== null ? `${t.rssi_dbm} dBm` : "—"} · {t.mode_active ?? "IDLE"}
                     </span>
                   </div>
                 </div>
               ))}
               {telemetry.length === 0 && (
-                <div className="p-4 text-center font-mono text-xs text-[#8b96b0]">
+                <div className="py-4 text-center sx-caption">
                   Awaiting live data frames…
                 </div>
               )}
@@ -367,36 +335,38 @@ export function RightRail({
         {/* AI Router Decision Feed */}
         <Glass>
           <div className="flex flex-col gap-2.5">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
-              <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#dfe6f5]">
+            <div className="flex items-center justify-between border-b border-[var(--sx-hairline)] pb-2">
+              <span className="sx-eyebrow text-white">
                 AI router decisions
               </span>
-              <span className="font-mono text-[10px] text-[#8b96b0]">
-                {decisions.length} EVENTS
+              <span className="sx-caption">
+                {decisions.length} events
               </span>
             </div>
 
-            <div className="flex flex-col gap-2 max-h-[260px] overflow-y-auto pr-1">
+            <div className="divide-y divide-[var(--sx-hairline)] max-h-[260px] overflow-y-auto">
               {decisions.map((d, idx) => (
                 <div
                   key={`${d.sat_id}-${idx}`}
-                  className="p-2.5 rounded-xl liquid-glass-inset flex flex-col gap-1 font-mono text-[11px]"
+                  className="py-2.5 flex flex-col gap-1"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[#dfe6f5] font-semibold">{d.sat_id}</span>
+                    <span className="font-[family-name:var(--font-display)] text-[13px] font-bold capitalize text-white">
+                      {d.sat_id}
+                    </span>
                     {d.overridden && (
-                      <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-[#f5a524]/40 bg-[#f5a524]/10 text-[#f5a524]">
-                        Safety check overruled the AI
+                      <span className="sx-status" data-tone="warn">
+                        Safety override
                       </span>
                     )}
                   </div>
-                  <span className="text-[#8b96b0] text-[10px]">
-                    Action: <span className="text-[#dfe6f5]">{d.final_action}</span>
+                  <span className="sx-caption text-[var(--sx-text-2)]">
+                    Action: <span className="text-white">{d.final_action}</span>
                   </span>
                 </div>
               ))}
               {decisions.length === 0 && (
-                <div className="p-4 text-center font-mono text-xs text-[#8b96b0]">
+                <div className="py-4 text-center sx-caption">
                   No AI decision logs recorded.
                 </div>
               )}
@@ -410,26 +380,22 @@ export function RightRail({
   // Overview and Satellites (Fleet) Tabs:
   return (
     <div className="w-full flex flex-col gap-3">
-      {/* 1. ONE "Selected satellite" card (merges identity, battery & chart, and 2-column stats) */}
+      {/* 1. Selected satellite card */}
       {sat && (
         <Glass className="w-full">
           <div className="flex flex-col gap-3">
             {/* Identity section */}
             <div className="flex flex-col gap-1">
-              <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+              <span className="sx-eyebrow text-[var(--sx-text-3)]">
                 Selected satellite
               </span>
               <div className="flex items-baseline justify-between mt-1 gap-2">
-                <h1 className="font-sans min-w-0 break-words text-[30px] font-light leading-none tracking-tight text-white">
+                <h2 className="font-[family-name:var(--font-display)] text-[26px] font-bold capitalize tracking-tight text-white leading-none">
                   {sat.display_name || sat.node_id}
-                </h1>
+                </h2>
                 <span
-                  className="font-mono text-[10px] uppercase tracking-[0.14em] px-2.5 py-0.5 rounded-full border shrink-0 inline-flex items-center"
-                  style={{
-                    color: stateColor(sat.state),
-                    borderColor: `color-mix(in srgb, ${stateColor(sat.state)} 35%, transparent)`,
-                    backgroundColor: `color-mix(in srgb, ${stateColor(sat.state)} 12%, transparent)`,
-                  }}
+                  className="sx-status shrink-0"
+                  data-tone={stateTone(sat.state)}
                 >
                   {formatSatState(sat.state)}
                   {sat.state === "SAFE" && (
@@ -437,51 +403,46 @@ export function RightRail({
                   )}
                 </span>
               </div>
-              <p className="font-mono text-[11px] text-[#8b96b0] tracking-wider">
-                {sat.node_id}, sun-synchronous orbit {sat.plane}, 525 km
+              <p className="sx-caption">
+                {sat.node_id} · Orbit plane {sat.plane} · 525 km
               </p>
             </div>
 
             {/* Battery section */}
-            <div className="pt-2 border-t border-white/[0.08] flex flex-col gap-1.5">
+            <div className="pt-2.5 border-t border-[var(--sx-hairline)] flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+                <span className="sx-eyebrow text-[var(--sx-text-3)]">
                   Battery
                 </span>
-                <span
-                  className={`font-mono text-[10px] ${
-                    batDelta >= 0 ? "text-[#7ee2b8]" : "text-[#f5a524]"
-                  }`}
-                >
-                  change over 10 min: {batDelta >= 0 ? "+" : ""}
+                <span className="sx-caption">
+                  10 min change: {batDelta >= 0 ? "+" : ""}
                   {batDelta.toFixed(2)} V
                 </span>
               </div>
 
-              <div className="font-mono text-[24px] font-semibold text-white tracking-tight leading-none">
-                {currentBat.toFixed(2)}{" "}
-                <span className="text-[13px] font-normal text-[#8b96b0]">V</span>
+              <div className="sx-num text-[26px] text-white tabular-nums leading-none">
+                {currentBat.toFixed(2)} <span className="text-[13px] font-normal text-[var(--sx-text-3)]">V</span>
               </div>
 
               <BatteryBarChart values={batHistory} />
             </div>
 
-            {/* 2-column stat row: Temperature and Signal received (RSSI) as plain numbers with units */}
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/[0.08]">
+            {/* 2-column stat row */}
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[var(--sx-hairline)]">
               <div className="flex flex-col gap-0.5">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-[#8b96b0]">
+                <span className="sx-caption">
                   Temperature
                 </span>
-                <span className="font-mono text-[18px] font-medium text-white tabular-nums">
-                  {curTemp} <span className="text-[12px] font-normal text-[#8b96b0]">°C</span>
+                <span className="sx-num text-[20px] text-white tabular-nums">
+                  {curTemp} <span className="text-[12px] font-normal text-[var(--sx-text-3)]">°C</span>
                 </span>
               </div>
               <div className="flex flex-col gap-0.5">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-[#8b96b0] truncate">
+                <span className="sx-caption truncate">
                   Signal received (RSSI)
                 </span>
-                <span className="font-mono text-[18px] font-medium text-white tabular-nums">
-                  {curRssi} <span className="text-[12px] font-normal text-[#8b96b0]">dBm</span>
+                <span className="sx-num text-[20px] text-white tabular-nums">
+                  {curRssi} <span className="text-[12px] font-normal text-[var(--sx-text-3)]">dBm</span>
                 </span>
               </div>
             </div>
@@ -494,45 +455,41 @@ export function RightRail({
         <>
           {/* 2. Warning Card (only when there is an unacknowledged alert) */}
           {activeAlert && (
-            <Glass
-              tone={isCritical ? "critical" : "warn"}
-              className="w-full"
-            >
-              <div className="flex flex-col gap-2.5">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle size={16} style={{ color: alertColor }} />
+            <Glass className="w-full">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
                   <span
-                    className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em]"
-                    style={{ color: alertColor }}
+                    className="sx-status"
+                    data-tone={isCritical ? "critical" : "warn"}
                   >
-                    Warning
+                    {isCritical ? "Critical alert" : "Warning"}
                   </span>
-                  <span className="ml-auto font-mono text-[10px] text-[#8b96b0]">
-                    {activeAlert.sat_id ?? "SS-1"}
+                  <span className="sx-caption tabular-nums">
+                    {new Date(activeAlert.raised_at).toISOString().slice(11, 16)} UTC
                   </span>
                 </div>
 
-                <p className="font-sans text-[12px] text-[#dfe6f5] leading-snug">
+                <p className="sx-body text-white">
                   {activeAlert.message}
                 </p>
 
-                {/* Three progress rows */}
-                <div className="flex flex-col gap-2 pt-1">
+                {/* Progress rows */}
+                <div className="flex flex-col gap-2 pt-2 border-t border-[var(--sx-hairline)]">
                   {warningMetrics.map((row) => (
                     <div key={row.label} className="flex flex-col gap-0.5">
-                      <div className="flex justify-between items-baseline font-mono text-[10px]">
-                        <span className="text-[#dfe6f5] font-semibold">{row.label}</span>
-                        <span style={{ color: alertColor }}>{row.value}%</span>
+                      <div className="flex justify-between items-baseline sx-caption">
+                        <span className="text-white font-medium">{row.label}</span>
+                        <span className="sx-num">{row.value}%</span>
                       </div>
-                      <div className="text-[10px] text-[#8b96b0]">
+                      <div className="sx-caption text-[var(--sx-text-3)]">
                         {row.explanation}
                       </div>
-                      <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden mt-0.5">
+                      <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden mt-0.5">
                         <div
                           className="h-full rounded-full transition-all"
                           style={{
                             width: `${row.value}%`,
-                            backgroundColor: alertColor,
+                            backgroundColor: isCritical ? "var(--sx-red)" : "var(--sx-orange)",
                           }}
                         />
                       </div>
@@ -541,7 +498,7 @@ export function RightRail({
                 </div>
 
                 {/* Buttons: Acknowledge & Open AI router */}
-                <div className="flex flex-col gap-2 pt-1.5">
+                <div className="flex flex-col gap-2 pt-1.5 border-t border-[var(--sx-hairline)]">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <Locked
                       action="ack_alert"
@@ -552,7 +509,7 @@ export function RightRail({
                         type="button"
                         onClick={handleAckAlert}
                         disabled={acking}
-                        className="px-3.5 py-1.5 rounded-full border border-white/15 bg-white/10 text-[11px] font-mono uppercase tracking-wider text-[#dfe6f5] hover:bg-white/20 transition-all cursor-pointer disabled:opacity-50"
+                        className="sx-btn sx-btn--sm sx-btn--filled"
                       >
                         {acking ? "Acknowledging..." : "Acknowledge"}
                       </button>
@@ -560,18 +517,17 @@ export function RightRail({
                     <button
                       type="button"
                       onClick={() => navigate("/brain")}
-                      className="px-3.5 py-1.5 rounded-full font-mono text-[11px] uppercase tracking-wider text-black font-semibold transition-transform hover:scale-[1.02] cursor-pointer ml-auto"
-                      style={{ backgroundColor: alertColor }}
+                      className="sx-btn sx-btn--sm ml-auto"
                     >
                       Open AI router
                     </button>
                   </div>
                   {ackError && (
-                    <div className="p-2.5 rounded-xl border border-[#ff3b4f]/40 bg-[#ff3b4f]/10 text-xs text-[#ff3b4f] flex flex-col gap-1">
+                    <div className="p-3 rounded-[10px] border border-[var(--sx-hairline)] bg-[var(--sx-night)] text-xs text-[var(--sx-red)] flex flex-col gap-1">
                       <div className="font-semibold">
                         Permission denied by PostgreSQL ({ackError.sqlstate ?? "42501"})
                       </div>
-                      <div className="font-mono text-[11px] text-[#dfe6f5] break-words">
+                      <div className="sx-code break-words">
                         {ackError.message}
                       </div>
                     </div>
@@ -581,45 +537,45 @@ export function RightRail({
             </Glass>
           )}
 
-          {/* 3. Today KPIs Card (2x2 numbers) */}
+          {/* 3. Today KPIs Card */}
           <Glass className="w-full">
             <div className="flex flex-col gap-2.5">
-              <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+              <span className="sx-eyebrow text-white">
                 Today
               </span>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="p-2.5 rounded-xl liquid-glass-inset flex flex-col gap-0.5">
-                  <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
+              <div className="divide-y divide-[var(--sx-hairline)]">
+                <div className="py-2.5 flex items-center justify-between">
+                  <span className="sx-caption">
                     Working satellites
                   </span>
-                  <span className="font-sans text-[22px] font-light text-white leading-tight">
+                  <span className="sx-num text-[22px] text-white tabular-nums">
                     {kpi ? `${kpi.sats_operational}/${kpi.sats_total}` : "—"}
                   </span>
                 </div>
 
-                <div className="p-2.5 rounded-xl liquid-glass-inset flex flex-col gap-0.5">
-                  <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
+                <div className="py-2.5 flex items-center justify-between">
+                  <span className="sx-caption">
                     Packets waiting to send
                   </span>
-                  <span className="font-sans text-[22px] font-light text-white leading-tight">
+                  <span className="sx-num text-[22px] text-white tabular-nums">
                     {kpi ? kpi.packets_queued : "—"}
                   </span>
                 </div>
 
-                <div className="p-2.5 rounded-xl liquid-glass-inset flex flex-col gap-0.5">
-                  <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
+                <div className="py-2.5 flex items-center justify-between">
+                  <span className="sx-caption">
                     Delivered in last 24 h
                   </span>
-                  <span className="font-sans text-[22px] font-light text-white leading-tight">
+                  <span className="sx-num text-[22px] text-white tabular-nums">
                     {kpi ? kpi.packets_delivered_24h : "—"}
                   </span>
                 </div>
 
-                <div className="p-2.5 rounded-xl liquid-glass-inset flex flex-col gap-0.5">
-                  <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
-                    Times the safety check overruled the AI
+                <div className="py-2.5 flex items-center justify-between">
+                  <span className="sx-caption">
+                    Safety check overruled AI
                   </span>
-                  <span className="font-sans text-[22px] font-light text-white leading-tight">
+                  <span className="sx-num text-[22px] text-white tabular-nums">
                     {kpi ? kpi.ai_overrides_24h : "—"}
                   </span>
                 </div>
@@ -631,3 +587,4 @@ export function RightRail({
     </div>
   );
 }
+

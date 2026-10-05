@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ACTION_COLORS, type DtNode, type RouterAction } from "./api";
+import type { DtNode, RouterAction } from "./api";
 
 interface Pos {
   x: number;
@@ -10,23 +10,19 @@ const X_GAP = 100;
 const Y_GAP = 110;
 const NODE_W = 88;
 const NODE_H = 46;
-const CUT = 5;
-
-/** Generates SVG polygon points for a chamfered rectangle */
-function chamferPolygon(w: number, h: number, c: number): string {
-  return `${c},0 ${w - c},0 ${w},${c} ${w},${h - c} ${w - c},${h} ${c},${h} 0,${h - c} 0,${c}`;
-}
 
 export function TreeSvg({
   nodes,
   pathIds,
   stagger,
   modelVersion = 1,
+  overrideNodeId = null,
 }: {
   nodes: DtNode[];
   pathIds: number[];
   stagger: boolean;
   modelVersion?: number;
+  overrideNodeId?: number | null;
 }) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -89,12 +85,17 @@ export function TreeSvg({
     [nodes, visible, pos],
   );
 
-  const maxX = Math.max(1, ...[...pos.values()].map((p) => p.x)) + X_GAP;
-  const maxY = Math.max(1, ...[...pos.values()].map((p) => p.y)) + NODE_H + 40;
-
-  const polyPoints = useMemo(() => chamferPolygon(NODE_W, NODE_H, CUT), []);
+  const actions = useMemo(() => {
+    const seen = new Set<RouterAction>();
+    for (const n of nodes) {
+      if (n.leaf_action !== null) seen.add(n.leaf_action);
+    }
+    return [...seen];
+  }, [nodes]);
 
   // Wheel zoom via a non-passive listener: React's synthetic onWheel is
+  // passive, so preventDefault (to stop the page scrolling while zooming
+  // the tree) would be ignored there.: React's synthetic onWheel is
   // passive, so preventDefault (to stop the page scrolling while zooming
   // the tree) would be ignored there.
   useEffect(() => {
@@ -133,45 +134,47 @@ export function TreeSvg({
 
   return (
     <div className="flex flex-col gap-2.5">
-      {/* HUD Header Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] font-semibold tracking-[0.14em] uppercase text-[#dfe6f5]">
-            DECISION TREE / MODEL v{modelVersion} / {nodes.length} NODES
+          <span className="sx-eyebrow">
+            Decision tree · Model v{modelVersion} · {nodes.length} nodes
           </span>
-          <span className="font-mono text-[10px] text-[#8b96b0]">
-            [{visible.size} ACTIVE IN VIEW]
-          </span>
+          <span className="sx-caption">{visible.size} in view</span>
         </div>
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setShowFull((v) => !v)}
-            className="font-mono px-2.5 py-1 text-[10px] uppercase tracking-[0.1em] border border-white/15 bg-transparent text-[#dfe6f5] hover:border-white/30 transition-colors cursor-pointer"
+            className="sx-btn sx-btn--quiet sx-btn--sm"
+            aria-expanded={showFull}
           >
-            {showFull ? "COLLAPSE OFF-PATH" : "EXPAND FULL TREE"}
+            {showFull ? "Collapse off-path" : "Expand full tree"}
           </button>
           <div className="flex items-center gap-1">
             <button
+              type="button"
               onClick={() => setZoom((z) => Math.min(3, z * 1.2))}
-              className="font-mono px-2 py-0.5 text-[10px] border border-white/15 bg-transparent text-[#dfe6f5] hover:border-white/30 cursor-pointer"
+              className="sx-btn sx-btn--quiet sx-btn--sm"
               aria-label="Zoom in"
             >
               +
             </button>
             <button
+              type="button"
               onClick={() => {
                 setZoom(1);
                 setPan({ x: 0, y: 0 });
               }}
               aria-label="Reset zoom"
-              className="font-mono px-2 py-0.5 text-[10px] border border-white/15 bg-transparent text-[#dfe6f5] hover:border-white/30 cursor-pointer"
+              className="sx-btn sx-btn--quiet sx-btn--sm"
             >
               1×
             </button>
             <button
+              type="button"
               onClick={() => setZoom((z) => Math.max(0.3, z / 1.2))}
-              className="font-mono px-2 py-0.5 text-[10px] border border-white/15 bg-transparent text-[#dfe6f5] hover:border-white/30 cursor-pointer"
+              className="sx-btn sx-btn--quiet sx-btn--sm"
               aria-label="Zoom out"
             >
               −
@@ -186,8 +189,8 @@ export function TreeSvg({
         tabIndex={0}
         role="application"
         aria-label="Decision tree diagram. Arrow keys pan, plus and minus zoom."
-        className="relative cursor-grab overflow-hidden border border-white/10 bg-[#05070d] focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#3d5bff] active:cursor-grabbing"
-        style={{ height: 440 }}
+        className="relative cursor-grab overflow-hidden rounded-[10px] bg-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-white active:cursor-grabbing"
+        style={{ height: 440, boxShadow: "inset 0 0 0 1px var(--sx-hairline)" }}
         onKeyDown={onCanvasKeyDown}
         onMouseDown={(e) =>
           (drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y })
@@ -217,18 +220,11 @@ export function TreeSvg({
         }}
         onTouchEnd={() => (touch.current = null)}
       >
-        {/* Corner labels */}
-        <div className="pointer-events-none absolute left-2.5 top-2 z-10 font-mono text-[9px] uppercase tracking-wider text-[#8b96b0]/70">
-          Active path highlighted
+        <div className="sx-caption pointer-events-none absolute left-2.5 top-2 z-10">
+          Active path in white
         </div>
-        <div className="pointer-events-none absolute right-2.5 top-2 z-10 font-mono text-[9px] uppercase tracking-wider text-[#8b96b0]/70">
+        <div className="sx-caption pointer-events-none absolute right-2.5 top-2 z-10">
           Scroll to zoom · Drag to move
-        </div>
-        <div className="pointer-events-none absolute left-2.5 bottom-2 z-10 font-mono text-[9px] uppercase tracking-wider text-[#8b96b0]/70">
-          Decision tree from dt_node rows
-        </div>
-        <div className="pointer-events-none absolute right-2.5 bottom-2 z-10 font-mono text-[9px] uppercase tracking-wider text-[#8b96b0]/70">
-          Size: {Math.round(maxX)}×{Math.round(maxY)}
         </div>
 
         <svg
@@ -239,7 +235,7 @@ export function TreeSvg({
           style={{ display: "block" }}
         >
           <g transform={`translate(${pan.x + 30},${pan.y + 30}) scale(${zoom})`}>
-            {/* Connection lines */}
+            {/* Connection lines: 1px white 25% idle, white 100% on the active path */}
             {order.map((n) => {
               const p = pos.get(n.node_id);
               if (!p) return null;
@@ -256,38 +252,20 @@ export function TreeSvg({
                       y1={p.y}
                       x2={q.x}
                       y2={q.y}
-                      stroke={hot ? "#3d5bff" : "rgba(255, 255, 255, 0.12)"}
-                      strokeWidth={hot ? 2.4 : 1}
-                      style={
-                        hot
-                          ? { filter: "drop-shadow(0 0 4px rgba(61, 91, 255, 0.7))" }
-                          : undefined
-                      }
+                      stroke={hot ? "#ffffff" : "rgba(255, 255, 255, 0.25)"}
+                      strokeWidth={hot ? 1.5 : 1}
                     />
                   );
                 });
             })}
 
-            {/* Tree nodes as chamfered boxes */}
+            {/* Tree nodes: minimal rounded rectangles, no borders, no glows */}
             {order.map((n) => {
               const p = pos.get(n.node_id);
               if (!p) return null;
               const hot = onPath.has(n.node_id);
               const leaf = n.leaf_action !== null;
-              const leafColor = leaf
-                ? (ACTION_COLORS[n.leaf_action as RouterAction] ?? "#8b96b0")
-                : "#8b96b0";
-
-              const strokeColor = hot
-                ? "#3d5bff"
-                : leaf
-                  ? leafColor
-                  : "rgba(255, 255, 255, 0.15)";
-              const fillColor = hot
-                ? "rgba(61, 91, 255, 0.18)"
-                : leaf
-                  ? "rgba(6, 11, 23, 0.9)"
-                  : "rgba(10, 16, 30, 0.85)";
+              const overridden = overrideNodeId !== null && n.node_id === overrideNodeId;
               const step = pathIds.indexOf(n.node_id);
 
               return (
@@ -304,42 +282,39 @@ export function TreeSvg({
                       : undefined
                   }
                 >
-                  {/* Chamfered Box */}
-                  <polygon
-                    points={polyPoints}
-                    fill={fillColor}
-                    stroke={strokeColor}
-                    strokeWidth={hot ? 2 : 1}
-                    style={
-                      hot
-                        ? {
-                            filter: "drop-shadow(0 0 6px rgba(61, 91, 255, 0.6))",
-                          }
-                        : undefined
-                    }
+                  <rect
+                    width={NODE_W}
+                    height={NODE_H}
+                    rx={8}
+                    fill={overridden ? "rgba(255, 159, 10, 0.16)" : "#111113"}
                   />
+                  {overridden && (
+                    <circle cx={NODE_W - 10} cy={10} r={3} fill="#ff9f0a" />
+                  )}
+                  {hot && !leaf && (
+                    <circle cx={NODE_W / 2} cy={6} r={2} fill="#ffffff" />
+                  )}
 
-                  {/* Leaf / Feature text */}
                   <text
                     x={NODE_W / 2}
-                    y={leaf ? 18 : 17}
+                    y={leaf ? 19 : 18}
                     textAnchor="middle"
-                    fill={hot ? "#ffffff" : leaf ? leafColor : "#dfe6f5"}
-                    fontSize={8.5}
-                    fontWeight={hot || leaf ? 600 : 400}
-                    fontFamily="Geist Mono, monospace"
+                    fill={overridden ? "#ff9f0a" : "#ffffff"}
+                    fontSize={11}
+                    fontWeight={600}
+                    fontFamily="var(--font-display)"
+                    style={{ textTransform: "capitalize", letterSpacing: "0.06em" }}
                   >
-                    {leaf ? n.leaf_action : n.feature}
+                    {(leaf && n.leaf_action ? n.leaf_action : (n.feature ?? "")).slice(0, 14)}
                   </text>
 
-                  {/* Threshold / samples text */}
                   <text
                     x={NODE_W / 2}
-                    y={leaf ? 31 : 31}
+                    y={32}
                     textAnchor="middle"
-                    fill={hot ? "#7fb2ff" : "#8b96b0"}
-                    fontSize={8}
-                    fontFamily="Geist Mono, monospace"
+                    fill={overridden ? "#ff9f0a" : hot ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.4)"}
+                    fontSize={10}
+                    fontFamily="var(--font-sans)"
                   >
                     {leaf
                       ? `n=${n.samples}`
@@ -352,23 +327,21 @@ export function TreeSvg({
         </svg>
       </div>
 
-      {/* Action Colors Legend */}
-      <div className="flex max-w-full flex-wrap items-center gap-3 pt-1 border-t border-white/5">
-        <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8b96b0]">
-          ACTION LABELS:
-        </span>
-        {(Object.keys(ACTION_COLORS) as RouterAction[]).map((a) => (
+      <div className="flex max-w-full flex-wrap items-center gap-3 pt-1">
+        <span className="sx-eyebrow">Actions</span>
+        {actions.map((a) => (
           <span
             key={a}
-            className="font-mono inline-flex items-center gap-1.5 text-[10px] tracking-[0.08em] text-[#dfe6f5]"
+            className="sx-caption inline-flex items-center gap-1.5 !text-white/70"
           >
-            <span
-              className="inline-block size-2 rounded-none"
-              style={{ background: ACTION_COLORS[a] }}
-            />
+            <span className="inline-block size-[7px] rounded-full bg-white" />
             {a}
           </span>
         ))}
+        <span className="sx-caption inline-flex items-center gap-1.5">
+          <span className="inline-block size-[7px] rounded-full bg-[#ff9f0a]" />
+          Watchdog override
+        </span>
       </div>
     </div>
   );

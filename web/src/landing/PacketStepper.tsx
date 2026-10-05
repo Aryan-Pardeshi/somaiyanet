@@ -6,35 +6,35 @@ type Kind = "scan" | "tree" | "hop" | "dish" | "rows";
 
 const STEPS: Step[] = [
   {
-    caption: "CAPTURED",
+    caption: "Captured",
     title: "An image is captured",
     body: "SomaiyaSat paints an SSTV frame of the Earth's limb and queues it. The packet row and its sstv_image subtype row are written together — one supertype, one specialisation.",
     sql: "INSERT INTO packet (origin_sat, mode, size_bytes)\nVALUES ('SS-1', 'SSTV', 41216)\nRETURNING packet_id;",
     art: "scan",
   },
   {
-    caption: "DECIDED",
+    caption: "Decided",
     title: "The router decides",
     body: "A decision tree stored as rows walks battery, link score, contact time and queue depth. A watchdog checks five safety rules and can overrule the model.",
     sql: "SELECT action, path\nFROM ai_decide(\n  features_for_satellite('SS-1'));",
     art: "tree",
   },
   {
-    caption: "RELAYED",
+    caption: "Relayed",
     title: "It hops satellite to satellite",
     body: "No station below. A recursive query chains time-ordered inter-satellite contacts and finds the earliest arrival at any ground station.",
     sql: "SELECT explanation\nFROM cgr_routes('SS-1', now(), 41216);\n-- WITH RECURSIVE … CYCLE node",
     art: "hop",
   },
   {
-    caption: "DELIVERED",
+    caption: "Delivered",
     title: "It reaches the ground",
     body: "Inside the pass budget the frame goes down to the dish. Housekeeping commits first; the rest sits behind a savepoint so a failure never loses telemetry.",
     sql: "SELECT stage, status\nFROM execute_pass('SS-3', 412, false);",
     art: "dish",
   },
   {
-    caption: "RECORDED",
+    caption: "Recorded",
     title: "Everything is on the record",
     body: "Triggers write every state change, decision and telecommand to the audit log, so each step of this story can be replayed from PostgreSQL alone.",
     sql: "SELECT op, table_name, changed_at\nFROM audit_log\nORDER BY audit_id DESC LIMIT 3;",

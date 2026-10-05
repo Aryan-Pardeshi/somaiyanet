@@ -1,8 +1,7 @@
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 /**
- * Sentence-case section label with a small ice dot — never bracketed.
- * Renders like: ● Chapter 3
+ * Quiet section label: a small white dot plus DIN caps words.
  */
 export function ChapterLabel({
   index,
@@ -14,17 +13,12 @@ export function ChapterLabel({
   className?: string;
 }) {
   return (
-    <p
-      className={cn(
-        "flex items-center gap-2 text-[13px] font-medium text-[var(--text-2)]",
-        className
-      )}
-    >
+    <p className={cn("sx-eyebrow flex items-center gap-2", className)}>
       <span
         aria-hidden="true"
-        className="inline-block size-[6px] shrink-0 rounded-full bg-[var(--ice)]"
+        className="inline-block size-[6px] shrink-0 rounded-full bg-white"
       />
-      Chapter {Number.parseInt(index, 10)}
+      Chapter {Number.parseInt(index, 10)} · {title}
       <span className="sr-only">{` (section ${index}: ${title})`}</span>
     </p>
   );

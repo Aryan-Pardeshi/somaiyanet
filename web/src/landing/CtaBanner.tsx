@@ -32,7 +32,7 @@ export function CtaBanner() {
             </p>
             <Link
               to="/console"
-              className="font-mono mt-8 inline-flex items-center gap-2 border border-white/40 px-6 py-3 text-[13px] uppercase text-white transition-colors hover:border-white hover:bg-white hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3d5bff]"
+              className="font-mono mt-8 inline-flex items-center gap-2 border border-white/40 px-6 py-3 text-[13px] capitalize text-white transition-colors hover:border-white hover:bg-white hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3d5bff]"
               style={{ letterSpacing: "0.08em" }}
             >
               <span>Take the console</span>

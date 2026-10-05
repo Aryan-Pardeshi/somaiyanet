@@ -25,28 +25,17 @@ export function StatusBadge({
   label: string;
   className?: string;
 }) {
-  let color = "#3d5bff";
-  let textColor = "#7fb2ff";
-  if (status === "ok" || status === "nominal") {
-    color = "#7ee2b8";
-    textColor = "#7ee2b8";
-  } else if (status === "warn") {
-    color = "#f5a524";
-    textColor = "#f5a524";
-  } else if (status === "critical") {
-    color = "#ff3b4f";
-    textColor = "#ff3b4f";
-  }
+  const tone =
+    status === "ok" || status === "nominal"
+      ? "ok"
+      : status === "warn"
+        ? "warn"
+        : status === "critical"
+          ? "critical"
+          : undefined;
 
   return (
-    <span
-      className={`inline-flex items-center font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-[2px] border ${className}`}
-      style={{
-        color: textColor,
-        borderColor: `color-mix(in srgb, ${color} 40%, transparent)`,
-        backgroundColor: `color-mix(in srgb, ${color} 10%, transparent)`,
-      }}
-    >
+    <span className={`sx-status ${className}`} data-tone={tone}>
       {label}
     </span>
   );
@@ -68,28 +57,26 @@ export function LabShell({
   children: ReactNode;
 }) {
   return (
-    <div className="w-full text-[#dfe6f5] flex flex-col gap-5">
-      {/* Title row: light 28-34px title, muted one-line description, optional badges */}
-      <div className="flex flex-col gap-2 border-b border-white/[0.08] pb-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-baseline gap-3">
-            <h1 className="font-sans text-[28px] sm:text-[32px] font-light text-white tracking-tight leading-none">
-              {title}
-            </h1>
-            <div className="flex flex-wrap items-center gap-1.5">
+    <div className="w-full text-[#dfe6f5] flex flex-col gap-6">
+      {/* Title row */}
+      <div className="flex flex-col gap-2 border-b border-[var(--sx-hairline)] pb-4">
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h1 className="sx-h1">{title}</h1>
+          {chips.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
               {chips.map((c) => (
                 <span
                   key={c}
-                  className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-[2px] border border-[#3d5bff]/40 text-[#7fb2ff] bg-[#3d5bff]/10"
+                  className="sx-eyebrow text-[var(--sx-text-3)]"
                 >
                   {c}
                 </span>
               ))}
             </div>
-          </div>
+          )}
         </div>
         {description && (
-          <p className="text-[13px] text-[#8b96b0] max-w-3xl">
+          <p className="sx-lead">
             {description}
           </p>
         )}
@@ -98,18 +85,16 @@ export function LabShell({
 
       {/* Examiner Verification / Notice Panel */}
       {notice.length > 0 && (
-        <Panel cut={8} className="w-full">
-          <div className="p-3.5 sm:p-4 flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-                What to look for
-              </span>
+        <Panel className="w-full">
+          <div className="p-4 flex flex-col gap-2">
+            <div className="flex items-center justify-between border-b border-[var(--sx-hairline)] pb-2">
+              <span className="sx-eyebrow">What to look for</span>
               <StatusBadge status="nominal" label="Criteria" />
             </div>
-            <ul className="flex flex-col gap-1.5 pt-1">
+            <ul className="flex flex-col gap-2 pt-1">
               {notice.map((n, i) => (
-                <li key={i} className="flex items-start gap-2 text-[13px] leading-relaxed text-[#dfe6f5]">
-                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#3d5bff]" />
+                <li key={i} className="flex items-start gap-2.5 sx-body text-[14px]">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--sx-text-3)]" />
                   <span>{n}</span>
                 </li>
               ))}
@@ -141,19 +126,20 @@ export function Card({
   cut?: number;
   className?: string;
 }) {
+  void cut;
   return (
-    <Panel cut={cut} selected={selected} className={`w-full ${className}`}>
-      <div className="p-3.5 sm:p-4 flex flex-col gap-3">
+    <Panel selected={selected} className={`w-full ${className}`}>
+      <div className="p-4 flex flex-col gap-3">
         {(title || kicker || aside) && (
-          <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] pb-2.5">
+          <div className="flex items-center justify-between gap-2 border-b border-[var(--sx-hairline)] pb-2.5">
             <div className="flex items-center gap-2 min-w-0">
               {kicker && (
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#5f6f93]">
+                <span className="sx-eyebrow text-[var(--sx-text-3)]">
                   {kicker}
                 </span>
               )}
-              {kicker && title && <span className="text-[#5f6f93] text-[10px]">·</span>}
-              <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b96b0] truncate">
+              {kicker && title && <span className="text-[var(--sx-text-3)] text-[11px]">·</span>}
+              <h2 className="sx-h3 truncate">
                 {title}
               </h2>
             </div>
@@ -168,13 +154,13 @@ export function Card({
 
 export function SqlBlock({ label, sql }: { label?: string; sql: string }) {
   return (
-    <div className="border border-white/10 bg-[#05070d] p-3 text-left">
+    <div className="flex flex-col gap-1.5">
       {label !== undefined && (
-        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#8b96b0] mb-1.5">
+        <span className="sx-eyebrow">
           {label}
-        </p>
+        </span>
       )}
-      <pre className="font-mono overflow-x-auto whitespace-pre-wrap text-[12.5px] leading-relaxed text-[#dfe6f5]">
+      <pre className="sx-code overflow-x-auto whitespace-pre-wrap">
         {highlightSql(sql)}
       </pre>
     </div>
@@ -190,21 +176,21 @@ export function DataGrid({
 }) {
   if (rows.length === 0)
     return (
-      <div className="border border-white/10 bg-[#05070d] p-4 text-center">
-        <p className="font-mono text-[11px] text-[#5f6f93]">0 rows returned.</p>
+      <div className="sx-group p-6 text-center">
+        <p className="sx-caption text-[var(--sx-text-3)]">0 rows returned.</p>
       </div>
     );
   const cols = Object.keys(rows[0] ?? {});
   const shown = rows.slice(0, limit);
   return (
-    <div className="overflow-x-auto border border-white/10 bg-[#05070d]/60">
-      <table className="w-full border-collapse text-left text-[13px]">
+    <div className="sx-group overflow-x-auto">
+      <table className="w-full border-collapse text-left">
         <thead>
-          <tr className="border-b border-white/[0.08] bg-[#05070d]">
+          <tr className="border-b border-[var(--sx-hairline)]">
             {cols.map((c) => (
               <th
                 key={c}
-                className="font-mono px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[#8b96b0] font-normal"
+                className="sx-eyebrow px-4 py-3 font-normal text-[var(--sx-text-2)]"
               >
                 {c}
               </th>
@@ -215,7 +201,7 @@ export function DataGrid({
           {shown.map((r, i) => (
             <tr
               key={i}
-              className="border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors"
+              className="border-b border-[var(--sx-hairline)] last:border-b-0 hover:bg-[var(--sx-surface-2)] transition-colors h-[48px]"
             >
               {cols.map((c) => {
                 const v = r[c];
@@ -225,9 +211,9 @@ export function DataGrid({
                 return (
                   <td
                     key={c}
-                    className={`max-w-[320px] truncate px-3 py-2 font-mono text-[12px] ${
-                      numeric ? "text-right tabular-nums text-[#dfe6f5]" : ""
-                    } ${isNull ? "text-[#5f6f93] italic" : "text-[#dfe6f5]"}`}
+                    className={`max-w-[320px] truncate px-4 py-3 font-mono text-[13px] ${
+                      numeric ? "text-right tabular-nums text-white" : ""
+                    } ${isNull ? "text-[var(--sx-text-3)] italic" : "text-white"}`}
                     title={s}
                   >
                     {s}
@@ -239,9 +225,9 @@ export function DataGrid({
         </tbody>
       </table>
       {rows.length > shown.length && (
-        <div className="border-t border-white/[0.06] bg-[#05070d] px-3 py-1.5">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-[#8b96b0]">
-            Showing {shown.length} of {rows.length} rows
+        <div className="border-t border-[var(--sx-hairline)] px-4 py-2">
+          <p className="sx-caption text-[var(--sx-text-3)]">
+            Showing <span className="sx-num">{shown.length}</span> of <span className="sx-num">{rows.length}</span> rows
           </p>
         </div>
       )}
@@ -254,25 +240,20 @@ export function RefusalCard({
 }: {
   error: ApiError | { message?: string; sqlstate?: string; status?: number };
 }) {
+  const code = String(error.sqlstate ?? error.status ?? "42501");
   const is42501 = error.sqlstate === "42501" || String(error.message ?? "").includes("42501");
   return (
-    <Panel
-      cut={8}
-      borderColor="rgba(255, 59, 79, 0.45)"
-      glowColor="rgba(255, 59, 79, 0.15)"
-      className="w-full"
-    >
+    <Panel className="w-full">
       <div role="alert" className="p-4 flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-2">
-          <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#ff3b4f] font-semibold">
-            {is42501 ? "Permission denied by PostgreSQL (42501)" : "PostgreSQL refused"}
+        <div className="flex items-center justify-between gap-2 border-b border-[var(--sx-hairline)] pb-2">
+          <span className="sx-status" data-tone="critical">
+            {is42501 ? "Permission denied by PostgreSQL" : "PostgreSQL refused"}
           </span>
-          <StatusBadge
-            status="critical"
-            label={String(error.sqlstate ?? error.status ?? "42501")}
-          />
+          <span className="font-mono text-[13px] font-semibold text-[var(--sx-red)]">
+            {code}
+          </span>
         </div>
-        <p className="font-mono text-[12.5px] text-[#dfe6f5] leading-relaxed whitespace-pre-wrap">
+        <p className="font-mono text-[13px] text-[var(--sx-text)] leading-relaxed whitespace-pre-wrap">
           {error.message}
         </p>
       </div>
@@ -292,15 +273,15 @@ export function OfflineOrEmpty({
   const e = error as { status?: number } | null;
   if (e?.status === 0 || e?.status === 404) return <BackendOffline onRetry={onRetry} />;
   return (
-    <Panel cut={8} className="w-full">
-      <div className="border border-dashed border-white/15 p-6 text-center flex flex-col items-center gap-2">
-        <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+    <Panel className="w-full">
+      <div className="p-6 text-center flex flex-col items-center gap-2">
+        <span className="sx-eyebrow text-[var(--sx-text-3)]">
           Database lab pending
         </span>
-        <p className="font-mono text-[11px] text-[#5f6f93] max-w-lg">{hint}</p>
+        <p className="sx-body text-[var(--sx-text-2)] max-w-lg">{hint}</p>
         <button
           onClick={onRetry}
-          className="font-mono mt-2 text-[11px] uppercase tracking-[0.1em] px-3.5 py-1.5 border border-white/15 text-[#dfe6f5] hover:border-white/40 hover:bg-white/5 rounded-[2px] transition-colors focus:outline focus:outline-1 focus:outline-[#3d5bff] cursor-pointer"
+          className="sx-btn sx-btn--sm mt-2"
         >
           Retry connection
         </button>
@@ -309,10 +290,10 @@ export function OfflineOrEmpty({
   );
 }
 
-/** EXPLAIN JSON → collapsible plan tree with chamfered boxes (shared by indexing + SQL console). */
+/** EXPLAIN JSON → collapsible plan tree with Apple/SpaceX styling (shared by indexing + SQL console). */
 export function PlanTree({ plan }: { plan: unknown }) {
   if (plan === null || plan === undefined)
-    return <p className="font-mono text-[11px] text-[#5f6f93]">No plan.</p>;
+    return <p className="sx-caption text-[var(--sx-text-3)]">No plan.</p>;
   let root: Record<string, unknown> | null = null;
   try {
     const p = plan as unknown;
@@ -321,7 +302,7 @@ export function PlanTree({ plan }: { plan: unknown }) {
     root = (first["Plan"] as Record<string, unknown>) ?? first;
   } catch {
     return (
-      <pre className="font-mono text-[11.5px] text-[#dfe6f5] border border-white/10 bg-[#05070d] p-3">
+      <pre className="sx-code overflow-x-auto whitespace-pre-wrap">
         {String(plan).slice(0, 2000)}
       </pre>
     );
@@ -349,41 +330,42 @@ function PlanNode({ node, depth }: { node: Record<string, unknown>; depth: numbe
 
   return (
     <div
-      className="border border-white/10 bg-[#05070d] p-2.5 my-1"
-      style={{
-        marginLeft: depth > 0 ? 14 : 0,
-        clipPath: "polygon(4px 0%, calc(100% - 4px) 0%, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0% calc(100% - 4px), 0% 4px)",
-      }}
+      className="p-3 my-1.5 rounded-[10px] bg-[var(--sx-night)] border border-[var(--sx-hairline)]"
+      style={{ marginLeft: depth > 0 ? 14 : 0 }}
     >
       <div className="flex flex-wrap items-center justify-between gap-1">
-        <p className="font-mono text-[11.5px]">
-          <span className={hot ? "text-[#7ee2b8] font-semibold" : "text-[#f5a524] font-semibold"}>
+        <p className="font-mono text-[13px]">
+          <span className="font-semibold text-white">
             {type}
           </span>
-          {rel !== null && <span className="text-[#dfe6f5]"> on {rel}</span>}
-          {idx !== null && <span className="text-[#7fb2ff]"> using {idx}</span>}
+          {rel !== null && <span className="text-[var(--sx-text-2)]"> on {rel}</span>}
+          {idx !== null && <span className="text-white/80"> using {idx}</span>}
         </p>
         <span
-          className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-[1px] border"
-          style={{
-            color: hot ? "#7ee2b8" : "#f5a524",
-            borderColor: hot ? "rgba(126,226,184,0.3)" : "rgba(245,165,36,0.3)",
-          }}
+          className="sx-status"
+          data-tone={hot ? "ok" : "warn"}
         >
-          {hot ? "INDEX SCAN" : "SEQ SCAN"}
+          {hot ? "Index scan" : "Seq scan"}
         </span>
       </div>
-      <p className="font-mono mt-1 text-[10.5px] text-[#8b96b0]">
-        rows {actual ?? rows}{est !== null && actual !== null ? ` (est ${est})` : ""}
-        {time !== null ? ` · ${time} ms/cost` : ""}
-        {buffers !== null ? ` · buf ${buffers}` : ""}
+      <p className="font-mono mt-1 text-[11px] text-[var(--sx-text-3)]">
+        rows <span className="sx-num text-[var(--sx-text-2)]">{actual ?? rows}</span>
+        {est !== null && actual !== null ? (
+          <> (est <span className="sx-num text-[var(--sx-text-2)]">{est}</span>)</>
+        ) : ""}
+        {time !== null ? (
+          <> · <span className="sx-num text-[var(--sx-text-2)]">{time}</span> ms/cost</>
+        ) : ""}
+        {buffers !== null ? (
+          <> · buf <span className="sx-num text-[var(--sx-text-2)]">{buffers}</span></>
+        ) : ""}
       </p>
       {kids.length > 0 && (
         <details className="mt-2" open={depth < 2}>
-          <summary className="font-mono cursor-pointer text-[10px] tracking-[0.14em] uppercase text-[#8b96b0] hover:text-[#dfe6f5]">
+          <summary className="sx-eyebrow cursor-pointer text-[var(--sx-text-3)] hover:text-white transition-colors">
             {kids.length} child{kids.length > 1 ? "ren" : ""}
           </summary>
-          <div className="mt-2 flex flex-col gap-1.5 pl-2 border-l border-white/[0.08]">
+          <div className="mt-2 flex flex-col gap-1.5 pl-2 border-l border-[var(--sx-hairline)]">
             {kids.map((k, i) => (
               <PlanNode key={i} node={k} depth={depth + 1} />
             ))}
@@ -393,4 +375,3 @@ function PlanNode({ node, depth }: { node: Record<string, unknown>; depth: numbe
     </div>
   );
 }
-

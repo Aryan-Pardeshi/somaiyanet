@@ -9,6 +9,7 @@ import { LiquidOverlay, type GlassSlab } from "@/features/ops/cc/LiquidOverlay";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { LeftRail } from "@/features/ops/cc/LeftRail";
 import { RightRail } from "@/features/ops/cc/RightRail";
+import { BottomDock } from "@/features/ops/cc/BottomDock";
 import type { FleetFilter, GlobeView, OpsTab } from "@/features/ops/cc/types";
 
 function seedHistories(
@@ -45,6 +46,8 @@ export default function Ops() {
     return "globe";
   }, [access?.station]);
 
+  const [currentView, setCurrentView] = useState<GlobeView>(defaultView);
+
   const globeRef = useRef<OpsGlobeHandle>(null);
   const globeLayerRef = useRef<HTMLDivElement>(null);
 
@@ -55,8 +58,36 @@ export default function Ops() {
   const liquid = wide && !liquidFailed;
 
   useEffect(() => {
+    setCurrentView(defaultView);
     globeRef.current?.flyTo(defaultView);
   }, [defaultView]);
+
+  const handleViewChange = (v: GlobeView): void => {
+    setCurrentView(v);
+    globeRef.current?.flyTo(v);
+  };
+
+  const handleDemoRoute = (): void => {
+    const nowIso = new Date().toISOString();
+    const hop1Iso = new Date(Date.now() + 1400).toISOString();
+    const hop2Iso = new Date(Date.now() + 2800).toISOString();
+    globeRef.current?.playRoute([
+      {
+        from_node: "SS-1",
+        to_node: "SS-2",
+        depart_ts: nowIso,
+        arrive_ts: hop1Iso,
+        kind: "ISL",
+      },
+      {
+        from_node: "SS-2",
+        to_node: "GS-BOM",
+        depart_ts: hop1Iso,
+        arrive_ts: hop2Iso,
+        kind: "DOWNLINK",
+      },
+    ]);
+  };
 
   const histories = useMemo(
     () => seedHistories(data.sats, data.telemetry),
@@ -142,8 +173,8 @@ export default function Ops() {
     },
     {
       key: "left",
-      className: "left-4 top-14 bottom-4 w-[320px] rounded-[36px]",
-      config: { cornerRadius: 36, zRadius: 28 },
+      className: "left-4 top-14 bottom-4 w-[320px] rounded-[16px]",
+      config: { cornerRadius: 16, zRadius: 20 },
       children: (
         <div
           data-lenis-prevent
@@ -156,8 +187,8 @@ export default function Ops() {
     },
     {
       key: "right",
-      className: "right-4 top-14 bottom-4 w-[340px] rounded-[36px]",
-      config: { cornerRadius: 36, zRadius: 28 },
+      className: "right-4 top-14 bottom-4 w-[340px] rounded-[16px]",
+      config: { cornerRadius: 16, zRadius: 20 },
       children: (
         <div
           data-lenis-prevent
@@ -172,7 +203,7 @@ export default function Ops() {
 
   return (
     <div className="-m-4 sm:-m-6 relative min-h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-3.5rem)] lg:overflow-hidden bg-black text-[#dfe6f5] flex flex-col">
-      {/* 1. Top Bar with Tabs + HUD corner floating text */}
+      {/* 1. Top Bar with Tabs */}
       <TopBar
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -182,10 +213,7 @@ export default function Ops() {
         showTabs={!liquid}
       />
 
-      {/* 2. Globe Canvas Background:
-             On desktop (lg), it fills behind everything and is offset by -20px to center
-             the 3D sphere perfectly in the gap between the 300px and 340px translucent rails.
-             Below lg (<1024px), it renders as a 60vh box stacked above the rails. */}
+      {/* 2. Globe Canvas Background */}
       <div
         ref={globeLayerRef}
         className="relative h-[60vh] w-full shrink-0 lg:absolute lg:inset-0 lg:h-full lg:w-[calc(100%+40px)] lg:-left-[20px] lg:z-0 lg:translate-x-[-20px]"
@@ -213,10 +241,8 @@ export default function Ops() {
         />
       ) : (
         <>
-          {/* 3. Left Rail:
-                 Constellation bar, 2x2 chips filter, and fleet cards list.
-                 Overlays globe on desktop, stacks below globe on mobile. */}
-          <aside className="p-4 lg:p-0 lg:absolute lg:left-4 lg:top-14 lg:bottom-0 lg:w-[320px] lg:z-20 pointer-events-auto flex flex-col min-h-0">
+          {/* 3. Left Rail */}
+          <aside className="p-4 lg:p-0 lg:absolute lg:left-4 lg:top-14 lg:bottom-4 lg:w-[320px] lg:z-20 pointer-events-auto flex flex-col min-h-0">
             <div className="relative flex-1 min-h-0 flex flex-col">
               <div
                 data-lenis-prevent
@@ -228,11 +254,8 @@ export default function Ops() {
             </div>
           </aside>
 
-          {/* 4. Right Rail:
-                 Swaps by tab (Overview / Satellites / Upcoming passes / Live data).
-                 Overlays globe on desktop, stacks below left rail on mobile.
-                 Scrolls inside its own area with a soft fade at the bottom. */}
-          <aside className="p-4 lg:p-0 lg:absolute lg:right-4 lg:top-14 lg:bottom-0 lg:w-[340px] lg:z-20 pointer-events-auto flex flex-col min-h-0">
+          {/* 4. Right Rail */}
+          <aside className="p-4 lg:p-0 lg:absolute lg:right-4 lg:top-14 lg:bottom-4 lg:w-[340px] lg:z-20 pointer-events-auto flex flex-col min-h-0">
             <div className="relative flex-1 min-h-0 flex flex-col">
               <div
                 data-lenis-prevent
@@ -245,6 +268,17 @@ export default function Ops() {
           </aside>
         </>
       )}
+
+      {/* 5. Bottom Dock: view switching and sample route playback */}
+      <div className="p-4 lg:p-0 lg:absolute lg:bottom-2 lg:inset-x-0 lg:z-20 pointer-events-none flex justify-center">
+        <BottomDock
+          currentView={currentView}
+          onViewChange={handleViewChange}
+          mock={data.mock}
+          onDemoRoute={handleDemoRoute}
+        />
+      </div>
     </div>
   );
 }
+

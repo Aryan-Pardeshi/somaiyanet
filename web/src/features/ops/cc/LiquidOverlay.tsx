@@ -131,7 +131,7 @@ export function LiquidOverlay({ globeRef, slabs, onFail }: LiquidOverlayProps) {
           data-dynamic
           className={`lg-content pointer-events-auto absolute ${s.className} ${
             s.clip === false ? "" : "overflow-hidden"
-          } ${ready ? "" : "liquid-glass"}`}
+          } ${ready ? "" : "sx-material"}`}
         >
           {s.children}
         </div>

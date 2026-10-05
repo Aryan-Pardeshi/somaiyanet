@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import type { ReactNode } from "react";
-import { Panel } from "@/components/cc/Panel";
+import { X } from "lucide-react";
 import { ApiError, setSqlErrorPusher, setSqlPusher } from "./api";
 import type { SqlRecord } from "./api";
 import { highlightSql } from "./sql";
@@ -74,7 +74,7 @@ function copyText(text: string): void {
 }
 
 /**
- * "SQL under the hood": a right-side slide-over console drawer.
+ * "SQL under the hood": Apple sheet slide-over console drawer.
  * Lists every SQL record of the most recent API calls, newest first.
  */
 export function SqlDrawer() {
@@ -84,127 +84,136 @@ export function SqlDrawer() {
     <>
       {open && (
         <button
+          type="button"
           aria-label="Close SQL drawer"
           onClick={() => setOpen(false)}
-          className="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm cursor-pointer"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm cursor-pointer"
         />
       )}
       <aside
         aria-hidden={!open}
         style={{ visibility: open ? "visible" : "hidden" }}
-        className={`fixed right-0 top-0 z-50 flex h-full w-[min(520px,100vw)] flex-col border-l border-white/10 bg-black text-[#dfe6f5] transition-[transform,visibility] duration-200 ${
+        className={`fixed right-0 top-0 z-50 flex h-full w-[min(540px,100vw)] flex-col rounded-l-[16px] border-l border-[var(--sx-hairline)] bg-[var(--sx-surface)] text-[var(--sx-text)] shadow-2xl transition-[transform,visibility] duration-200 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        {/* Header in mono uppercase */}
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 bg-black">
-          <div className="flex items-center gap-2">
-            <h2 className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#dfe6f5]">
-              SQL UNDER THE HOOD
+        {/* Grabber bar at top */}
+        <div className="mx-auto mt-2.5 h-[5px] w-9 rounded-full bg-white/25" aria-hidden="true" />
+
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[var(--sx-hairline)] px-5 py-3">
+          <div className="flex items-center gap-3">
+            <h2 className="sx-h3">
+              SQL under the hood
             </h2>
-            <span className="font-mono text-[10px] px-1.5 py-0.5 border border-[#3d5bff]/40 text-[#7fb2ff] bg-[#3d5bff]/10">
-              {records.length}
-            </span>
+            {records.length > 0 && (
+              <span className="rounded-full bg-[var(--sx-surface-2)] px-2 py-0.5 sx-num text-[11px] text-[var(--sx-text-2)]">
+                {records.length}
+              </span>
+            )}
           </div>
           <button
+            type="button"
             onClick={() => setOpen(false)}
             aria-label="Close SQL drawer"
-            className="rounded-none border border-white/15 px-2 py-0.5 font-mono text-[11px] uppercase tracking-[0.1em] text-[#8b96b0] hover:text-white hover:border-white/30 transition-colors cursor-pointer"
+            className="sx-btn sx-btn--quiet sx-btn--sm p-1"
           >
-            ✕
+            <X size={18} strokeWidth={1.5} />
           </button>
         </div>
 
         {/* Postgres error panel */}
         {lastError !== null && lastError.status !== 0 && (
-          <div className="p-3">
-            <Panel cut={6} borderColor="#ff3b4f" glowColor="rgba(255, 59, 79, 0.2)">
-              <div className="p-3 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#ff3b4f]">
-                    PostgreSQL Refused This
+          <div className="p-4 border-b border-[var(--sx-hairline)]">
+            <div className="rounded-[12px] bg-[var(--sx-night)] p-4 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="sx-eyebrow text-[var(--sx-red)]">
+                  PostgreSQL Refused This
+                </span>
+                {(lastError.sqlstate ?? lastError.status) !== undefined && (
+                  <span className="font-mono text-[11px] text-[var(--sx-red)]">
+                    {lastError.sqlstate ?? lastError.status}
                   </span>
-                  {(lastError.sqlstate ?? lastError.status) !== undefined && (
-                    <span className="font-mono text-[9px] px-1.5 py-0.5 border border-[#ff3b4f]/40 text-[#ff3b4f] bg-[#ff3b4f]/10">
-                      {lastError.sqlstate ?? lastError.status}
-                    </span>
-                  )}
-                  <button
-                    onClick={dismissError}
-                    aria-label="Dismiss error"
-                    className="ml-2 font-mono text-[11px] text-[#8b96b0] hover:text-white cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <p className="font-sans text-[12px] text-[#dfe6f5] leading-snug">
-                  {lastError.message}
-                </p>
-                {lastError.detail !== undefined && lastError.detail !== "" && (
-                  <p className="font-mono text-[11px] text-[#8b96b0] leading-relaxed">
-                    {lastError.detail}
-                  </p>
                 )}
-                {lastError.sql.length > 0 && (
-                  <pre className="overflow-x-auto whitespace-pre-wrap rounded-none bg-[#05070d] border border-white/10 p-2.5 font-mono text-[12.5px] leading-relaxed text-[#dfe6f5]">
-                    {highlightSql(lastError.sql[0].sql)}
-                  </pre>
-                )}
+                <button
+                  type="button"
+                  onClick={dismissError}
+                  aria-label="Dismiss error"
+                  className="sx-btn sx-btn--quiet sx-btn--sm p-0 h-auto text-[11px]"
+                >
+                  Dismiss
+                </button>
               </div>
-            </Panel>
+              <p className="sx-body text-[13px] leading-snug">
+                {lastError.message}
+              </p>
+              {lastError.detail !== undefined && lastError.detail !== "" && (
+                <p className="font-mono text-[11px] text-[var(--sx-text-3)] leading-relaxed">
+                  {lastError.detail}
+                </p>
+              )}
+              {lastError.sql.length > 0 && (
+                <pre className="sx-code overflow-x-auto whitespace-pre-wrap">
+                  {highlightSql(lastError.sql[0].sql)}
+                </pre>
+              )}
+            </div>
           </div>
         )}
 
         {/* Drawer Query Feed */}
-        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
+        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
           {records.length === 0 ? (
-            <p className="px-1 py-4 font-mono text-[11px] uppercase tracking-wider text-[#8b96b0] text-center">
+            <p className="px-2 py-8 sx-caption text-center">
               No SQL captured yet. Every API call logs its exact statement here.
             </p>
           ) : (
             <>
               <div className="flex justify-end">
                 <button
+                  type="button"
                   onClick={clear}
-                  className="font-mono text-[10px] uppercase tracking-[0.1em] text-[#8b96b0] hover:text-white border border-white/15 hover:border-white/30 px-2 py-0.5 bg-transparent transition-colors cursor-pointer"
+                  className="sx-btn sx-btn--quiet sx-btn--sm"
                 >
                   Clear Feed
                 </button>
               </div>
 
               {records.map((r, i) => (
-                <Panel key={`${r.label}-${i}`} cut={6} className="w-full">
-                  <div className="p-3 flex flex-col gap-2">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#dfe6f5]">
-                        {r.label}
+                <div
+                  key={`${r.label}-${i}`}
+                  className="rounded-[12px] bg-[var(--sx-night)] p-3.5 flex flex-col gap-2"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="sx-eyebrow text-white">
+                      {r.label}
+                    </span>
+                    {r.elapsed_ms !== null && r.elapsed_ms !== undefined && (
+                      <span className="ml-auto sx-num text-[11px] text-[var(--sx-text-3)]">
+                        {r.elapsed_ms.toFixed(1)} ms
                       </span>
-                      {r.elapsed_ms !== null && r.elapsed_ms !== undefined && (
-                        <span className="ml-auto font-mono text-[10px] text-[#8b96b0]">
-                          {r.elapsed_ms.toFixed(1)} ms
-                        </span>
-                      )}
-                      {r.rowcount !== null && r.rowcount !== undefined && (
-                        <span className="font-mono text-[10px] text-[#8b96b0]">
-                          {r.rowcount} rows
-                        </span>
-                      )}
-                    </div>
-
-                    <pre className="overflow-x-auto whitespace-pre-wrap rounded-none bg-[#05070d] border border-white/10 p-2.5 font-mono text-[12.5px] leading-relaxed text-[#dfe6f5]">
-                      {highlightSql(r.sql)}
-                    </pre>
-
-                    <div className="flex justify-end">
-                      <button
-                        onClick={() => copyText(r.sql)}
-                        className="font-mono text-[10px] uppercase tracking-[0.1em] px-2 py-0.5 border border-white/15 bg-transparent text-[#8b96b0] hover:text-white hover:border-white/30 transition-colors cursor-pointer"
-                      >
-                        Copy
-                      </button>
-                    </div>
+                    )}
+                    {r.rowcount !== null && r.rowcount !== undefined && (
+                      <span className="sx-num text-[11px] text-[var(--sx-text-3)]">
+                        {r.rowcount} rows
+                      </span>
+                    )}
                   </div>
-                </Panel>
+
+                  <pre className="sx-code overflow-x-auto whitespace-pre-wrap">
+                    {highlightSql(r.sql)}
+                  </pre>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => copyText(r.sql)}
+                      className="sx-btn sx-btn--quiet sx-btn--sm"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
               ))}
             </>
           )}
@@ -214,45 +223,23 @@ export function SqlDrawer() {
   );
 }
 
-/** Header button opening the drawer, with a count badge. Chamfered mono button with royal blue badge. */
+/** Header button opening the drawer, with a count badge. Ghost pill sx-btn--sm. */
 export function SqlButton() {
   const { records, setOpen } = useSqlLog();
-  const cut = 5;
-  const outerPolygon = `polygon(${cut}px 0%, calc(100% - ${cut}px) 0%, 100% ${cut}px, 100% calc(100% - ${cut}px), calc(100% - ${cut}px) 100%, ${cut}px 100%, 0% calc(100% - ${cut}px), 0% ${cut}px)`;
-  const innerPolygon = `polygon(${cut - 0.5}px 0%, calc(100% - ${cut - 0.5}px) 0%, 100% ${cut - 0.5}px, 100% calc(100% - ${cut - 0.5}px), calc(100% - ${cut - 0.5}px) 100%, ${cut - 0.5}px 100%, 0% calc(100% - ${cut - 0.5}px), 0% ${cut - 0.5}px)`;
 
   return (
     <button
+      type="button"
       onClick={() => setOpen(true)}
       aria-label="Open SQL drawer"
-      className="relative group cursor-pointer focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#3d5bff]"
+      className="sx-btn sx-btn--sm flex items-center gap-1.5"
     >
-      <div
-        style={{
-          clipPath: outerPolygon,
-          WebkitClipPath: outerPolygon,
-          backgroundColor: "rgba(255, 255, 255, 0.15)",
-        }}
-        className="p-[1px] group-hover:bg-white/30 transition-colors"
-      >
-        <div
-          style={{
-            clipPath: innerPolygon,
-            WebkitClipPath: innerPolygon,
-            backgroundColor: "rgba(6, 11, 23, 0.8)",
-          }}
-          className="px-2.5 py-1 flex items-center gap-1.5 group-hover:bg-white/[0.06] transition-colors"
-        >
-          <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-[#dfe6f5]">
-            SQL
-          </span>
-          {records.length > 0 && (
-            <span className="font-mono text-[9px] px-1 py-px bg-[#3d5bff] text-white font-semibold rounded-[1px] shadow-[0_0_6px_rgba(61,91,255,0.6)]">
-              {records.length}
-            </span>
-          )}
-        </div>
-      </div>
+      <span>SQL</span>
+      {records.length > 0 && (
+        <span className="rounded-full bg-white/20 px-1.5 py-0.5 sx-num text-[10px] text-white leading-none">
+          {records.length}
+        </span>
+      )}
     </button>
   );
 }
@@ -260,43 +247,26 @@ export function SqlButton() {
 /** Calm offline card used by pages when the network itself fails. */
 export function BackendOffline({ onRetry }: { onRetry?: () => void }) {
   return (
-    <Panel cut={8} borderColor="rgba(245, 165, 36, 0.4)" className="max-w-lg mx-auto">
-      <div className="p-6 text-center flex flex-col items-center gap-3">
-        <svg
-          width="28"
-          height="28"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#f5a524"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          className="mx-auto"
-          aria-hidden="true"
-        >
-          <path d="M5 12.5a10 10 0 0 1 14 0" />
-          <path d="M8.5 16a5 5 0 0 1 7 0" />
-          <circle cx="12" cy="19" r="1.2" fill="#f5a524" stroke="none" />
-          <line x1="4" y1="4" x2="20" y2="20" />
-        </svg>
-        <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#f5a524]">
-          CONNECTION LOST · BACKEND OFFLINE
-        </div>
-        <p className="text-[13px] text-[#dfe6f5]">
-          Backend is offline. Start it with{" "}
-          <code className="font-mono text-[12px] bg-[#05070d] border border-white/10 px-1.5 py-0.5 text-white">
-            python run.py
-          </code>
-          , then retry.
-        </p>
-        {onRetry !== undefined && (
-          <button
-            onClick={onRetry}
-            className="mt-2 h-8 px-4 font-mono text-[11px] uppercase tracking-[0.1em] font-medium bg-[#3d5bff] text-white border border-[#3d5bff] hover:bg-[#4d6aff] transition-colors cursor-pointer"
-          >
-            Retry Connection
-          </button>
-        )}
+    <div className="mx-auto max-w-lg rounded-[14px] bg-[var(--sx-surface)] p-6 text-center flex flex-col items-center gap-3">
+      <div className="sx-status" data-tone="warn">
+        Backend offline
       </div>
-    </Panel>
+      <p className="sx-body m-0 text-white">
+        Backend is offline. Start it with{" "}
+        <code className="sx-code px-2 py-0.5 text-[12px]">
+          python run.py
+        </code>
+        , then retry.
+      </p>
+      {onRetry !== undefined && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="sx-btn sx-btn--sm mt-2"
+        >
+          Retry connection
+        </button>
+      )}
+    </div>
   );
 }

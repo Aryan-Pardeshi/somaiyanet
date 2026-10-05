@@ -1,6 +1,6 @@
 import { Panel } from "@/components/cc/Panel";
 
-/** Before/after row card: restyled as Panel with before/after columns in mono. */
+/** Before/after row card: inset-grouped list with changed values in white, unchanged in white 45%. */
 export function DiffCard({
   title,
   before,
@@ -18,59 +18,44 @@ export function DiffCard({
   };
 
   return (
-    <Panel cut={8} className="w-full">
-      <div className="p-3.5 flex flex-col gap-2.5">
-        <div className="flex items-center justify-between border-b border-white/5 pb-2">
-          <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
-            {title} STATE DIFF
-          </span>
-          <span className="font-mono text-[10px] text-[#8b96b0]">
-            BEFORE vs AFTER
-          </span>
+    <Panel className="w-full">
+      <div className="p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between border-b border-[var(--sx-hairline)] pb-2.5">
+          <span className="sx-eyebrow">{title} state diff</span>
+          <span className="sx-caption text-[var(--sx-text-3)]">Before vs After</span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse font-mono text-[11px]">
-            <thead>
-              <tr className="border-b border-white/[0.06] text-left text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
-                <th className="py-1.5 pr-3 font-normal">Field</th>
-                <th className="py-1.5 pr-3 font-normal">Before</th>
-                <th className="py-1.5 text-right font-normal">After</th>
-              </tr>
-            </thead>
-            <tbody>
-              {keys.map((k) => {
-                const b = fmt(before[k]);
-                const a = fmt(after[k]);
-                const changed = b !== a;
-                return (
-                  <tr
-                    key={k}
-                    className={`border-b border-white/[0.06] ${
-                      changed ? "bg-[#3d5bff]/10" : ""
-                    }`}
-                  >
-                    <td className="py-1.5 pr-3 text-[#8b96b0] flex items-center gap-1.5">
-                      {changed && (
-                        <span className="inline-block size-1.5 rounded-none bg-[#3d5bff]" />
-                      )}
-                      <span>{k}</span>
-                    </td>
-                    <td className="py-1.5 pr-3 text-[#8b96b0]">{b}</td>
-                    <td
-                      className={`py-1.5 text-right font-semibold ${
-                        changed ? "text-[#7fb2ff]" : "text-[#dfe6f5]"
-                      }`}
-                    >
-                      {a}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="sx-group">
+          <div className="sx-row text-[var(--sx-text-3)]">
+            <span className="sx-eyebrow w-1/3">Column</span>
+            <span className="sx-eyebrow w-1/3">Before</span>
+            <span className="sx-eyebrow w-1/3 text-right">After</span>
+          </div>
+          {keys.map((k) => {
+            const b = fmt(before[k]);
+            const a = fmt(after[k]);
+            const changed = b !== a;
+            return (
+              <div key={k} className="sx-row">
+                <span className="font-mono text-[12px] text-[var(--sx-text-2)] w-1/3 truncate">
+                  {k}
+                </span>
+                <span className="font-mono text-[12px] text-white/45 w-1/3 truncate">
+                  {b}
+                </span>
+                <span
+                  className={`font-mono text-[12px] w-1/3 text-right truncate ${
+                    changed ? "text-white font-medium" : "text-white/45"
+                  }`}
+                >
+                  {a}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </Panel>
   );
 }
+

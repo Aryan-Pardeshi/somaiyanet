@@ -24,51 +24,33 @@ import { DiffCard } from "@/features/deploy/DiffCard";
 import { DashedBar } from "@/features/routing/DashedBar";
 
 function RefusedCard({ err, context }: { err: ApiError; context?: string }) {
+  const code = String(err.sqlstate ?? err.status ?? "42501");
+  const is42501 = err.sqlstate === "42501" || String(err.message ?? "").includes("42501");
   return (
-    <Panel
-      cut={8}
-      borderColor="#ff3b4f"
-      glowColor="rgba(255, 59, 79, 0.25)"
-      className="w-full"
-    >
-      <div className="p-3.5 flex flex-col gap-1.5">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 border border-[#ff3b4f]/40 bg-[#ff3b4f]/10 text-[#ff3b4f]">
-            {err.sqlstate === "42501" ? "Permission denied by PostgreSQL (42501)" : "Critical refusal"}
+    <Panel className="w-full">
+      <div role="alert" className="p-4 flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="sx-status" data-tone="critical">
+            {is42501 ? "Permission denied by PostgreSQL" : "PostgreSQL refused"}
           </span>
-          <span className="font-mono text-[11px] text-[#ff3b4f]">
-            {err.sqlstate ?? err.status}
-          </span>
-          {context && (
-            <span className="font-mono text-[10px] text-[#8b96b0]">· {context}</span>
-          )}
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[13px] font-semibold text-[var(--sx-red)]">
+              {code}
+            </span>
+            {context && (
+              <span className="sx-caption text-[var(--sx-text-3)]">· {context}</span>
+            )}
+          </div>
         </div>
-        <p className="font-mono text-[12.5px] text-[#dfe6f5]">{err.message}</p>
+        <p className="font-mono text-[13px] text-[var(--sx-text)] leading-relaxed whitespace-pre-wrap">
+          {err.message}
+        </p>
         {err.detail && (
-          <p className="font-mono text-[11px] text-[#8b96b0]">{err.detail}</p>
+          <p className="font-mono text-[12px] text-[var(--sx-text-2)]">{err.detail}</p>
         )}
       </div>
     </Panel>
   );
-}
-
-function stateColor(state: string | null | undefined): string {
-  switch (state) {
-    case "NOMINAL":
-      return "#7ee2b8";
-    case "SAFE":
-      return "#f5a524";
-    case "DEPLOYED":
-      return "#7fb2ff";
-    case "COMMISSIONING":
-      return "#3d5bff";
-    case "CRITICAL":
-      return "#ff3b4f";
-    case "STOWED":
-    case "ARMED":
-    default:
-      return "#8b96b0";
-  }
 }
 
 /**
@@ -76,8 +58,6 @@ function stateColor(state: string | null | undefined): string {
  */
 function PodSvg({ status, ejected }: { status: string; ejected: boolean }) {
   const out = ejected;
-  // SMIL has no CSS off-switch: skip the idle jiggle entirely when the
-  // user prefers reduced motion.
   const reduceMotion =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -95,7 +75,7 @@ function PodSvg({ status, ejected }: { status: string; ejected: boolean }) {
         width={240}
         height={60}
         rx={2}
-        fill="#060b17"
+        fill="#111113"
         stroke="rgba(255, 255, 255, 0.15)"
         strokeWidth={1.5}
       />
@@ -105,7 +85,7 @@ function PodSvg({ status, ejected }: { status: string; ejected: boolean }) {
         width={18}
         height={60}
         rx={2}
-        fill="#05070d"
+        fill="#0a0a0a"
         stroke="rgba(255, 255, 255, 0.15)"
         strokeWidth={1.2}
       />
@@ -116,7 +96,7 @@ function PodSvg({ status, ejected }: { status: string; ejected: boolean }) {
         width={10}
         height={46}
         rx={1}
-        fill="#f5a524"
+        fill="var(--sx-orange)"
         opacity={0.9}
       >
         {!out && !reduceMotion && (
@@ -139,8 +119,8 @@ function PodSvg({ status, ejected }: { status: string; ejected: boolean }) {
           width={44}
           height={44}
           rx={2}
-          fill={out ? "#0e172c" : "#05070d"}
-          stroke={out ? "#3d5bff" : "rgba(255, 255, 255, 0.3)"}
+          fill={out ? "#1c1c1e" : "#111113"}
+          stroke={out ? "rgba(255, 255, 255, 0.8)" : "rgba(255, 255, 255, 0.25)"}
           strokeWidth={1.5}
         />
         <rect
@@ -149,10 +129,9 @@ function PodSvg({ status, ejected }: { status: string; ejected: boolean }) {
           width={44}
           height={10}
           rx={1}
-          fill="#3d5bff"
-          opacity={0.7}
+          fill="rgba(255, 255, 255, 0.2)"
         />
-        <circle cx={0} cy={8} r={5} fill="#7ee2b8" opacity={0.9} />
+        <circle cx={0} cy={8} r={5} fill="var(--sx-green)" />
       </g>
       {out && (
         <line
@@ -160,7 +139,7 @@ function PodSvg({ status, ejected }: { status: string; ejected: boolean }) {
           y1={80}
           x2={272}
           y2={80}
-          stroke="#3d5bff"
+          stroke="rgba(255, 255, 255, 0.4)"
           strokeWidth={1.5}
           strokeDasharray="4 3"
         />
@@ -168,11 +147,11 @@ function PodSvg({ status, ejected }: { status: string; ejected: boolean }) {
       <text
         x={20}
         y={130}
-        fill="#8b96b0"
-        fontSize={9.5}
-        fontFamily="Geist Mono, monospace"
+        fill="var(--sx-text-3)"
+        fontSize={11}
+        fontFamily="var(--font-sans)"
       >
-        SOMAIYAPOD, 127.4 × 57.9 × 57.2 mm, status: {status}
+        SOMAIYAPOD · 127.4 × 57.9 × 57.2 mm · status: {status}
       </text>
     </svg>
   );
@@ -186,36 +165,29 @@ function StateDiagram({ current }: { current: string | null }) {
     ["COMMISSIONING", "SAFE"],
   ];
   return (
-    <div className="flex flex-col gap-2" role="img" aria-label="Satellite state machine">
+    <div className="flex flex-col gap-2.5" role="img" aria-label="Satellite state machine">
       <div className="flex flex-wrap items-center gap-2">
         {STATES.map((s, i) => {
           const isActive = current === s;
-          const col = stateColor(s);
           return (
             <span key={s} className="flex items-center gap-2">
               <span
-                className="font-mono text-[10px] tracking-[0.1em] uppercase px-2.5 py-1 border"
-                style={{
-                  color: isActive ? col : "#8b96b0",
-                  borderColor: isActive
-                    ? `color-mix(in srgb, ${col} 60%, transparent)`
-                    : "rgba(255, 255, 255, 0.1)",
-                  backgroundColor: isActive
-                    ? `color-mix(in srgb, ${col} 15%, transparent)`
-                    : "transparent",
-                  boxShadow: isActive ? `0 0 10px ${col}44` : undefined,
-                }}
+                className={`font-[var(--font-display)] text-[12px] capitalize px-2.5 py-1 rounded-[6px] transition-colors ${
+ isActive
+ ? "bg-[var(--sx-surface-2)] text-white font-semibold border border-white/20"
+ : "text-white/40 border border-white/5"
+ }`}
               >
                 {s}
               </span>
               {i < STATES.length - 1 && (
-                <span className="font-mono text-[#5f6f93] text-[11px]">→</span>
+                <span className="text-white/30 text-[12px]">→</span>
               )}
             </span>
           );
         })}
       </div>
-      <span className="font-mono text-[10px] text-[#5f6f93]">
+      <span className="sx-caption text-[var(--sx-text-3)]">
         Legal paths: {edges.map(([a, b]) => `${a}→${b}`).join(" · ")} (+ NOMINAL⇄SAFE, →DECOMMISSIONED)
       </span>
     </div>
@@ -384,26 +356,15 @@ export default function Deploy() {
     lastLog.length > 0 ? lastLog[0] : bundle && bundle.log.length > 0 ? bundle.log[0] : null;
 
   return (
-    <div className="-m-4 p-4 sm:-m-6 sm:p-6 min-h-[calc(100vh-3.5rem)] bg-black text-[#dfe6f5] flex flex-col gap-5">
+    <div className="w-full flex flex-col gap-6">
       {/* Page Title Row */}
-      <div className="flex flex-col gap-1 border-b border-white/5 pb-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="font-sans text-[28px] sm:text-[34px] font-light tracking-tight text-white leading-tight">
-              Releasing a satellite from its deployer
-            </h1>
-            <p className="text-[13px] text-[#8b96b0] leading-snug">
-              Two signals agree, the pod opens, the satellite wakes. Every step runs in a
-              transaction you can roll back on purpose (confirm_deployment).
-            </p>
-            <RoleHeader />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10 text-[#7fb2ff]">
-              TRANSACTION TIMELINE
-            </span>
-          </div>
-        </div>
+      <div className="flex flex-col gap-2 border-b border-[var(--sx-hairline)] pb-4">
+        <h1 className="sx-h1">Deploy</h1>
+        <p className="sx-lead">
+          Two signals agree, the pod opens, the satellite wakes. Every step runs in a
+          transaction you can roll back on purpose (confirm_deployment).
+        </p>
+        <RoleHeader />
       </div>
 
       {offline && (
@@ -418,90 +379,123 @@ export default function Deploy() {
         </div>
       )}
 
+      {/* Transaction sequence summary as a vertical inset-grouped list */}
+      <Panel className="w-full">
+        <div className="p-4 flex flex-col gap-3">
+          <span className="sx-eyebrow">Transaction story · BEGIN → COMMIT</span>
+          <div className="sx-group">
+            <div className="sx-row">
+              <div className="flex items-center gap-3">
+                <span className="sx-num text-white/40 text-[14px]">01</span>
+                <span className="sx-body text-white">Inspect pod & satellite</span>
+              </div>
+              <span className="sx-status" data-tone={isEjected ? "ok" : undefined}>
+                {isEjected ? "Committed" : "Pending"}
+              </span>
+            </div>
+            <div className="sx-row">
+              <div className="flex items-center gap-3">
+                <span className="sx-num text-white/40 text-[14px]">02</span>
+                <span className="sx-body text-white">Arbitrate telemetry signals</span>
+              </div>
+              <span className="sx-status" data-tone={confirmedCount >= 2 ? "ok" : "warn"}>
+                {confirmedCount >= 2 ? `${confirmedCount}/3 agreed` : "Pending signals"}
+              </span>
+            </div>
+            <div className="sx-row">
+              <div className="flex items-center gap-3">
+                <span className="sx-num text-white/40 text-[14px]">03</span>
+                <span className="sx-body text-white">Execute confirm_deployment()</span>
+              </div>
+              <span
+                className="sx-status"
+                data-tone={rolledBack ? "critical" : after ? "ok" : undefined}
+              >
+                {rolledBack ? "Rolled back" : after ? "Committed" : "Pending"}
+              </span>
+            </div>
+            <div className="sx-row">
+              <div className="flex items-center gap-3">
+                <span className="sx-num text-white/40 text-[14px]">04</span>
+                <span className="sx-body text-white">Audit trail & state verification</span>
+              </div>
+              <span
+                className="sx-status"
+                data-tone={rolledBack ? "critical" : after ? "ok" : undefined}
+              >
+                {rolledBack ? "Rollback logged" : after ? "Committed" : "Pending"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </Panel>
+
       {/* SomaiyaPod Sequence as a Vertical Console Timeline */}
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between border-b border-white/5 pb-2">
-          <span className="font-mono text-[11px] font-semibold tracking-[0.16em] uppercase text-[#dfe6f5]">
-            Release steps
-          </span>
-          <span className="font-mono text-[10px] text-[#8b96b0]">
-            Pod {pod}
-          </span>
-        </div>
-
         {/* TIMELINE STEP 01: POD INSPECTION */}
-        <Panel cut={8} className="w-full">
-          <div className="p-4 flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
-              <div className="flex items-center gap-2.5">
-                <span className="font-mono text-[11px] font-semibold text-[#7fb2ff] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10">
-                  Step 1
-                </span>
-                <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white">
-                  Check the pod and its satellite
-                </span>
+        <Panel className="w-full">
+          <div className="p-4 flex flex-col gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--sx-hairline)] pb-2.5">
+              <div className="flex items-center gap-3">
+                <span className="sx-num text-white/40 text-[14px]">01</span>
+                <h3 className="sx-h3">Check the pod and its satellite</h3>
               </div>
 
-              <div className="flex items-center gap-2">
-                {/* State Badge */}
+              <div className="flex items-center gap-3">
                 <span
-                  className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border"
-                  style={{
-                    color: stateColor(podStatus),
-                    borderColor: `color-mix(in srgb, ${stateColor(podStatus)} 40%, transparent)`,
-                    backgroundColor: `color-mix(in srgb, ${stateColor(podStatus)} 10%, transparent)`,
-                  }}
+                  className="sx-status"
+                  data-tone={isEjected ? "ok" : undefined}
                 >
                   POD: {podStatus}
                 </span>
-
-                {/* Transaction Outcome Badge */}
-                <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-white/15 bg-white/5 text-[#8b96b0]">
+                <span className="sx-caption text-[var(--sx-text-3)]">
                   Before release
                 </span>
               </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-              <div className="lg:col-span-4 flex flex-col gap-2">
-                <label
-                  htmlFor="deploy-pod"
-                  className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]"
-                >
-                  Pick a pod:
-                </label>
-                <select
-                  id="deploy-pod"
-                  value={pod}
-                  onChange={(e) => setPod(e.target.value)}
-                  className="font-mono bg-[#05070d] border border-white/10 px-2.5 py-1.5 text-[12px] text-white focus:border-[#3d5bff] focus:outline-none"
-                >
-                  {PODS.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
+              <div className="lg:col-span-4 flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="deploy-pod"
+                    className="sx-eyebrow"
+                  >
+                    Pick a pod
+                  </label>
+                  <select
+                    id="deploy-pod"
+                    value={pod}
+                    onChange={(e) => setPod(e.target.value)}
+                    className="bg-[var(--sx-surface)] text-white border border-[var(--sx-hairline)] rounded-[10px] h-[44px] px-3.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-white transition-all cursor-pointer"
+                  >
+                    {PODS.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
                 {bundle?.pod && (
-                  <div className="mt-1 flex flex-col gap-1 p-2.5 bg-[#05070d] border border-white/5 font-mono text-[11px]">
-                    <div className="flex justify-between text-[#8b96b0]">
-                      <span>Serial number:</span>
-                      <span className="text-[#dfe6f5]">{bundle.pod.serial_no}</span>
+                  <div className="sx-group">
+                    <div className="sx-row text-[13px]">
+                      <span className="text-[var(--sx-text-2)]">Serial number</span>
+                      <span className="font-mono text-white">{bundle.pod.serial_no}</span>
                     </div>
-                    <div className="flex justify-between text-[#8b96b0]">
-                      <span>Mechanism:</span>
-                      <span className="text-[#dfe6f5]">{bundle.pod.release_mechanism}</span>
+                    <div className="sx-row text-[13px]">
+                      <span className="text-[var(--sx-text-2)]">Mechanism</span>
+                      <span className="text-white">{bundle.pod.release_mechanism}</span>
                     </div>
-                    <div className="flex justify-between text-[#8b96b0]">
-                      <span>Release time:</span>
-                      <span className="text-[#dfe6f5]">
+                    <div className="sx-row text-[13px]">
+                      <span className="text-[var(--sx-text-2)]">Release time</span>
+                      <span className="font-mono text-white">
                         {bundle.pod.release_ts ? `${bundle.pod.release_ts.slice(11, 19)}Z` : "NULL"}
                       </span>
                     </div>
-                    <div className="flex justify-between text-[#8b96b0]">
-                      <span>Satellite:</span>
-                      <span className="text-[#7ee2b8]">
+                    <div className="sx-row text-[13px]">
+                      <span className="text-[var(--sx-text-2)]">Satellite</span>
+                      <span className="text-white">
                         {bundle.satellite ? `${bundle.satellite.node_id} (${bundle.satellite.state})` : "—"}
                       </span>
                     </div>
@@ -509,7 +503,7 @@ export default function Deploy() {
                 )}
               </div>
 
-              <div className="lg:col-span-8 flex items-center justify-center p-2 bg-[#05070d] border border-white/5">
+              <div className="lg:col-span-8 flex items-center justify-center p-4 bg-[var(--sx-night)] rounded-[10px] border border-[var(--sx-hairline)]">
                 <PodSvg status={podStatus} ejected={isEjected} />
               </div>
             </div>
@@ -517,80 +511,66 @@ export default function Deploy() {
         </Panel>
 
         {/* TIMELINE STEP 02: TELEMETRY SIGNAL ARBITRATION */}
-        <Panel cut={8} className="w-full">
-          <div className="p-4 flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
-              <div className="flex items-center gap-2.5">
-                <span className="font-mono text-[11px] font-semibold text-[#7fb2ff] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10">
-                  Step 2
-                </span>
-                <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white">
-                  Sensor agreement (2 of 3 must agree)
-                </span>
+        <Panel className="w-full">
+          <div className="p-4 flex flex-col gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--sx-hairline)] pb-2.5">
+              <div className="flex items-center gap-3">
+                <span className="sx-num text-white/40 text-[14px]">02</span>
+                <h3 className="sx-h3">Sensor agreement (2 of 3 must agree)</h3>
               </div>
 
-              <div className="flex items-center gap-2">
-                {/* State Badge */}
+              <div className="flex items-center gap-3">
                 <span
-                  className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border"
-                  style={{
-                    color: confirmedCount >= 2 ? "#7ee2b8" : "#f5a524",
-                    borderColor: confirmedCount >= 2 ? "#7ee2b866" : "#f5a52466",
-                    backgroundColor: confirmedCount >= 2 ? "#7ee2b815" : "#f5a52415",
-                  }}
+                  className="sx-status"
+                  data-tone={confirmedCount >= 2 ? "ok" : "warn"}
                 >
-                  {confirmedCount} OF 3 CONFIRMED
+                  {confirmedCount} of 3 confirmed
                 </span>
-
-                {/* Outcome Badge */}
-                <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-white/15 bg-white/5 text-[#8b96b0]">
+                <span className="sx-caption text-[var(--sx-text-3)]">
                   Checking signals
                 </span>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {SIGNALS.map((s) => {
                 const hits = bundle?.events.filter((e) => e.signal === s) ?? [];
                 const lit = hits.some((e) => e.ok);
                 return (
                   <div
                     key={s}
-                    className="p-3 bg-[#05070d] border border-white/5 flex flex-col gap-2 justify-between"
+                    className="p-3.5 bg-[var(--sx-night)] rounded-[10px] border border-[var(--sx-hairline)] flex flex-col gap-3 justify-between"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span
-                          className="size-2 rounded-none"
-                          style={{
-                            backgroundColor: lit ? "#7ee2b8" : "#5f6f93",
-                            boxShadow: lit ? "0 0 6px #7ee2b8" : undefined,
-                          }}
+                          className="sx-status"
+                          data-tone={lit ? "ok" : undefined}
                         />
-                        <span className="font-mono text-[12px] font-semibold text-white">
+                        <span className="font-mono text-[13px] font-semibold text-white">
                           {s}
                         </span>
                       </div>
-                      <span className="font-mono text-[10px] text-[#8b96b0]">
+                      <span className="sx-caption text-[var(--sx-text-3)]">
                         {hits.length} EVT
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/5">
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--sx-hairline)]">
                       <button
                         onClick={() => setOkState((p) => ({ ...p, [s]: !(p[s] ?? true) }))}
-                        className="font-mono text-[10px] uppercase tracking-[0.08em] px-2 py-1 border border-white/10 bg-transparent text-[#dfe6f5] hover:border-white/20 cursor-pointer"
+                        className="sx-btn sx-btn--sm sx-btn--quiet"
                       >
                         Signal ok: {okState[s] ? "true" : "false"}
                       </button>
 
                       <Locked action="deploy_signal" onTry={() => void onSignal(s)}>
-                      <button
-                        onClick={() => void onSignal(s)}
-                        className="font-mono text-[10px] uppercase tracking-[0.1em] px-3 py-1 bg-[#3d5bff] hover:bg-[#4f6bff] text-white font-semibold transition-colors cursor-pointer"
-                      >
-                        Send signal
-                      </button>
+                        <button
+                          onClick={() => void onSignal(s)}
+                          className="sx-btn sx-btn--sm"
+                        >
+                          Send signal
+                        </button>
                       </Locked>
                     </div>
                   </div>
@@ -601,55 +581,34 @@ export default function Deploy() {
         </Panel>
 
         {/* TIMELINE STEP 03: DEPLOYMENT TRANSACTION */}
-        <Panel cut={8} className="w-full">
-          <div className="p-4 flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
-              <div className="flex items-center gap-2.5">
-                <span className="font-mono text-[11px] font-semibold text-[#7fb2ff] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10">
-                  Step 3
-                </span>
-                <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white">
-                  Release step (all or nothing)
-                </span>
+        <Panel className="w-full">
+          <div className="p-4 flex flex-col gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--sx-hairline)] pb-2.5">
+              <div className="flex items-center gap-3">
+                <span className="sx-num text-white/40 text-[14px]">03</span>
+                <h3 className="sx-h3">Release step (all or nothing)</h3>
               </div>
 
-              <div className="flex items-center gap-2">
-                {/* State Badge */}
+              <div className="flex items-center gap-3">
                 <span
-                  className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border"
-                  style={{
-                    color: stateColor(satState),
-                    borderColor: `color-mix(in srgb, ${stateColor(satState)} 40%, transparent)`,
-                    backgroundColor: `color-mix(in srgb, ${stateColor(satState)} 10%, transparent)`,
-                  }}
+                  className="sx-status"
+                  data-tone={rolledBack ? "critical" : after ? "ok" : undefined}
                 >
                   SAT: {satState}
                 </span>
-
-                {/* Transaction Outcome Badge */}
-                {rolledBack ? (
-                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#f5a524]/60 bg-[#f5a524]/10 text-[#f5a524]">
-                    Rolled back
-                  </span>
-                ) : after ? (
-                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#7ee2b8]/60 bg-[#7ee2b8]/10 text-[#7ee2b8]">
-                    Released
-                  </span>
-                ) : (
-                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-white/15 bg-white/5 text-[#8b96b0]">
-                    Ready
-                  </span>
-                )}
+                <span className="sx-caption text-[var(--sx-text-3)]">
+                  {rolledBack ? "Rolled back" : after ? "Released" : "Ready"}
+                </span>
               </div>
             </div>
 
-            <p className="font-sans text-[13px] leading-relaxed text-[#dfe6f5] max-w-[85ch]">
+            <p className="sx-body max-w-3xl">
               When a release is confirmed, PostgreSQL opens a transaction that updates the pod to RELEASED,
               moves the satellite from STOWED to DEPLOYED, and records a row in deployment_log.
               If any step fails or is simulated as faulty, the transaction rolls back cleanly.
             </p>
 
-            <div className="flex flex-wrap items-center gap-2.5 pt-1">
+            <div className="flex flex-wrap items-center gap-3 pt-1">
               <Locked
                 action="deploy_confirm"
                 reason="Only the mission director may release a satellite (EXECUTE on procedure confirm_deployment)."
@@ -658,9 +617,9 @@ export default function Deploy() {
                 <button
                   onClick={() => void onConfirm(false)}
                   disabled={busy !== null}
-                  className="py-2 px-4 bg-[#3d5bff] hover:bg-[#4f6bff] text-white font-mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
+                  className="sx-btn sx-btn--filled"
                 >
-                  {busy === "confirm" ? "Confirming…" : "Confirm release"}
+                  {busy === "confirm" ? "Deploying…" : "Deploy SomaiyaSat-4"}
                 </button>
               </Locked>
 
@@ -672,9 +631,9 @@ export default function Deploy() {
                 <button
                   onClick={() => void onConfirm(true)}
                   disabled={busy !== null}
-                  className="py-2 px-4 border border-[#f5a524]/60 bg-transparent hover:bg-[#f5a524]/10 text-[#f5a524] font-mono text-[11px] uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
+                  className="sx-btn"
                 >
-                  {busy === "fail" ? "Simulating…" : "Simulate a failure"}
+                  {busy === "fail" ? "Rolling back…" : "Roll back"}
                 </button>
               </Locked>
 
@@ -686,7 +645,7 @@ export default function Deploy() {
                 <button
                   onClick={() => void onReset()}
                   disabled={busy !== null}
-                  className="py-2 px-4 border border-white/15 bg-transparent hover:border-white/30 text-[#dfe6f5] font-mono text-[11px] uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
+                  className="sx-btn sx-btn--quiet"
                 >
                   {busy === "reset" ? "Resetting…" : "Reset demo"}
                 </button>
@@ -697,40 +656,30 @@ export default function Deploy() {
 
         {/* TIMELINE STEP 04: AUDIT LOG & BEFORE/AFTER DIFF */}
         {(before !== null || after !== null) && (
-          <Panel cut={8} className="w-full">
-            <div className="p-4 flex flex-col gap-3.5">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
-                <div className="flex items-center gap-2.5">
-                  <span className="font-mono text-[11px] font-semibold text-[#7fb2ff] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10">
-                    Step 4
-                  </span>
-                  <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-white">
-                    What changed
-                  </span>
+          <Panel className="w-full">
+            <div className="p-4 flex flex-col gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--sx-hairline)] pb-2.5">
+                <div className="flex items-center gap-3">
+                  <span className="sx-num text-white/40 text-[14px]">04</span>
+                  <h3 className="sx-h3">What changed</h3>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {/* Transaction Outcome Badge */}
-                  {rolledBack ? (
-                    <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#f5a524]/60 bg-[#f5a524]/10 text-[#f5a524]">
-                      Rolled back, nothing changed
-                    </span>
-                  ) : (
-                    <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#7ee2b8]/60 bg-[#7ee2b8]/10 text-[#7ee2b8]">
-                      Saved
-                    </span>
-                  )}
-                </div>
+                <span
+                  className="sx-status"
+                  data-tone={rolledBack ? "critical" : "ok"}
+                >
+                  {rolledBack ? "Rolled back, nothing changed" : "Saved"}
+                </span>
               </div>
 
-              <p className="font-sans text-[13px] text-[#8b96b0]">
+              <p className="sx-body">
                 {rolledBack
                   ? "Matching rows: the transaction rolled back and no database state changed. The deployment_log row was written as a separate audit trail."
-                  : "Changed fields are highlighted in royal blue. The saved log row confirms the release."}
+                  : "Changed fields are highlighted in white. The saved log row confirms the release."}
               </p>
 
               {/* Diff Cards Restyled as Panels */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {before && (
                   <DiffCard
                     title="POD"
@@ -749,38 +698,32 @@ export default function Deploy() {
 
               {/* Deployment Log Audit Row */}
               {effectiveLog && (
-                <div className="p-3 bg-[#05070d] border border-white/10 flex flex-col gap-1.5 font-mono text-[11px]">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-1">
-                    <span className="text-[#8b96b0] uppercase">
+                <div className="sx-group">
+                  <div className="sx-row">
+                    <span className="sx-eyebrow">
                       Release log #{effectiveLog.log_id}
                     </span>
                     <span
-                      className="px-1.5 py-0.2 border text-[9px] uppercase tracking-wider"
-                      style={{
-                        color: effectiveLog.outcome === "COMMITTED" ? "#7ee2b8" : "#f5a524",
-                        borderColor:
-                          effectiveLog.outcome === "COMMITTED"
-                            ? "#7ee2b866"
-                            : "#f5a52466",
-                      }}
+                      className="sx-status"
+                      data-tone={effectiveLog.outcome === "COMMITTED" ? "ok" : "warn"}
                     >
                       {effectiveLog.outcome}
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[#dfe6f5]">
-                    <div>
-                      <span className="text-[#8b96b0]">Action: </span>
-                      {effectiveLog.action}
-                    </div>
-                    <div>
-                      <span className="text-[#8b96b0]">Logged at: </span>
-                      {effectiveLog.logged_at}
-                    </div>
-                    <div className="sm:col-span-2">
-                      <span className="text-[#8b96b0]">Detail: </span>
-                      {effectiveLog.detail ?? "—"}
-                    </div>
+                  <div className="sx-row text-[13px]">
+                    <span className="text-[var(--sx-text-2)]">Action</span>
+                    <span className="text-white">{effectiveLog.action}</span>
                   </div>
+                  <div className="sx-row text-[13px]">
+                    <span className="text-[var(--sx-text-2)]">Logged at</span>
+                    <span className="font-mono text-white">{effectiveLog.logged_at}</span>
+                  </div>
+                  {effectiveLog.detail && (
+                    <div className="sx-row text-[13px]">
+                      <span className="text-[var(--sx-text-2)]">Detail</span>
+                      <span className="text-white">{effectiveLog.detail}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -789,13 +732,13 @@ export default function Deploy() {
       </div>
 
       {/* State Machine & Illegal Jump Test Section */}
-      <Panel cut={8} className="w-full">
-        <div className="p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between border-b border-white/5 pb-2">
-            <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+      <Panel className="w-full">
+        <div className="p-4 flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b border-[var(--sx-hairline)] pb-2.5">
+            <span className="sx-eyebrow">
               Allowed satellite states (trigger trg_satellite_state)
             </span>
-            <span className="font-mono text-[10px] text-[#8b96b0]">
+            <span className="sx-caption text-[var(--sx-text-3)]">
               State rules
             </span>
           </div>
@@ -805,13 +748,13 @@ export default function Deploy() {
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <button
               onClick={() => void onIllegal()}
-              className="py-1.5 px-3 border border-[#ff3b4f]/40 bg-transparent hover:border-[#ff3b4f] text-[#ff3b4f] font-mono text-[11px] uppercase tracking-[0.1em] transition-colors cursor-pointer"
+              className="sx-btn sx-btn--sm"
             >
               Try a disallowed change (STOWED to NOMINAL)
             </button>
             <Link
               to="/labs/transactions"
-              className="font-mono text-[11px] tracking-[0.1em] text-[#7fb2ff] hover:underline"
+              className="sx-link sx-caption"
             >
               Open transactions lab →
             </Link>
@@ -819,38 +762,11 @@ export default function Deploy() {
 
           {/* State-Machine Rejection Showing Red Critical Badge + Exact Postgres Error */}
           {illegalError !== null && (
-            <Panel
-              cut={8}
-              borderColor="#ff3b4f"
-              glowColor="rgba(255, 59, 79, 0.3)"
-              className="w-full mt-2"
-            >
-              <div className="p-3.5 flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#ff3b4f]/40 bg-[#ff3b4f]/10 text-[#ff3b4f]">
-                    Change refused
-                  </span>
-                  <span className="font-mono text-[11px] text-[#ff3b4f]">
-                    SQLSTATE {illegalError.sqlstate ?? illegalError.status}
-                  </span>
-                  <span className="font-mono text-[10px] text-[#8b96b0]">
-                    TRIGGER trg_satellite_state
-                  </span>
-                </div>
-                <div className="bg-[#05070d] border border-white/10 p-3 font-mono text-[12.5px] text-[#ff3b4f] leading-relaxed">
-                  ERROR: {illegalError.message}
-                </div>
-                {illegalError.detail && (
-                  <div className="font-mono text-[11px] text-[#8b96b0]">
-                    DETAIL: {illegalError.detail}
-                  </div>
-                )}
-              </div>
-            </Panel>
+            <RefusedCard err={illegalError} context="trg_satellite_state" />
           )}
 
           {illegalMsg && !illegalError && (
-            <div className="p-3 bg-[#05070d] border border-white/10 font-mono text-[11px] text-white">
+            <div className="p-3 bg-[var(--sx-night)] rounded-[10px] border border-[var(--sx-hairline)] font-mono text-[12px] text-white">
               {illegalMsg}
             </div>
           )}
@@ -858,13 +774,13 @@ export default function Deploy() {
       </Panel>
 
       {/* Pass Execution (SAVEPOINT Demo) */}
-      <Panel cut={8} className="w-full">
-        <div className="p-4 flex flex-col gap-3.5">
-          <div className="flex items-center justify-between border-b border-white/5 pb-2">
-            <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[#8b96b0]">
+      <Panel className="w-full">
+        <div className="p-4 flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b border-[var(--sx-hairline)] pb-2.5">
+            <span className="sx-eyebrow">
               Downlink pass (savepoint demo, execute_pass())
             </span>
-            <span className="font-mono text-[10px] text-[#8b96b0]">
+            <span className="sx-caption text-[var(--sx-text-3)]">
               Partial rollback
             </span>
           </div>
@@ -873,7 +789,7 @@ export default function Deploy() {
             <div className="flex flex-col gap-1.5">
               <label
                 htmlFor="deploy-pass-sat"
-                className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]"
+                className="sx-eyebrow"
               >
                 Pick a satellite
               </label>
@@ -881,7 +797,7 @@ export default function Deploy() {
                 id="deploy-pass-sat"
                 value={passSat}
                 onChange={(e) => setPassSat(e.target.value)}
-                className="font-mono bg-[#05070d] border border-white/10 px-2.5 py-1.5 text-[12px] text-white focus:border-[#3d5bff] focus:outline-none"
+                className="bg-[var(--sx-surface)] text-white border border-[var(--sx-hairline)] rounded-[10px] h-[44px] px-3.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-white transition-all cursor-pointer"
               >
                 {PASS_SATS.map((s) => (
                   <option key={s} value={s}>
@@ -894,7 +810,7 @@ export default function Deploy() {
             <div className="flex flex-col gap-1.5 sm:col-span-2">
               <label
                 htmlFor="deploy-pass-contact"
-                className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]"
+                className="sx-eyebrow"
               >
                 Pick a ground contact
               </label>
@@ -902,7 +818,7 @@ export default function Deploy() {
                 id="deploy-pass-contact"
                 value={passContactId ?? ""}
                 onChange={(e) => setPassContactId(Number(e.target.value))}
-                className="font-mono bg-[#05070d] border border-white/10 px-2.5 py-1.5 text-[12px] text-white focus:border-[#3d5bff] focus:outline-none"
+                className="bg-[var(--sx-surface)] text-white border border-[var(--sx-hairline)] rounded-[10px] h-[44px] px-3.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-white transition-all cursor-pointer"
               >
                 {passContacts.length === 0 && <option value="">no downlink in window</option>}
                 {passContacts.map((c) => (
@@ -918,14 +834,14 @@ export default function Deploy() {
             <button
               onClick={() => void onPass(false)}
               disabled={busy !== null || passContactId === null}
-              className="py-2 px-4 bg-[#3d5bff] hover:bg-[#4f6bff] text-white font-mono text-[11px] font-semibold uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
+              className="sx-btn sx-btn--sm"
             >
               {busy === "pass" ? "Running…" : "Run pass"}
             </button>
             <button
               onClick={() => void onPass(true)}
               disabled={busy !== null || passContactId === null}
-              className="py-2 px-4 border border-[#f5a524]/60 bg-transparent hover:bg-[#f5a524]/10 text-[#f5a524] font-mono text-[11px] uppercase tracking-[0.1em] transition-colors disabled:opacity-50 cursor-pointer"
+              className="sx-btn sx-btn--sm"
             >
               {busy === "pass-fail" ? "Failing…" : "Run pass with a stage 2 failure"}
             </button>
@@ -935,45 +851,36 @@ export default function Deploy() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2">
               {/* Stages List with SAVEPOINT, ROLLBACK, COMMIT badges */}
               <div className="flex flex-col gap-2">
-                <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                <span className="sx-eyebrow">
                   Pass steps
                 </span>
-                <div className="flex flex-col gap-2">
+                <div className="sx-group">
                   {passResult.stages.map((st, i) => {
                     const rolled = /roll/i.test(st.status);
-                    const outcomeCol = rolled ? "#f5a524" : "#7ee2b8";
-                    const outcomeBadge = rolled ? "ROLLBACK" : "COMMIT";
 
                     return (
-                      <Panel key={i} cut={6} className="w-full">
-                        <div className="p-3 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-[10px] text-[#8b96b0]">
-                              Stage {i + 1}
-                            </span>
-                            <span className="font-mono text-[12px] font-semibold text-white">
-                              {st.stage}
-                            </span>
-                            {/* Savepoint badge if stage 1 was saved */}
-                            <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10 text-[#7fb2ff]">
-                              Savepoint
-                            </span>
-                            <span
-                              className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 border"
-                              style={{
-                                color: outcomeCol,
-                                borderColor: `color-mix(in srgb, ${outcomeCol} 40%, transparent)`,
-                                backgroundColor: `color-mix(in srgb, ${outcomeCol} 10%, transparent)`,
-                              }}
-                            >
-                              {outcomeBadge}
-                            </span>
-                          </div>
-                          <div className="font-mono text-[11px] text-[#8b96b0]">
-                            {st.packets} pkts · {st.bytes} B
-                          </div>
+                      <div key={i} className="sx-row">
+                        <div className="flex items-center gap-2.5">
+                          <span className="sx-num text-white/40 text-[13px]">
+                            {i + 1}
+                          </span>
+                          <span className="font-mono text-[13px] font-semibold text-white">
+                            {st.stage}
+                          </span>
+                          <span className="sx-caption text-[var(--sx-text-3)]">
+                            Savepoint
+                          </span>
+                          <span
+                            className="sx-status"
+                            data-tone={rolled ? "warn" : "ok"}
+                          >
+                            {rolled ? "ROLLBACK" : "COMMIT"}
+                          </span>
                         </div>
-                      </Panel>
+                        <div className="sx-num text-[12px] text-[var(--sx-text-2)]">
+                          {st.packets} pkts · {st.bytes} B
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -981,22 +888,22 @@ export default function Deploy() {
 
               {/* Queue Buffer Comparison Before vs After */}
               <div className="flex flex-col gap-2">
-                <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
+                <span className="sx-eyebrow">
                   Waiting data before and after
                 </span>
-                <div className="flex flex-col gap-2.5 p-3 bg-[#05070d] border border-white/5">
+                <div className="flex flex-col gap-3 p-4 bg-[var(--sx-night)] rounded-[10px] border border-[var(--sx-hairline)]">
                   {passModes.map((m) => {
                     const b = passResult.before.find((q) => q.mode === m)?.bytes ?? 0;
                     const a = passResult.after.find((q) => q.mode === m)?.bytes ?? 0;
                     return (
-                      <div key={m} className="flex flex-col gap-1">
-                        <div className="flex justify-between font-mono text-[11px]">
+                      <div key={m} className="flex flex-col gap-1.5">
+                        <div className="flex justify-between font-mono text-[12px]">
                           <span className="text-white font-medium">{m}</span>
-                          <span className="text-[#8b96b0]">
-                            {b} B → <span className="text-[#7ee2b8]">{a} B</span>
+                          <span className="text-[var(--sx-text-2)]">
+                            <span className="sx-num">{b}</span> B → <span className="sx-num text-white">{a}</span> B
                           </span>
                         </div>
-                        <DashedBar value={a} max={passMax} segments={24} fillColor="#3d5bff" />
+                        <DashedBar value={a} max={passMax} segments={24} fillColor="#ffffff" />
                       </div>
                     );
                   })}

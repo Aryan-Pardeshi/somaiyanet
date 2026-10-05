@@ -15,19 +15,23 @@ interface LeftRailProps {
   onFilterChange: (f: FleetFilter) => void;
 }
 
+function stateTone(state: string): "ok" | "warn" | "critical" | undefined {
+  if (state === "NOMINAL") return "ok";
+  if (state === "SAFE") return "warn";
+  if (state === "CRITICAL") return "critical";
+  return undefined;
+}
+
 function stateColor(state: string): string {
   switch (state) {
     case "NOMINAL":
-      return "#7ee2b8";
+      return "var(--sx-green)";
     case "SAFE":
-      return "#f5a524";
+      return "var(--sx-orange)";
     case "CRITICAL":
-      return "#ff3b4f";
-    case "STOWED":
-    case "DEPLOYED":
-    case "COMMISSIONING":
+      return "var(--sx-red)";
     default:
-      return "#4a5a8a";
+      return "var(--sx-text-3)";
   }
 }
 
@@ -67,7 +71,7 @@ function DashedBar({
   value,
   max = 100,
   segments = 12,
-  fillColor = "#3d5bff",
+  fillColor = "rgba(255, 255, 255, 0.7)",
 }: {
   value: number;
   max?: number;
@@ -78,7 +82,7 @@ function DashedBar({
   const activeCount = Math.round(ratio * segments);
 
   return (
-    <div className="flex items-center gap-[2px] h-1.5 w-full">
+    <div className="flex items-center gap-[2px] h-1 w-full">
       {Array.from({ length: segments }, (_, i) => {
         const isActive = i < activeCount;
         return (
@@ -155,40 +159,37 @@ export function LeftRail({
     <div className="w-full flex flex-col gap-3">
       {/* 0. Compact Role Strip */}
       <div className="w-full flex flex-col gap-2">
-        <div
-          className="liquid-glass flex items-center justify-between px-3.5 py-2 rounded-full text-[11.5px] font-mono"
-        >
-          <span className="text-[#dfe6f5] font-semibold truncate flex items-center gap-2">
-            <span className="size-2 rounded-full bg-[#7ee2b8] shrink-0" />
-            <span className="truncate">{roleTitle}</span>
+        <div className="sx-material flex items-center justify-between px-3.5 py-2 rounded-full text-[12px]">
+          <span className="sx-status text-white font-medium truncate" data-tone="ok">
+            {roleTitle}
           </span>
           <button
             type="button"
             onClick={() => setRoleExpanded((v) => !v)}
-            className="text-[10.5px] text-[#3d5bff] hover:text-white uppercase tracking-wider transition-colors cursor-pointer shrink-0 ml-2 font-semibold"
+            className="sx-caption hover:text-white capitalize transition-colors cursor-pointer shrink-0 ml-2"
             aria-expanded={roleExpanded}
           >
             {roleExpanded ? "Close" : "What can I do?"}
           </button>
         </div>
         {roleExpanded && (
-          <div className="rounded-xl overflow-hidden">
+          <div className="rounded-[14px] overflow-hidden">
             <RoleHeader note="Live constellation operations and ground pass scheduling." />
           </div>
         )}
       </div>
 
-      {/* 1. ONE Satellites card (merges title panel + filter chips) */}
+      {/* 1. ONE Satellites card */}
       <Glass>
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[11px] font-semibold tracking-wider text-[#dfe6f5]">
+            <span className="sx-eyebrow text-white">
               Satellites ({sats.length})
             </span>
           </div>
 
           {/* Segmented bar: one segment per satellite */}
-          <div className="flex items-center gap-[3px] h-2 w-full">
+          <div className="flex items-center gap-[3px] h-1.5 w-full">
             {sats.map((sat) => (
               <div
                 key={sat.node_id}
@@ -199,30 +200,24 @@ export function LeftRail({
             ))}
           </div>
 
-          {/* Legend line: "2 healthy · 1 in safe mode · 1 not yet deployed" (no stray commas) */}
-          <div className="font-mono text-[11px] text-[#8b96b0] flex flex-wrap items-center gap-x-1.5 leading-snug">
-            <span className="text-[#7ee2b8]">{nominalCount} healthy</span>
+          {/* Legend line: "2 healthy · 1 in safe mode · 1 not yet deployed" */}
+          <div className="flex flex-wrap items-center gap-x-2 text-[12px] text-[var(--sx-text-2)] leading-snug">
+            <span className="sx-status" data-tone="ok">{nominalCount} healthy</span>
             {safeCount > 0 && (
-              <>
-                <span>·</span>
-                <span className="text-[#f5a524] inline-flex items-center">
-                  {safeCount} in safe mode
-                  <HelpHint text="A low-power survival state where the satellite turns off payload systems and only listens for ground commands." />
-                </span>
-              </>
+              <span className="sx-status" data-tone="warn">
+                {safeCount} in safe mode
+                <HelpHint text="A low-power survival state where the satellite turns off payload systems and only listens for ground commands." />
+              </span>
             )}
             {stowedCount > 0 && (
-              <>
-                <span>·</span>
-                <span className="text-[#8b96b0]">
-                  {stowedCount} not yet deployed
-                </span>
-              </>
+              <span className="sx-status text-[var(--sx-text-3)]">
+                {stowedCount} not deployed
+              </span>
             )}
           </div>
 
           {/* Filter chips directly under it */}
-          <div className="grid grid-cols-2 gap-1.5 pt-2.5 border-t border-white/[0.08]">
+          <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-[var(--sx-hairline)]">
             {(
               [
                 { id: "ALL", label: "All", count: sats.length },
@@ -242,10 +237,10 @@ export function LeftRail({
                   key={item.id}
                   type="button"
                   onClick={() => onFilterChange(item.id)}
-                  className={`flex items-center justify-between px-3 py-1.5 rounded-full text-[11px] font-mono tracking-wider transition-all cursor-pointer ${
+                  className={`sx-btn sx-btn--sm flex items-center justify-between px-3 min-h-[34px] ${
                     active
-                      ? "liquid-glass-active font-semibold"
-                      : "liquid-glass-inset text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/[0.1]"
+                      ? "sx-btn--filled"
+                      : "sx-btn--quiet border border-[var(--sx-hairline)]"
                   }`}
                 >
                   <span className="inline-flex items-center truncate">
@@ -253,8 +248,8 @@ export function LeftRail({
                     {"hint" in item && item.hint && <HelpHint text={item.hint} />}
                   </span>
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full shrink-0 ml-1 ${
-                      active ? "bg-white/20 text-white" : "text-[#8b96b0] bg-white/[0.04]"
+                    className={`text-[11px] px-1.5 rounded-full shrink-0 ml-1 ${
+                      active ? "bg-black/15 text-black" : "text-[var(--sx-text-3)]"
                     }`}
                   >
                     {item.count}
@@ -269,14 +264,14 @@ export function LeftRail({
       {/* 2. Fleet List inside ONE glass card */}
       <Glass noPadding className="overflow-hidden">
         {filteredSats.length === 0 ? (
-          <div className="p-4 text-center font-mono text-xs text-[#8b96b0]">
+          <div className="p-4 text-center sx-caption">
             No satellites match filter "{filter}".
           </div>
         ) : (
-          <div className="divide-y divide-white/[0.08]">
+          <div className="divide-y divide-[var(--sx-hairline)]">
             {filteredSats.map((sat) => {
               const isSelected = selectedId === sat.node_id;
-              const statusCol = stateColor(sat.state);
+              const tone = stateTone(sat.state);
               const score = getBestLinkScore(sat.node_id);
               const batV = sat.battery_v ?? 7.4;
               const batPct = Math.max(
@@ -288,36 +283,28 @@ export function LeftRail({
                 <div
                   key={sat.node_id}
                   onClick={() => onSelect(isSelected ? null : sat.node_id)}
-                  className={`p-3.5 flex items-start gap-3 cursor-pointer transition-all duration-150 ${
+                  className={`p-3.5 flex items-start gap-3 cursor-pointer transition-colors duration-150 ${
                     isSelected
-                      ? "border-l-4 border-l-[#3d5bff] bg-white/[0.09] shadow-[inset_0_0_24px_rgba(61,91,255,0.08)]"
-                      : "border-l-4 border-l-transparent hover:bg-white/[0.04]"
+                      ? "bg-[var(--sx-surface-2)]"
+                      : "hover:bg-white/[0.03]"
                   }`}
                 >
                   {/* Left satellite SVG icon */}
-                  <div className="shrink-0 flex items-center justify-center pt-0.5">
+                  <div className="shrink-0 pt-0.5">
                     <SatIcon
-                      size={44}
-                      color={isSelected ? "#7fb2ff" : "#dfe6f5"}
-                      className={sat.state === "SAFE" ? "motion-safe:animate-pulse" : ""}
+                      size={40}
+                      color="white"
                     />
                   </div>
 
                   {/* Right details */}
                   <div className="min-w-0 flex-1 flex flex-col gap-1.5">
-                    {/* Name and State Badge */}
+                    {/* Name and State */}
                     <div className="flex items-center justify-between gap-1">
-                      <span className="font-mono text-[13px] font-semibold tracking-wide text-[#dfe6f5] truncate">
+                      <span className="font-[family-name:var(--font-display)] text-[13px] font-bold capitalize text-white truncate">
                         {sat.display_name || sat.node_id}
                       </span>
-                      <span
-                        className="font-mono text-[9px] uppercase tracking-[0.14em] px-2 py-0.5 rounded-full border shrink-0 inline-flex items-center"
-                        style={{
-                          color: statusCol,
-                          borderColor: `color-mix(in srgb, ${statusCol} 35%, transparent)`,
-                          backgroundColor: `color-mix(in srgb, ${statusCol} 12%, transparent)`,
-                        }}
-                      >
+                      <span className="sx-status shrink-0" data-tone={tone}>
                         {formatSatState(sat.state)}
                         {sat.state === "SAFE" && (
                           <HelpHint text="A low-power survival state where the satellite turns off payload systems and only listens for ground commands." />
@@ -326,61 +313,55 @@ export function LeftRail({
                     </div>
 
                     {/* Subline: Orbit & position, Altitude */}
-                    <div className="font-mono text-[10px] text-[#8b96b0] flex items-center justify-between">
+                    <div className="sx-caption flex items-center justify-between">
                       <span>
-                        Orbit {sat.plane}, position {sat.slot}
+                        Orbit {sat.plane}, slot {sat.slot}
                       </span>
-                      <span>525 km up</span>
+                      <span>525 km</span>
                     </div>
 
                     {/* Next ground pass countdown */}
-                    <div className="flex items-center justify-between font-mono text-[10px] liquid-glass-inset px-2.5 py-1 rounded-md">
-                      <span className="text-[#8b96b0]">
-                        {sat.next_downlink_start ? "Next ground pass in" : "Ground pass"}
+                    <div className="flex items-center justify-between sx-caption">
+                      <span className="text-[var(--sx-text-3)]">
+                        {sat.next_downlink_start ? "Next pass" : "Ground pass"}
                       </span>
-                      <span
-                        className={`tabular-nums font-medium ${
-                          sat.next_downlink_start
-                            ? "text-[#7ee2b8]"
-                            : "text-[#8b96b0]"
-                        }`}
-                      >
+                      <span className="sx-num text-white tabular-nums">
                         {formatCountdown(sat.next_downlink_start, now)}
                       </span>
                     </div>
 
-                    {/* Two dashed progress bars: Link quality & Battery */}
-                    <div className="flex flex-col gap-1 pt-0.5">
+                    {/* Two metrics: Link quality & Battery */}
+                    <div className="flex flex-col gap-1.5 pt-0.5">
                       {/* Link quality */}
                       <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center justify-between font-mono text-[9px]">
-                          <span className="text-[#8b96b0] inline-flex items-center">
+                        <div className="flex items-center justify-between sx-caption">
+                          <span className="text-[var(--sx-text-3)] inline-flex items-center">
                             Link quality
                             <HelpHint text="Expected radio signal strength and packet success rate for this link." />
                           </span>
-                          <span className="text-[#dfe6f5] tabular-nums font-medium">
+                          <span className="sx-num text-white tabular-nums">
                             {score}%
                           </span>
                         </div>
                         <DashedBar
                           value={score}
                           segments={10}
-                          fillColor="#3d5bff"
+                          fillColor="rgba(255, 255, 255, 0.7)"
                         />
                       </div>
 
                       {/* Battery */}
                       <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center justify-between font-mono text-[9px]">
-                          <span className="text-[#8b96b0]">Battery</span>
-                          <span className="text-[#dfe6f5] tabular-nums font-medium">
+                        <div className="flex items-center justify-between sx-caption">
+                          <span className="text-[var(--sx-text-3)]">Battery</span>
+                          <span className="sx-num text-white tabular-nums">
                             {batPct}% ({batV.toFixed(2)} V)
                           </span>
                         </div>
                         <DashedBar
                           value={batPct}
                           segments={10}
-                          fillColor={batPct < 30 ? "#f5a524" : "#3d5bff"}
+                          fillColor={batPct < 30 ? "var(--sx-orange)" : "rgba(255, 255, 255, 0.7)"}
                         />
                       </div>
                     </div>
@@ -394,3 +375,4 @@ export function LeftRail({
     </div>
   );
 }
+

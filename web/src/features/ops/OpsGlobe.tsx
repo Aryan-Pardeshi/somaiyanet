@@ -14,9 +14,7 @@ import type { ConstellationSat, Contact, Station } from "./api";
 import type { GlobeView } from "./cc/types";
 import {
   EARTH_R_KM,
-  islColor,
   propagateSat,
-  rgba,
   subSolarLatLng,
   unwrapLng,
   type LatLngAlt,
@@ -52,11 +50,18 @@ type World = InstanceType<typeof Globe>;
 interface SatDatum {
   uid: string;
   label: string;
-  color: string;
   lat: number;
   lng: number;
   alt: number;
   ok: boolean;
+  el: HTMLDivElement;
+}
+
+interface StationDatum {
+  uid: string;
+  lat: number;
+  lng: number;
+  alt: number;
   el: HTMLDivElement;
 }
 
@@ -69,23 +74,12 @@ interface PathDatum {
   dashAnimateTime?: number;
 }
 
-const NOMINAL_COLOR = "#7ee2b8";
-const SAFE_COLOR = "#f5a524";
-const CRITICAL_COLOR = "#ff3b4f";
-const STOWED_COLOR = "#4a5a8a";
-const DOWNLINK_GREEN = "#3ecf8e";
 const TRAIL_N = 70;
 const MODEL_ALT = 525 / EARTH_R_KM;
 // Display altitude: 525 km hugs the surface at this zoom, so markers, orbits
 // and links are drawn on a raised shell (about 0.2 Earth radii) for legibility.
 const VIS_ALT = 0.2;
 
-function satStatusColor(s: ConstellationSat): string {
-  if (s.state === "NOMINAL") return NOMINAL_COLOR;
-  if (s.state === "SAFE") return SAFE_COLOR;
-  if (s.state === "CRITICAL") return CRITICAL_COLOR;
-  return STOWED_COLOR;
-}
 
 export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
   function OpsGlobe(props, ref) {
@@ -100,6 +94,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
     const simRef = useRef({ simMs: 0, lastReal: 0, speed: 1 });
     const recsRef = useRef(new Map<string, satellite.SatRec>());
     const satsRef = useRef<SatDatum[]>([]);
+    const stationsRef = useRef<StationDatum[]>([]);
     const playRef = useRef<{
       hops: RouteHop[];
       idx: number;
@@ -190,8 +185,8 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         .globeImageUrl(`${texBase}/earth_night.jpg`)
         .bumpImageUrl(`${texBase}/earth_topology.jpg`)
         .showAtmosphere(true)
-        .atmosphereColor("#cfd8ff")
-        .atmosphereAltitude(0.18)
+        .atmosphereColor("rgba(255, 255, 255, 0.12)")
+        .atmosphereAltitude(0.04)
         .width(el.clientWidth)
         .height(el.clientHeight);
       worldRef.current = world;
@@ -209,65 +204,14 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
       }
       world.onGlobeClick(() => liveRef.current.onSelect(null));
 
-      // Rings: pulsing ground stations
-      world
-        .ringsData([])
-        .ringLat((d: object) => (d as { lat: number }).lat)
-        .ringLng((d: object) => (d as { lng: number }).lng)
-        .ringColor((d: object) => {
-          const item = d as { primary: boolean; isMine?: boolean };
-          if (item.isMine) {
-            return (t: number): string => `rgba(245,165,36,${((1 - t) * 0.98).toFixed(3)})`;
-          }
-          const primary = item.primary;
-          const c = primary ? "127,178,255" : "207,216,255";
-          return (t: number): string => `rgba(${c},${((1 - t) * 0.95).toFixed(3)})`;
-        })
-        .ringMaxRadius((d: object) => {
-          const item = d as { primary: boolean; isMine?: boolean };
-          if (item.isMine) return 5.8;
-          return item.primary ? 4.4 : 3.0;
-        })
-        .ringPropagationSpeed((d: object) =>
-          (d as { isMine?: boolean }).isMine ? 2.0 : 1.5,
-        )
-        .ringRepeatPeriod((d: object) => {
-          const item = d as { primary: boolean; isMine?: boolean };
-          if (item.isMine) return 900;
-          return item.primary ? 1100 : 1700;
-        })
-        .ringAltitude(0.004);
-
-      // Station labels
-      world
-        .labelsData([])
-        .labelLat((d: object) => (d as { lat: number }).lat)
-        .labelLng((d: object) => (d as { lng: number }).lng)
-        .labelText((d: object) => (d as { name: string }).name)
-        .labelSize((d: object) => {
-          const item = d as { primary: boolean; isMine?: boolean };
-          if (item.isMine) return 0.95;
-          return item.primary ? 0.75 : 0.6;
-        })
-        .labelDotRadius((d: object) => {
-          const item = d as { primary: boolean; isMine?: boolean };
-          if (item.isMine) return 0.45;
-          return item.primary ? 0.3 : 0.22;
-        })
-        .labelColor((d: object) => {
-          const item = d as { primary: boolean; isMine?: boolean };
-          if (item.isMine) return "rgba(245,165,36,1)";
-          return item.primary
-            ? "rgba(223,230,245,1)"
-            : "rgba(139,150,176,0.9)";
-        })
-        .labelResolution(2)
-        .labelAltitude(0.006);
+      // Ground station rings and default labels are cleared in favor of minimal HTML markers
+      world.ringsData([]);
+      world.labelsData([]);
 
       // Paths layer for:
-      // 1. Thin dotted white orbit paths
+      // 1. Thin white orbit paths
       // 2. Selected satellite orbit trail
-      // 3. ISL lines & Downlink beams
+      // 3. Contact lines & active route
       world
         .pathsData([])
         .pathPoints((d: object) => (d as PathDatum).pts)
@@ -281,14 +225,15 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         .pathDashAnimateTime((d: object) => (d as PathDatum).dashAnimateTime ?? 0)
         .pathTransitionDuration(0);
 
-      // HTML Elements for Satellites
+      // HTML Elements for Satellites and Ground Stations
       world
         .htmlElementsData([])
-        .htmlLat((d: object) => (d as SatDatum).lat)
-        .htmlLng((d: object) => (d as SatDatum).lng)
-        .htmlAltitude((d: object) => (d as SatDatum).alt)
+        .htmlLat((d: object) => (d as { lat: number }).lat)
+        .htmlLng((d: object) => (d as { lng: number }).lng)
+        .htmlAltitude((d: object) => (d as { alt: number }).alt)
         .htmlTransitionDuration(0)
-        .htmlElement((d: object) => (d as SatDatum).el);
+        .htmlElement((d: object) => (d as { el: HTMLDivElement }).el);
+
 
       // Sun and specular lighting
       try {
@@ -499,7 +444,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         if (real - lastLayer > 180) {
           lastLayer = real;
           const visible = satsRef.current.filter((s) => s.ok);
-          world.htmlElementsData(visible as unknown as object[]);
+          world.htmlElementsData([...visible, ...stationsRef.current] as unknown as object[]);
 
           // Check screen distance to avoid label overlap when satellites bunch up:
           // For markers closer than about 28px on screen, hide the label of the non-selected ones
@@ -542,7 +487,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
           const paths: PathDatum[] = [];
           const { selectedId, contacts, stations, sats } = liveRef.current;
 
-          // 1. Thin dotted white orbit path for each active satellite
+          // 1. Thin white orbit path for each active satellite (1px white at 25%)
           const periodMs = 95.1 * 60 * 1000;
           for (const s of sats) {
             if (s.state === "STOWED") continue;
@@ -560,15 +505,15 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
                 pts: orbitPts.map(
                   (q) => [q.lat, q.lng, VIS_ALT] as [number, number, number],
                 ),
-                colors: "rgba(223, 230, 245, 0.42)",
-                stroke: 0.9,
+                colors: "rgba(255, 255, 255, 0.25)",
+                stroke: 1.0,
                 dashLength: 0.012,
                 dashGap: 0.012,
               });
             }
           }
 
-          // 2. Brighter trail for the selected sat
+          // 2. Selected satellite orbit trail (white at 15-35%)
           if (selectedId) {
             const rec = recsRef.current.get(selectedId);
             const datum = satsRef.current.find((s) => s.uid === selectedId);
@@ -585,14 +530,14 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
                   pts: seq.map(
                     (q) => [q.lat, q.lng, VIS_ALT] as [number, number, number],
                   ),
-                  colors: [rgba("#3d5bff", 0), rgba("#3d5bff", 1)],
-                  stroke: 2.2,
+                  colors: ["rgba(255, 255, 255, 0.15)", "rgba(255, 255, 255, 0.35)"],
+                  stroke: 1.5,
                 });
               }
             }
           }
 
-          // 3. Live ISL chords + Downlink beams
+          // 3. Contact/link lines (white at 60%)
           const pos = new Map<string, LatLngAlt>();
           for (const s of satsRef.current)
             if (s.ok) pos.set(s.uid, { lat: s.lat, lng: s.lng, alt: s.alt });
@@ -613,8 +558,8 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
                   [a.lat, a.lng, a.alt],
                   [b.lat, b.lng, b.alt],
                 ],
-                colors: islColor(c.link_score),
-                stroke: 1.2,
+                colors: "rgba(255, 255, 255, 0.60)",
+                stroke: 1.0,
               });
             } else {
               const a = pos.get(c.from_node);
@@ -625,11 +570,25 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
                   [st.latitude, st.longitude, 0.004],
                   [a.lat, a.lng, a.alt],
                 ],
-                colors: DOWNLINK_GREEN,
+                colors: "rgba(255, 255, 255, 0.60)",
                 stroke: 1.0,
               });
             }
           }
+
+          // 4. The active route (#ff453a)
+          if (playRef.current) {
+            const p = playRef.current;
+            paths.push({
+              pts: [
+                [p.from.lat, p.from.lng, p.from.alt],
+                [p.to.lat, p.to.lng, p.to.alt],
+              ],
+              colors: "#ff453a",
+              stroke: 2.0,
+            });
+          }
+
           world.pathsData(paths as unknown as object[]);
         }
       };
@@ -677,7 +636,6 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
 
       for (const s of props.sats) {
         if (s.state === "STOWED") continue; // Stowed sats don't orbit
-        const color = satStatusColor(s);
         const isSelected = selectedId === s.node_id;
         const isDimmed =
           highlightIds !== undefined &&
@@ -689,9 +647,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
           const div = document.createElement("div");
           div.className = "ops-marker";
           div.innerHTML = `
-            <div class="ops-marker-ring">
-              <div class="ops-marker-dot"></div>
-            </div>
+            <div class="ops-marker-dot"></div>
             <div class="ops-marker-tag">${s.node_id.replace("SAT-", "")}</div>
           `;
           div.addEventListener("click", (ev) => {
@@ -702,7 +658,6 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
           datum = {
             uid: s.node_id,
             label: s.display_name || s.node_id,
-            color,
             lat: 0,
             lng: 0,
             alt: MODEL_ALT,
@@ -719,154 +674,147 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         }
 
         // Apply dynamic styles & classes
-        datum.color = color;
-        datum.el.style.setProperty("--sat-color", color);
         datum.el.classList.toggle("ops-selected", isSelected);
         datum.el.classList.toggle("ops-dimmed", isDimmed);
-        datum.el.classList.toggle("ops-safe", s.state === "SAFE");
 
         next.push(datum);
       }
       satsRef.current = next;
 
       // Stations
-      const rings = props.stations.map((st) => ({
-        lat: st.latitude,
-        lng: st.longitude,
-        primary: st.is_primary,
-        isMine: st.node_id === props.myStation,
-      }));
-      const labels = props.stations.map((st) => ({
-        lat: st.latitude,
-        lng: st.longitude,
-        primary: st.is_primary,
-        name:
-          st.node_id === props.myStation
-            ? `${st.node_id} (Your station)`
-            : st.node_id,
-        isMine: st.node_id === props.myStation,
-      }));
-      world.ringsData(rings as unknown as object[]);
-      world.labelsData(labels as unknown as object[]);
+      const stationByUid = new Map(stationsRef.current.map((st) => [st.uid, st]));
+      const nextStations: StationDatum[] = [];
+      for (const st of props.stations) {
+        const isMumbai = st.node_id === "GS-BOM";
+        const isMine = st.node_id === props.myStation;
+        let datum = stationByUid.get(st.node_id);
+        if (!datum) {
+          const div = document.createElement("div");
+          div.className = "ops-station-marker";
+          div.innerHTML = `
+            <div class="ops-station-sq ${isMumbai ? "ops-mumbai" : ""}"></div>
+            <div class="ops-station-tag">${st.node_id}${isMine ? " (Your station)" : ""}</div>
+          `;
+          datum = {
+            uid: st.node_id,
+            lat: st.latitude,
+            lng: st.longitude,
+            alt: 0.004,
+            el: div,
+          };
+        } else {
+          datum.lat = st.latitude;
+          datum.lng = st.longitude;
+          const tag = datum.el.querySelector(".ops-station-tag");
+          if (tag) tag.textContent = `${st.node_id}${isMine ? " (Your station)" : ""}`;
+        }
+        nextStations.push(datum);
+      }
+      stationsRef.current = nextStations;
     }, [props.sats, props.stations, props.selectedId, props.highlightIds, props.myStation]);
 
     return (
       <div className="relative h-full w-full overflow-hidden bg-black select-none">
         <style>{`
-          .ops-marker {
-            position: relative;
-            cursor: pointer;
-            pointer-events: auto;
-            user-select: none;
-            display: flex;
-            align-items: center;
-            transform: translate(-7px, -7px);
-            transition: opacity 0.25s ease;
-          }
-          .ops-marker.ops-dimmed {
-            opacity: 0.18 !important;
-            pointer-events: none !important;
-          }
-          .ops-marker-ring {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            border: 1.5px solid var(--sat-color, #7ee2b8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(6, 11, 23, 0.4);
-            box-shadow: 0 0 6px var(--sat-color, #7ee2b8);
-            transition: all 0.2s ease;
-          }
-          .ops-marker-dot {
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: var(--sat-color, #7ee2b8);
-          }
-          .ops-marker-tag {
-            position: absolute;
-            left: 18px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-family: 'Geist Mono', ui-monospace, monospace;
-            font-size: 10px;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            white-space: nowrap;
-            color: #dfe6f5;
-            background: rgba(6, 13, 31, 0.88);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 3px;
-            padding: 1px 5px;
-            backdrop-filter: blur(8px);
-            pointer-events: none;
-            transition: opacity 0.2s ease, border-color 0.2s ease;
-          }
-          .ops-marker.ops-hide-tag:not(.ops-selected) .ops-marker-tag {
-            opacity: 0;
-            pointer-events: none;
-          }
-          .ops-marker.ops-hide-tag:not(.ops-selected):hover .ops-marker-tag,
-          .ops-marker:hover .ops-marker-tag {
-            opacity: 1;
-            pointer-events: auto;
-          }
-          .ops-marker:hover .ops-marker-ring {
-            transform: scale(1.2);
-            border-color: #3d5bff;
-          }
-          .ops-marker:hover .ops-marker-tag {
-            border-color: #3d5bff;
-            color: #ffffff;
-          }
-          .ops-marker.ops-selected .ops-marker-ring {
-            width: 22px;
-            height: 22px;
-            margin: -4px 0 0 -4px;
-            border: 2px solid #3d5bff;
-            box-shadow: 0 0 12px #3d5bff, inset 0 0 6px #3d5bff;
-          }
-          .ops-marker.ops-selected .ops-marker-dot {
-            width: 6px;
-            height: 6px;
-            background: #ffffff;
-            box-shadow: 0 0 6px #ffffff;
-          }
-          .ops-marker.ops-selected .ops-marker-tag {
-            left: 22px;
-            border-color: #3d5bff;
-            background: rgba(61, 91, 255, 0.25);
-            color: #ffffff;
-            font-weight: 600;
-          }
-          .ops-marker.ops-safe .ops-marker-ring {
-            animation: ops-marker-pulse 1.2s ease-in-out infinite;
-          }
-          @keyframes ops-marker-pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.3); opacity: 0.6; }
-          }
-          @media (prefers-reduced-motion: reduce) {
-            .ops-marker.ops-safe .ops-marker-ring {
-              animation: none;
-            }
-          }
-        `}</style>
+ .ops-marker {
+ position: relative;
+ cursor: pointer;
+ pointer-events: auto;
+ user-select: none;
+ display: flex;
+ align-items: center;
+ transform: translate(-3px, -3px);
+ transition: opacity 0.2s ease;
+ }
+ .ops-marker.ops-dimmed {
+ opacity: 0.18 !important;
+ pointer-events: none !important;
+ }
+ .ops-marker-dot {
+ width: 6px;
+ height: 6px;
+ border-radius: 50%;
+ background: #ffffff;
+ flex-shrink: 0;
+ transition: background-color 0.2s ease;
+ }
+ .ops-marker.ops-selected .ops-marker-dot {
+ background: #0a84ff;
+ width: 7px;
+ height: 7px;
+ }
+ .ops-marker-tag {
+ position: absolute;
+ left: 10px;
+ top: 50%;
+ transform: translateY(-50%);
+ font-family: var(--font-display, "Barlow", sans-serif);
+ font-size: 11px;
+ font-weight: 600;
+ letter-spacing: 0.04em;
+ text-transform: capitalize;
+ white-space: nowrap;
+ color: rgba(255, 255, 255, 0.8);
+ pointer-events: none;
+ transition: opacity 0.2s ease;
+ }
+ .ops-marker.ops-selected .ops-marker-tag {
+ left: 11px;
+ color: #ffffff;
+ }
+ .ops-marker.ops-hide-tag:not(.ops-selected) .ops-marker-tag {
+ opacity: 0;
+ pointer-events: none;
+ }
+ .ops-marker.ops-hide-tag:not(.ops-selected):hover .ops-marker-tag,
+ .ops-marker:hover .ops-marker-tag {
+ opacity: 1;
+ pointer-events: auto;
+ }
+
+ .ops-station-marker {
+ position: relative;
+ display: flex;
+ align-items: center;
+ pointer-events: none;
+ user-select: none;
+ transform: translate(-3px, -3px);
+ }
+ .ops-station-sq {
+ width: 6px;
+ height: 6px;
+ background: #ffffff;
+ flex-shrink: 0;
+ }
+ .ops-station-sq.ops-mumbai {
+ background: #ff453a;
+ }
+ .ops-station-tag {
+ position: absolute;
+ left: 10px;
+ top: 50%;
+ transform: translateY(-50%);
+ font-family: var(--font-display, "Barlow", sans-serif);
+ font-size: 11px;
+ font-weight: 500;
+ letter-spacing: 0.04em;
+ text-transform: capitalize;
+ white-space: nowrap;
+ color: rgba(255, 255, 255, 0.7);
+ }
+ `}</style>
         <div ref={containerRef} className="absolute inset-0" />
         <div
           ref={dotRef}
-          className="pointer-events-none absolute left-0 top-0 z-30 hidden h-3 w-3 rounded-full bg-[#ff3b4f]"
+          className="pointer-events-none absolute left-0 top-0 z-30 hidden h-2.5 w-2.5 rounded-full bg-[#ff453a]"
           style={{
-            boxShadow: "0 0 14px 4px rgba(255,59,79,.95)",
             display: "none",
           }}
         />
 
         {!booted && (
           <div className="absolute inset-0 z-40 flex items-center justify-center bg-black">
-            <p className="motion-safe:animate-pulse font-mono text-[12px] tracking-widest uppercase text-[#8b96b0]">
+            <p className="font-[family-name:var(--font-display)] text-[12px] capitalize text-[var(--sx-text-3)]">
               Acquiring Constellation Orbit…
             </p>
           </div>

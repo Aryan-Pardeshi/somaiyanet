@@ -15,13 +15,12 @@ import {
   Terminal,
   X,
 } from "lucide-react";
-import { Brand } from "@/components/story/Brand";
-import { Panel } from "@/components/cc/Panel";
+import { Brand, BrandMark } from "@/components/story/Brand";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { apiFetch } from "./api";
 import { SqlButton, SqlDrawer, SqlProvider } from "./SqlDrawer";
-import { RoleProvider, accessFor, canVisit, homeFor } from "./access";
-import { FALLBACK_PROFILES, ProfileAvatar, accentRing } from "./profiles";
+import { RoleProvider, canVisit, homeFor } from "./access";
+import { FALLBACK_PROFILES, ProfileAvatar } from "./profiles";
 import type { Profile } from "./profiles";
 
 const MISSION_NAV = [
@@ -49,14 +48,14 @@ function titleFor(role: string): string {
 
 function getPageTitle(pathname: string): string {
   const mission = MISSION_NAV.find((m) => m.to === pathname);
-  if (mission) return mission.label.toUpperCase();
+  if (mission) return mission.label;
   const lab = LABS_NAV.find((l) => l.to === pathname);
   if (lab) return `Lab ${lab.label}`;
   if (pathname.startsWith("/labs/")) {
     const sub = pathname.replace("/labs/", "");
     return `Lab ${sub}`;
   }
-  return pathname.replace(/^\//, "").toUpperCase() || "SOMAIYANET";
+  return pathname.replace(/^\//, "") || "SomaiyaNet";
 }
 
 function UtcClock() {
@@ -67,9 +66,114 @@ function UtcClock() {
   }, []);
   const p = (n: number): string => String(n).padStart(2, "0");
   return (
-    <span className="font-mono text-[11px] tabular-nums text-[#8b96b0]">
+    <span className="sx-num text-[12px] text-[var(--sx-text-2)]">
       {p(now.getUTCHours())}:{p(now.getUTCMinutes())}:{p(now.getUTCSeconds())} UTC
     </span>
+  );
+}
+
+function ProfileSwitcher({
+  profile,
+  profiles,
+  checking,
+  onSwitch,
+}: {
+  profile: Profile | null;
+  profiles: Profile[];
+  checking: boolean;
+  onSwitch: (role: string) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onDown = (ev: MouseEvent): void => {
+      if (ref.current && !ref.current.contains(ev.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-label="Switch profile"
+        className="sx-btn sx-btn--quiet sx-btn--sm flex items-center gap-1.5"
+      >
+        <span className="truncate max-w-[110px] text-white md:max-w-[160px]">
+          {profile !== null && !checking
+            ? (profile.title ?? titleFor(profile.role))
+            : checking
+              ? "Checking..."
+              : "No profile"}
+        </span>
+        <ChevronDown
+          size={14}
+          strokeWidth={1.5}
+          className={`shrink-0 text-[var(--sx-text-2)] transition-transform duration-200 ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {open && profile !== null && (
+        <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-[14px] border border-[var(--sx-hairline)] bg-[var(--sx-surface)] p-1.5 shadow-2xl">
+          <div className="px-3 py-2">
+            <p className="sx-eyebrow text-[11px] text-[var(--sx-text-3)]">
+              Switch profile
+            </p>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            {profiles.map((p) => {
+              const isCurrent = profile.role === p.role;
+              return (
+                <button
+                  key={p.role}
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    void onSwitch(p.role);
+                  }}
+                  className={`flex w-full items-center gap-2.5 rounded-[8px] px-3 py-2 text-left transition-colors cursor-pointer ${
+                    isCurrent
+                      ? "bg-[var(--sx-surface-2)] text-white"
+                      : "text-[var(--sx-text-2)] hover:bg-[var(--sx-surface-2)] hover:text-white"
+                  }`}
+                >
+                  <ProfileAvatar role={p.role} size={22} />
+                  <div className="min-w-0 flex-1 leading-tight">
+                    <span className="block truncate text-[13px] font-medium text-white">
+                      {p.title}
+                    </span>
+                    <span className="block truncate text-[11px] text-[var(--sx-text-3)]">
+                      {p.role.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  {isCurrent && (
+                    <span
+                      aria-hidden="true"
+                      className="size-1.5 rounded-full bg-white shrink-0"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <Link
+            to="/console"
+            onClick={() => setOpen(false)}
+            className="mt-1 block border-t border-[var(--sx-hairline)] px-3 py-2 text-[12px] text-[var(--sx-text-2)] hover:text-white transition-colors"
+          >
+            Change profile →
+          </Link>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -80,13 +184,11 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const [profiles, setProfiles] = useState<Profile[]>(FALLBACK_PROFILES);
   const [checking, setChecking] = useState(true);
   const [offline, setOffline] = useState(false);
-  const [chipOpen, setChipOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [redirected, setRedirected] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   // Home path we just redirected to, so the notice survives that navigation.
   const redirectTarget = useRef<string | null>(null);
-  const chipRef = useRef<HTMLDivElement>(null);
 
   // Profile guard: 401 -> /console?next=<path>. Network failure stays put
   // with an offline badge instead of a redirect loop.
@@ -142,17 +244,6 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Close popovers on outside click.
-  useEffect(() => {
-    const onDown = (ev: MouseEvent): void => {
-      if (chipRef.current && !chipRef.current.contains(ev.target as Node)) {
-        setChipOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, []);
-
   const switchProfile = async (role: string): Promise<void> => {
     try {
       const r = await apiFetch<Profile>("/api/session", {
@@ -160,7 +251,6 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ role }),
       });
       setProfile(r.data);
-      setChipOpen(false);
       setSheetOpen(false);
       if (!canVisit(r.data.role, location.pathname)) {
         navigate(homeFor(r.data.role), { replace: true });
@@ -168,189 +258,77 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       // Re-fetch the current page's data with the new role's permissions.
       window.location.reload();
     } catch {
-      // Drawer surfaces the error card; keep the popover open.
+      // Drawer surfaces the error card
     }
   };
 
   const role = profile?.role ?? null;
-  const who = role ? accessFor(role)?.who : null;
   // No known profile (not picked yet, or backend offline): show no pages at
   // all rather than every page, so nothing appears that the role may not use.
   const missionNav = role ? MISSION_NAV.filter((m) => canVisit(role, m.to)) : [];
   const labsNav = role ? LABS_NAV.filter((l) => canVisit(role, l.to)) : [];
 
-  const switcher = (
-    <div className="relative" ref={chipRef}>
-      <Panel
-        cut={6}
-        className="w-full"
-        onClick={() => setChipOpen((o) => !o)}
-        aria-expanded={chipOpen}
-        aria-label="Switch profile"
-      >
-        <div className="p-2 flex items-center gap-2.5 w-full select-none cursor-pointer">
-          {profile !== null && !checking ? (
-            <>
-              <ProfileAvatar role={profile.role} size={24} />
-              <div className="min-w-0 flex-1 text-left leading-tight">
-                <span className="block truncate text-[12px] font-medium text-white">
-                  {profile.title ?? titleFor(profile.role)}
-                </span>
-                <span className="block truncate font-mono text-[10px] text-[#8b96b0] uppercase tracking-wider">
-                  {profile.role}
-                </span>
-                {who && (
-                  <span className="block truncate text-[11px] text-[#5f6f93]">
-                    {who}
-                  </span>
-                )}
-              </div>
-              <ChevronDown
-                size={13}
-                className={`shrink-0 text-[#8b96b0] transition-transform duration-200 ${
-                  chipOpen ? "rotate-180" : ""
-                }`}
-              />
-            </>
-          ) : (
-            <span className="px-1 font-mono text-[11px] text-[#8b96b0]">
-              {checking ? "CHECKING..." : "NO PROFILE"}
-            </span>
-          )}
-        </div>
-      </Panel>
-
-      {chipOpen && profile !== null && (
-        <div
-          className="absolute bottom-full left-0 z-50 mb-2 w-64 border border-white/10 bg-[#05070d]/95 backdrop-blur-xl shadow-[0_10px_30px_rgba(0,0,0,0.85)]"
-        >
-          <div className="border-b border-white/[0.06] px-3 py-2">
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8b96b0]">
-              SWITCH PROFILE
-            </p>
-          </div>
-          <div className="flex flex-col py-1">
-            {profiles.map((p) => {
-              const isCurrent = profile.role === p.role;
-              return (
-                <button
-                  key={p.role}
-                  onClick={() => void switchProfile(p.role)}
-                  className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors cursor-pointer ${
-                    isCurrent
-                      ? "bg-[#3d5bff]/10 text-white"
-                      : "text-[#dfe6f5] hover:bg-white/[0.06]"
-                  }`}
-                >
-                  <ProfileAvatar role={p.role} size={26} />
-                  <div className="min-w-0 flex-1 leading-tight">
-                    <span className="block truncate text-[12px] font-medium text-white">
-                      {p.title}
-                    </span>
-                    <span className="block truncate font-mono text-[10px] text-[#8b96b0] uppercase tracking-wider">
-                      {p.role}
-                    </span>
-                  </div>
-                  {isCurrent ? (
-                    <span
-                      aria-hidden="true"
-                      className="size-1.5 rounded-full bg-[#3d5bff] shadow-[0_0_6px_#3d5bff]"
-                    />
-                  ) : (
-                    <span
-                      aria-hidden="true"
-                      className="size-1.5 rounded-full opacity-60"
-                      style={{ background: accentRing(p.accent) }}
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          <Link
-            to="/console"
-            onClick={() => setChipOpen(false)}
-            className="block border-t border-white/[0.06] px-3 py-2 font-mono text-[11px] uppercase tracking-wider text-[#8b96b0] hover:text-white hover:bg-white/[0.04] transition-colors"
-          >
-            CHANGE PROFILE →
-          </Link>
-        </div>
-      )}
-    </div>
-  );
-
   const navList = (
     <>
       {role === null && !checking && (
-        <div className="px-3 pt-1 text-[12.5px] leading-relaxed text-[#8b96b0]">
-          <p>{offline ? "Backend offline, so no profile is loaded." : "No profile picked yet."}</p>
+        <div className="rounded-[14px] bg-[var(--sx-surface)] p-3 mb-3">
+          <p className="sx-body text-[13px] leading-relaxed text-white">
+            {offline ? "Backend offline, so no profile is loaded." : "No profile picked yet."}
+          </p>
           <Link
             to="/console"
-            className="mt-2 inline-block border border-white/15 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-[#dfe6f5] hover:border-[#3d5bff] hover:text-white"
+            className="sx-btn sx-btn--sm mt-2.5 w-full text-center"
           >
             Pick a profile
           </Link>
         </div>
       )}
       {missionNav.length > 0 && (
-      <p className="px-3 pt-1 pb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
-        MISSION
-      </p>
+        <p className="sx-eyebrow px-3 pt-2 pb-1.5 text-white/50">
+          Mission
+        </p>
       )}
-      <nav className="mt-0.5 flex flex-col gap-0.5" aria-label="Mission">
+      <nav className="flex flex-col gap-1" aria-label="Mission">
         {missionNav.map(({ to, label, Icon }) => (
           <NavLink
             key={to}
             to={to}
             title={label}
             onClick={() => setSheetOpen(false)}
-            className={({ isActive }) =>
-              `group relative flex items-center gap-2.5 px-3 py-2 text-[13px] transition-colors select-none ${
-                isActive
-                  ? "text-white"
-                  : "text-[#8b96b0] hover:text-white hover:bg-white/[0.03]"
-              }`
-            }
+            className={({ isActive }) => {
+              const active = isActive || location.pathname === to;
+              return `group flex h-9 items-center gap-2.5 rounded-[8px] px-3 font-sans text-[14px] transition-colors select-none ${
+                active
+                  ? "bg-[var(--sx-surface-2)] text-white"
+                  : "text-white/70 hover:bg-white/[0.04] hover:text-white"
+              }`;
+            }}
           >
-            {({ isActive }) => (
-              <>
-                {isActive && (
-                  <>
-                    <span
-                      aria-hidden="true"
-                      className="absolute left-0 top-0 bottom-0 w-[2px] bg-[#3d5bff]"
-                    />
-                    <span
-                      aria-hidden="true"
-                      className="pointer-events-none absolute inset-0 bg-[#3d5bff]/[0.08]"
-                      style={{
-                        clipPath:
-                          "polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%)",
-                      }}
-                    />
-                  </>
-                )}
-                <Icon
-                  size={16}
-                  className={`shrink-0 transition-colors ${
-                    isActive
-                      ? "text-[#7fb2ff]"
-                      : "text-[#8b96b0] group-hover:text-white"
-                  }`}
-                />
-                <span className="truncate">{label}</span>
-              </>
-            )}
+            {({ isActive }) => {
+              const active = isActive || location.pathname === to;
+              return (
+                <>
+                  <Icon
+                    size={16}
+                    strokeWidth={1.5}
+                    className={`shrink-0 transition-colors ${
+                      active ? "text-white" : "text-white/70 group-hover:text-white"
+                    }`}
+                  />
+                  <span className="truncate">{label}</span>
+                </>
+              );
+            }}
           </NavLink>
         ))}
       </nav>
 
       {labsNav.length > 0 && (
-      <p className="mt-5 px-3 pt-1 pb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
-        DATABASE LABS
-      </p>
+        <p className="sx-eyebrow mt-5 px-3 pt-2 pb-1.5 text-white/50">
+          Database labs
+        </p>
       )}
-      <nav className="mt-0.5 flex flex-col gap-0.5" aria-label="Database labs">
+      <nav className="flex flex-col gap-1" aria-label="Database labs">
         {labsNav.map(({ to, label, Icon }) => (
           <NavLink
             key={to}
@@ -359,10 +337,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             onClick={() => setSheetOpen(false)}
             className={({ isActive }) => {
               const active = isActive || location.pathname === to;
-              return `group relative flex items-center gap-2.5 px-3 py-2 text-[13px] transition-colors select-none ${
+              return `group flex h-9 items-center gap-2.5 rounded-[8px] px-3 font-sans text-[14px] transition-colors select-none ${
                 active
-                  ? "text-white"
-                  : "text-[#8b96b0] hover:text-white hover:bg-white/[0.03]"
+                  ? "bg-[var(--sx-surface-2)] text-white"
+                  : "text-white/70 hover:bg-white/[0.04] hover:text-white"
               }`;
             }}
           >
@@ -370,28 +348,11 @@ function ShellInner({ children }: { children: React.ReactNode }) {
               const active = isActive || location.pathname === to;
               return (
                 <>
-                  {active && (
-                    <>
-                      <span
-                        aria-hidden="true"
-                        className="absolute left-0 top-0 bottom-0 w-[2px] bg-[#3d5bff]"
-                      />
-                      <span
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-0 bg-[#3d5bff]/[0.08]"
-                        style={{
-                          clipPath:
-                            "polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%)",
-                        }}
-                      />
-                    </>
-                  )}
                   <Icon
                     size={16}
+                    strokeWidth={1.5}
                     className={`shrink-0 transition-colors ${
-                      active
-                        ? "text-[#7fb2ff]"
-                        : "text-[#8b96b0] group-hover:text-white"
+                      active ? "text-white" : "text-white/70 group-hover:text-white"
                     }`}
                   />
                   <span className="truncate">{label}</span>
@@ -407,9 +368,9 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const pageTitle = getPageTitle(location.pathname);
 
   return (
-    <div className="flex min-h-screen bg-black text-[#dfe6f5]">
-      {/* Left sidebar: ~220px, pure black, 1px right border white/8 */}
-      <aside className="sticky top-0 hidden h-screen w-[220px] shrink-0 flex-col border-r border-white/[0.08] bg-black px-2.5 py-3 md:flex">
+    <div className="flex min-h-screen bg-black text-[var(--sx-text)]">
+      {/* Left sidebar: ~220px, pure black, hairline border on right edge */}
+      <aside className="sticky top-0 hidden h-screen w-[220px] shrink-0 flex-col border-r border-[var(--sx-hairline)] bg-black px-2.5 py-3 md:flex">
         <Link
           to="/"
           aria-label="SomaiyaNet home"
@@ -418,46 +379,56 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           <Brand className="text-base" />
         </Link>
         <div className="mt-4 flex-1 overflow-y-auto">{navList}</div>
-        <div className="mt-3 border-t border-white/[0.08] pt-2.5">{switcher}</div>
       </aside>
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}
-        <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-white/[0.08] bg-black/80 px-4 backdrop-blur-md md:hidden">
+        <header className="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-[var(--sx-hairline)] bg-black px-4 md:hidden">
           <div className="flex items-center gap-2.5 min-w-0">
             <button
+              type="button"
               aria-label="Open menu"
               onClick={() => setSheetOpen(true)}
-              className="p-1 border border-white/10 text-[#8b96b0] hover:text-white bg-transparent transition-colors cursor-pointer"
+              className="p-1.5 text-[var(--sx-text-2)] hover:text-white transition-colors cursor-pointer"
             >
-              <Menu size={16} />
+              <Menu size={18} strokeWidth={1.5} />
             </button>
             <Link to="/" aria-label="SomaiyaNet home" className="shrink-0">
-              <Brand className="text-sm" />
+              <BrandMark size={22} />
             </Link>
-            <span className="font-mono text-[10px] uppercase tracking-wider text-[#8b96b0] truncate">
-              / {pageTitle}
+            <span className="sx-eyebrow hidden truncate text-white/50 sm:inline">
+              {pageTitle}
             </span>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <UtcClock />
+            <ProfileSwitcher
+              profile={profile}
+              profiles={profiles}
+              checking={checking}
+              onSwitch={switchProfile}
+            />
             <SqlButton />
           </div>
         </header>
 
-        {/* Desktop top bar: transparent black, 1px bottom border white/8, page title left in mono uppercase, UTC clock + SQL button right */}
-        <header className="sticky top-0 z-30 hidden h-12 items-center justify-between border-b border-white/[0.08] bg-black/70 px-6 backdrop-blur-md md:flex">
+        {/* Desktop top bar: pure black, hairline bottom border, page title left, switcher + clock + SQL right */}
+        <header className="sticky top-0 z-30 hidden h-12 items-center justify-between border-b border-[var(--sx-hairline)] bg-black px-6 md:flex">
           <div className="flex items-center gap-3">
-            <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-[#dfe6f5]">
+            <span className="sx-eyebrow text-white tracking-[0.14em]">
               {pageTitle}
             </span>
           </div>
 
           <div className="ml-auto flex items-center gap-3">
+            <ProfileSwitcher
+              profile={profile}
+              profiles={profiles}
+              checking={checking}
+              onSwitch={switchProfile}
+            />
             {offline && (
-              <span className="inline-flex items-center gap-1.5 border border-[#f5a524]/40 bg-[#f5a524]/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-[#f5a524]">
-                <span className="size-1.5 rounded-full bg-[#f5a524] motion-safe:animate-pulse" />
+              <span className="sx-status" data-tone="warn">
                 Backend offline
               </span>
             )}
@@ -468,19 +439,29 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
         <main className="mx-auto w-full max-w-[1440px] flex-1 p-4 sm:p-6">
           {redirected && !dismissed && profile !== null && (
-            <div className="mb-4 flex items-start justify-between gap-3 border border-[#f5a524]/40 bg-[#f5a524]/10 px-3 py-2 text-[12.5px] text-[#dfe6f5]">
-              <span>
+            <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-[var(--sx-surface)] rounded-[14px] p-4">
+              <p className="sx-body m-0 text-white">
                 That page is not available to {profile.title ?? titleFor(profile.role)}, so you
                 were sent to your home page.
-              </span>
+              </p>
               <button
                 type="button"
                 onClick={() => setDismissed(true)}
                 aria-label="Dismiss redirect notice"
-                className="shrink-0 font-mono text-[11px] uppercase tracking-wider text-[#8b96b0] hover:text-white"
+                className="sx-btn sx-btn--sm shrink-0 self-start sm:self-center"
               >
                 Dismiss
               </button>
+            </div>
+          )}
+          {role === null && !checking && (
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-[var(--sx-surface)] rounded-[14px] p-4">
+              <p className="sx-body m-0 text-white">
+                {offline ? "Backend offline, so no profile is loaded." : "No profile picked yet."}
+              </p>
+              <Link to="/console" className="sx-btn sx-btn--sm shrink-0 self-start sm:self-center">
+                Pick a profile
+              </Link>
             </div>
           )}
           <RoleProvider role={role}>{children}</RoleProvider>
@@ -492,22 +473,20 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         <SheetContent
           side="left"
           showCloseButton={false}
-          className="w-[260px] border-r border-white/[0.08] bg-black p-4 text-[#dfe6f5]"
+          className="w-[260px] border-r border-[var(--sx-hairline)] bg-black p-4 text-[var(--sx-text)]"
         >
-          <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+          <div className="flex items-center justify-between pb-3 border-b border-[var(--sx-hairline)]">
             <Brand className="text-base" />
             <button
+              type="button"
               aria-label="Close menu"
               onClick={() => setSheetOpen(false)}
-              className="p-1 border border-white/10 text-[#8b96b0] hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 text-[var(--sx-text-2)] hover:text-white transition-colors cursor-pointer"
             >
-              <X size={15} />
+              <X size={18} strokeWidth={1.5} />
             </button>
           </div>
-          <div className="mt-2 flex-1 overflow-y-auto">{navList}</div>
-          <div className="mt-4 border-t border-white/[0.08] pt-3">
-            {switcher}
-          </div>
+          <div className="mt-3 flex-1 overflow-y-auto">{navList}</div>
         </SheetContent>
       </Sheet>
 

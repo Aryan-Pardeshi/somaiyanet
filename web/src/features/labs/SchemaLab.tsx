@@ -10,7 +10,7 @@ import {
 import type { Edge, Node, NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { apiFetch } from "@/app/api";
-import { Card, DataGrid, OfflineOrEmpty, Panel, SqlBlock, StatusBadge } from "./common";
+import { DataGrid, OfflineOrEmpty, Panel } from "./common";
 import type { SchemaData, SchemaTable } from "./types";
 
 type Tab = "diagram" | "mapping" | "constraints";
@@ -32,10 +32,10 @@ function tagBadge(tag: string | null | undefined): string {
   const t = (tag ?? "").toLowerCase();
   if (t.includes("super")) return "supertype";
   if (t.includes("sub")) return "subtype";
-  if (t.includes("weak")) return "weak ◈";
-  if (t.includes("bridge") || t.includes("m:n") || t.includes("mn")) return "bridge ◇";
+  if (t.includes("weak")) return "weak";
+  if (t.includes("bridge") || t.includes("m:n") || t.includes("mn")) return "bridge";
   if (t.includes("lookup")) return "lookup";
-  if (t.includes("partition")) return "partitioned ▤";
+  if (t.includes("partition")) return "partitioned";
   if (t.includes("audit")) return "audit";
   return tag ?? "";
 }
@@ -53,58 +53,50 @@ function TableNode({ data }: NodeProps) {
   return (
     <div
       onClick={() => d.onPick(t.name)}
-      className={`min-w-[200px] max-w-[240px] text-left p-3 cursor-pointer transition-all ${
+      className={`min-w-[210px] max-w-[250px] text-left p-3.5 cursor-pointer rounded-[10px] transition-colors ${
         d.selected
-          ? "bg-[#0c142b] border border-[#3d5bff] shadow-[0_0_14px_rgba(61,91,255,0.45)]"
+          ? "bg-[var(--sx-surface-2)] ring-1 ring-white/50"
           : weak
-            ? "bg-[#05070d] border border-dashed border-[#f5a524]/50 hover:border-[#f5a524]"
-            : "bg-[#05070d] border border-white/15 hover:border-white/30"
+            ? "bg-[var(--sx-surface)] border-2 border-double border-white/30 hover:border-white/50"
+            : "bg-[var(--sx-surface)] border border-white/[0.08] hover:border-white/25"
       }`}
-      style={{
-        clipPath:
-          "polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)",
-      }}
     >
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
-      <div className="flex items-center justify-between gap-1 border-b border-white/[0.08] pb-1.5 mb-1.5">
-        <span className="font-mono text-[11px] font-bold text-white uppercase tracking-[0.08em] truncate">
+      <div className="flex items-center justify-between gap-1.5 border-b border-white/[0.08] pb-2 mb-2">
+        <span className="font-[family-name:var(--font-display)] text-[12px] font-bold text-white capitalize truncate">
           {partitioned ? "▤ " : ""}{t.name}
         </span>
         {t.tag && (
-          <span className="font-mono text-[8px] uppercase tracking-wider text-[#8b96b0] border border-white/10 px-1 py-0.2 rounded-[1px] shrink-0">
+          <span className="font-[family-name:var(--font-display)] text-[10px] capitalize text-[var(--sx-text-3)] shrink-0">
             {tagBadge(t.tag)}
           </span>
         )}
       </div>
 
-      <div className="flex flex-col gap-0.5">
+      <div className="flex flex-col gap-1">
         {t.columns.slice(0, 8).map((c) => (
-          <div key={c.name} className="flex items-center justify-between gap-1 text-[10px] font-mono py-0.5">
-            <div className="flex items-center gap-1 min-w-0">
+          <div key={c.name} className="flex items-center justify-between gap-2 text-[11px] font-mono py-0.5">
+            <div className="flex items-center gap-1.5 min-w-0">
               {c.pk ? (
-                <span className="font-mono text-[8px] uppercase tracking-wider px-1 py-0.2 rounded-[1px] text-[#f5a524] bg-[#f5a524]/15 border border-[#f5a524]/40 font-bold shrink-0">
+                <span className="font-[family-name:var(--font-display)] text-[9px] font-bold capitalize text-white/45 shrink-0">
                   PK
                 </span>
               ) : c.fk ? (
-                <span className="font-mono text-[8px] uppercase tracking-wider px-1 py-0.2 rounded-[1px] text-[#7fb2ff] bg-[#3d5bff]/15 border border-[#3d5bff]/40 font-bold shrink-0">
+                <span className="font-[family-name:var(--font-display)] text-[9px] font-bold capitalize text-white/45 shrink-0">
                   FK
                 </span>
               ) : (
-                <span className="text-[#5f6f93] w-2 text-center">·</span>
+                <span className="text-white/20 w-3 text-center select-none">·</span>
               )}
-              <span
-                className={`truncate ${
-                  c.pk ? "text-[#f5a524] font-medium" : c.fk ? "text-[#7fb2ff]" : "text-[#dfe6f5]"
-                } ${c.generated ? "italic" : ""}`}
-              >
+              <span className={`truncate text-white/70 ${c.generated ? "italic" : ""}`}>
                 {c.name}
               </span>
             </div>
-            <span className="text-[#5f6f93] text-[9px] shrink-0">{c.type}</span>
+            <span className="text-white/40 text-[10px] shrink-0 font-mono">{c.type}</span>
           </div>
         ))}
         {t.columns.length > 8 && (
-          <p className="font-mono text-[9px] text-[#5f6f93] pt-0.5">
+          <p className="text-[11px] text-[var(--sx-text-3)] pt-1 font-[family-name:var(--font-sans)]">
             +{t.columns.length - 8} more columns
           </p>
         )}
@@ -183,9 +175,9 @@ export function SchemaLab({ initialTab = "diagram" }: { initialTab?: Tab }) {
           target: f.from_table,
           label: disjoint ? `d · ${f.label ?? "1:1"}` : (f.label ?? ""),
           style: disjoint
-            ? { stroke: "#3d5bff", strokeWidth: 2 }
-            : { stroke: "rgba(255, 255, 255, 0.18)", strokeWidth: 1.4 },
-          labelStyle: { fill: "#dfe6f5", fontSize: 9, fontFamily: "Geist Mono, monospace" },
+            ? { stroke: "#ffffff", strokeWidth: 1.5 }
+            : { stroke: "rgba(255, 255, 255, 0.3)", strokeWidth: 1 },
+          labelStyle: { fill: "rgba(235, 235, 245, 0.62)", fontSize: 10, fontFamily: "var(--font-sans)" },
         } as Edge;
       });
   }, [data, tables]);
@@ -206,143 +198,170 @@ export function SchemaLab({ initialTab = "diagram" }: { initialTab?: Tab }) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Schema Navigation: Chamfered Tabs */}
-      <div className="flex gap-2" role="tablist" aria-label="Schema views">
-        {(["diagram", "mapping", "constraints"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
-            className={`font-mono text-[11px] uppercase tracking-[0.1em] px-4 py-2 transition-all cursor-pointer ${
-              tab === t
-                ? "bg-[#3d5bff] text-white font-semibold shadow-[0_0_10px_rgba(61,91,255,0.4)]"
-                : "bg-white/[0.03] text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/[0.06] border border-white/10"
-            }`}
-            style={{
-              clipPath:
-                "polygon(6px 0%, calc(100% - 6px) 0%, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0% calc(100% - 6px), 0% 6px)",
-            }}
-          >
-            {t === "diagram" ? "ER/EER diagram" : t === "mapping" ? "Mapping rules" : "Constraints"}
-          </button>
-        ))}
+      {/* Schema Navigation: Apple Segmented Control */}
+      <div className="inline-flex p-1 bg-[#111113] rounded-[10px] border border-white/[0.08] self-start" role="tablist" aria-label="Schema views">
+        {(["diagram", "mapping", "constraints"] as Tab[]).map((t) => {
+          const isSel = tab === t;
+          return (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={isSel}
+              onClick={() => setTab(t)}
+              className={`font-[family-name:var(--font-display)] text-[12px] capitalize px-4 py-2 min-h-[36px] rounded-[8px] transition-colors cursor-pointer ${
+ isSel
+ ? "bg-[#1c1c1e] text-white font-semibold shadow-sm"
+ : "text-[var(--sx-text-2)] hover:text-white"
+ }`}
+            >
+              {t === "diagram" ? "ER/EER diagram" : t === "mapping" ? "Mapping rules" : "Constraints"}
+            </button>
+          );
+        })}
       </div>
 
       {tab === "diagram" && (
-        /* Diagram framed in a Panel */
-        <Panel cut={8} className="w-full">
-          <div className="p-3.5 sm:p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
-              <div className="flex items-center gap-2">
-                <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b96b0]">
-                  Relational EER model ({tables.length} tables · click a table node)
+        <div className="flex flex-col gap-4">
+          <Panel className="w-full">
+            <div className="p-4 sm:p-5 flex flex-col gap-3">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+                <h2 className="sx-eyebrow">
+                  Relational EER model ({tables.length} tables)
                 </h2>
+                <span className="sx-caption">Click a table to inspect</span>
               </div>
-              <StatusBadge status="info" label="Interactive diagram" />
+
+              <div className="h-[620px] overflow-hidden rounded-[10px] border border-white/[0.08] bg-[#000] relative">
+                <ReactFlow
+                  nodes={nodes}
+                  edges={edges}
+                  nodeTypes={nodeTypes}
+                  fitView
+                  fitViewOptions={{ padding: 0.15 }}
+                  proOptions={{ hideAttribution: true }}
+                  colorMode="dark"
+                >
+                  <Background gap={24} color="rgba(255, 255, 255, 0.05)" />
+                  <Controls showInteractive={false} />
+                  <MiniMap pannable zoomable style={{ background: "#0a0a0a" }} />
+                </ReactFlow>
+              </div>
+
+              <p className="sx-caption leading-relaxed">
+                Supertype→subtype generalization lines are solid white. Relationship lines are 1px white 30%.
+                Double hairline indicates weak entities; partitioned tables display ▤.
+                {data?.partition_count ? ` ${data.partition_count} telemetry partitions live.` : ""}
+              </p>
             </div>
+          </Panel>
 
-            <div className="h-[620px] overflow-hidden border border-white/10 bg-[#000] relative">
-              <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                nodeTypes={nodeTypes}
-                fitView
-                fitViewOptions={{ padding: 0.15 }}
-                proOptions={{ hideAttribution: true }}
-                colorMode="dark"
-              >
-                <Background gap={24} color="rgba(255, 255, 255, 0.08)" />
-                <Controls showInteractive={false} />
-                <MiniMap pannable zoomable style={{ background: "#05070d" }} />
-              </ReactFlow>
-            </div>
-
-            <p className="font-mono text-[10.5px] leading-relaxed text-[#8b96b0]">
-              Supertype→subtype edges meet at royal blue “d” disjoint circle (double line = total participation).
-              Weak entities get a dashed amber border, telemetry displays ▤ + partition count, bridges carry ◇.
-              {data?.partition_count ? ` ${data.partition_count} telemetry partitions live.` : ""}
-            </p>
-
-            {sel !== undefined && (
-              <Panel cut={8} className="w-full mt-2" borderColor="rgba(61, 91, 255, 0.4)">
-                <div className="p-3.5 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[12px] font-bold text-white uppercase tracking-wide">
-                      {sel.name}
+          {sel !== undefined && (
+            <div className="sx-group">
+              <div className="sx-row bg-[var(--sx-surface-2)]">
+                <div className="flex items-center gap-3">
+                  <span className="font-[family-name:var(--font-display)] text-[15px] font-bold text-white capitalize ">
+                    {sel.name}
+                  </span>
+                  {sel.tag && (
+                    <span className="sx-eyebrow text-[var(--sx-text-3)]">
+                      {tagBadge(sel.tag)}
                     </span>
-                    <span className="font-mono text-[10px] text-[#7fb2ff]">
-                      {sel.columns.length} columns
-                    </span>
-                  </div>
-                  {sel.comment && (
-                    <p className="text-[12.5px] text-[#8b96b0]">{sel.comment}</p>
                   )}
-                  <div className="grid gap-1.5 sm:grid-cols-2 md:grid-cols-3 pt-1">
-                    {sel.columns.map((c) => (
-                      <div
-                        key={c.name}
-                        className="border border-white/5 bg-[#05070d] p-2 rounded-[2px] font-mono text-[11px] flex items-center justify-between gap-2"
-                      >
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          {c.pk ? (
-                            <span className="font-mono text-[8px] uppercase tracking-wider px-1 py-0.2 rounded-[1px] text-[#f5a524] bg-[#f5a524]/15 border border-[#f5a524]/40 font-bold shrink-0">
-                              PK
-                            </span>
-                          ) : c.fk ? (
-                            <span className="font-mono text-[8px] uppercase tracking-wider px-1 py-0.2 rounded-[1px] text-[#7fb2ff] bg-[#3d5bff]/15 border border-[#3d5bff]/40 font-bold shrink-0">
-                              FK
-                            </span>
-                          ) : null}
-                          <span
-                            className={`truncate ${
-                              c.pk ? "text-[#f5a524] font-medium" : c.fk ? "text-[#7fb2ff]" : "text-[#dfe6f5]"
-                            }`}
-                          >
-                            {c.name}
-                          </span>
-                        </div>
-                        <span className="text-[#5f6f93] text-[10px] shrink-0">
-                          {c.type}
-                          {!c.nullable && " !"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
                 </div>
-              </Panel>
-            )}
-          </div>
-        </Panel>
+                <div className="flex items-center gap-3">
+                  <span className="sx-caption">
+                    {sel.columns.length} columns
+                  </span>
+                  <button
+                    onClick={() => setSelected(null)}
+                    className="sx-btn sx-btn--quiet sx-btn--sm"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+              {sel.comment && (
+                <div className="px-4 py-2.5 border-b border-white/[0.08] text-[13px] text-[var(--sx-text-2)]">
+                  {sel.comment}
+                </div>
+              )}
+              <div className="divide-y divide-white/[0.08]">
+                {sel.columns.map((c) => (
+                  <div key={c.name} className="sx-row">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {c.pk ? (
+                        <span className="font-[family-name:var(--font-display)] text-[10px] font-bold capitalize text-white/45 shrink-0">
+                          PK
+                        </span>
+                      ) : c.fk ? (
+                        <span className="font-[family-name:var(--font-display)] text-[10px] font-bold capitalize text-white/45 shrink-0">
+                          FK
+                        </span>
+                      ) : (
+                        <span className="text-white/20 w-4 text-center select-none">·</span>
+                      )}
+                      <span className={`font-mono text-[13px] text-white ${c.generated ? "italic" : ""}`}>
+                        {c.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="font-mono text-[12px] text-[var(--sx-text-2)]">
+                        {c.type}
+                      </span>
+                      <span className="text-[12px] text-[var(--sx-text-3)] font-mono">
+                        {c.nullable ? "NULL" : "NOT NULL"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {tab === "mapping" && (
-        <Card title="EER → Relational mapping transformation" kicker="Disjointness · Totality · Bridges">
-          <ol className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="sx-eyebrow">
+              EER → Relational mapping transformation · Disjointness, Totality, Bridges
+            </h2>
+          </div>
+          <div className="sx-group">
             {mapping.map((m, i) => (
-              <li
-                key={i}
-                className="border border-white/10 bg-[#05070d] p-3 rounded-[2px] text-[13px] leading-relaxed text-[#dfe6f5]"
-              >
-                {m}
-              </li>
+              <div key={i} className="sx-row items-start">
+                <span className="font-[family-name:var(--font-display)] text-[13px] font-bold text-white/45 shrink-0 mt-0.5">
+                  0{i + 1}
+                </span>
+                <p className="sx-body flex-1">
+                  {m.replace(/^\d+\s*—\s*/, "")}
+                </p>
+              </div>
             ))}
-          </ol>
-        </Card>
+          </div>
+        </div>
       )}
 
       {tab === "constraints" && (
-        <Card title="Relational integrity constraints" kicker="CHECK · EXCLUDE · UNIQUE · FOREIGN KEY">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="sx-eyebrow">
+              Relational integrity constraints · CHECK, EXCLUDE, UNIQUE, FOREIGN KEY
+            </h2>
+          </div>
           {constraints.length > 0 ? (
             <DataGrid rows={constraints} limit={100} />
           ) : (
-            <div className="flex flex-col gap-2.5">
+            <div className="sx-group">
               {fallbackConstraints().map((c, i) => (
-                <SqlBlock key={i} label={c.label} sql={c.sql} />
+                <div key={i} className="p-4 flex flex-col gap-2 border-b border-white/[0.08] last:border-b-0">
+                  <span className="sx-eyebrow">{c.label}</span>
+                  <pre className="sx-code overflow-x-auto whitespace-pre-wrap">{c.sql}</pre>
+                </div>
               ))}
             </div>
           )}
-        </Card>
+        </div>
       )}
     </div>
   );

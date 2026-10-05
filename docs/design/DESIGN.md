@@ -1,7 +1,8 @@
 # SomaiyaNet design system
 
 SpaceX austerity (see `spacex-reference.md`, from `npx getdesign@latest add spacex`) with Apple's
-calm product rules. Every screen should feel like a first-party product: obvious, quiet, confident.
+calm product rules. One deliberate change from SpaceX: no ALL CAPS text; headings, labels and
+buttons use Title Case. Every screen should feel like a first-party product: obvious, quiet, confident.
 When unsure, remove.
 
 The implementation lives in `web/src/styles/sx.css` (classes and `--sx-*` tokens). Use those
@@ -25,10 +26,10 @@ classes instead of inventing new styles.
 
 ## Type
 - Display (`--font-display`, Barlow, a DIN-style grotesk standing in for SpaceX's D-DIN):
-  **uppercase, bold, +0.02em tracking, tight leading**. Classes `.sx-display` (hero, up to 80px),
-  `.sx-h1` (60px), `.sx-h2` (44px), `.sx-h3` (19px).
-- Eyebrows / nav / button labels: `.sx-eyebrow` (12px uppercase, +0.1em). At most one eyebrow per
-  block. Do not put an eyebrow on top of every heading.
+  **Title Case (first letter of each word capital, never ALL CAPS), bold, tight leading**. Classes
+  `.sx-display` (hero, up to 80px), `.sx-h1` (56px), `.sx-h2` (42px), `.sx-h3` (19px).
+- Eyebrows / nav / button labels: `.sx-eyebrow` (13px, Title Case). At most one eyebrow per block.
+  Do not put an eyebrow on top of every heading. No ALL CAPS anywhere except the logo and SQL keywords.
 - Body (`--font-sans`, the system UI font: SF Pro on Apple, Segoe UI on Windows): sentence case.
   `.sx-lead` 17px for the one paragraph under a section heading, `.sx-body` 15px, `.sx-caption` 13px.
 - Changing numbers (volts, counts, clocks): `.sx-num` (DIN, tabular figures).
@@ -38,7 +39,7 @@ classes instead of inventing new styles.
   version numbers, no jargon without a reason.
 
 ## Components
-- Buttons (`.sx-btn`): ghost outlined white pill, uppercase label, 48px tall; hover fills white
+- Buttons (`.sx-btn`): ghost outlined white pill, Title Case label, 48px tall; hover fills white
   with black text. One filled primary (`.sx-btn--filled`) per screen at most. Tertiary actions:
   `.sx-btn--quiet`. Compact: `.sx-btn--sm`. Never coloured buttons. Marketing bands: one CTA per band.
 - Links: `.sx-link` (white, underline at 35%, solid on hover).
@@ -63,7 +64,7 @@ classes instead of inventing new styles.
 
 ## Diagrams and maps
 - Satellites are minimal: a solid white dot (3-4px radius in a ~720-wide viewBox), no halo, no
-  ring, no glow. Label under it in `.sx-eyebrow` style (DIN caps, white 70%), status as a 6px dot
+  ring, no glow. Label under it in DIN 11-12px (white 70%), status as a 6px dot
   + words underneath, no chip box.
 - Links between nodes: 1px white hairlines at 25% (idle) / 70% (live). The chosen route and the
   packet are `--sx-red`; nothing else is red.

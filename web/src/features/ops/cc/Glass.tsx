@@ -20,14 +20,13 @@ export function Glass({
   ...rest
 }: GlassProps) {
   void cut;
+  void tone;
 
   return (
     <div
-      className={`liquid-glass relative rounded-[20px] transition-all duration-200 ${
-        noPadding ? "" : "p-4"
-      } ${className}`}
-      data-tone={tone}
-      data-selected={selected || undefined}
+      className={`sx-material relative rounded-[16px] transition-colors duration-200 ${
+        selected ? "bg-[var(--sx-surface-2)]" : ""
+      } ${noPadding ? "" : "p-4"} ${className}`}
       style={style}
       {...rest}
     >
@@ -52,10 +51,8 @@ export function GlassPill({
   return (
     <button
       type="button"
-      className={`rounded-full px-3.5 py-1.5 text-[11px] font-mono tracking-wider transition-all duration-200 cursor-pointer ${
-        active
-          ? "liquid-glass-active font-semibold"
-          : "liquid-glass text-[#8b96b0] hover:text-[#dfe6f5]"
+      className={`sx-btn sx-btn--sm ${
+        active ? "sx-btn--filled" : "sx-btn--quiet"
       } ${className}`}
       style={style}
       {...rest}
@@ -64,3 +61,4 @@ export function GlassPill({
     </button>
   );
 }
+

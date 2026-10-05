@@ -119,11 +119,11 @@ export function CursorReadout({ targetRef }: { targetRef: RefObject<HTMLElement 
         style={{ width: LABEL_W, fontFamily: "var(--font-display)" }}
       >
         <div className="flex justify-between gap-2">
-          <span className="uppercase tracking-[0.1em] text-white/45">LAT</span>
+          <span className="capitalize text-white/45">LAT</span>
           <span ref={latEl} className="sx-num text-white/80" />
         </div>
         <div className="flex justify-between gap-2">
-          <span className="uppercase tracking-[0.1em] text-white/45">LON</span>
+          <span className="capitalize text-white/45">LON</span>
           <span ref={lonEl} className="sx-num text-white/80" />
         </div>
       </div>
