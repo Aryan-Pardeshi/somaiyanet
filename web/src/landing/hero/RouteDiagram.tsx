@@ -554,7 +554,7 @@ export function RouteDiagram({
             </span>
             <span
               ref={clockMinRef}
-              className="sx-num text-[11px] text-white/50 sm:text-xs"
+              className="hidden"
             >
               {reduced ? "(T+60 min)" : "(T+0 min)"}
             </span>
@@ -1267,12 +1267,12 @@ export function RouteDiagram({
             {/* SQL Query typing chip */}
             <div
               ref={queryChipRef}
-              className="flex items-center justify-between rounded-[10px] bg-[#0a0a0a] px-4 py-2.5 font-mono text-[13px] text-[#f0f0fa]"
+              className="rounded-[10px] bg-[#0a0a0a] px-4 py-2.5 font-mono text-[13px] text-[#f0f0fa]"
               style={{ opacity: reduced ? 1 : 0 }}
             >
-              <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
+              <div className="flex min-w-0 items-start gap-2">
                 <span className="text-white/40 select-none">sql&gt;</span>
-                <span ref={queryTextRef} className="truncate text-white">
+                <span ref={queryTextRef} className="break-words text-white">
                   {reduced ? FULL_QUERY : ""}
                 </span>
                 <span
@@ -1283,9 +1283,6 @@ export function RouteDiagram({
                   █
                 </span>
               </div>
-              <span className="shrink-0 pl-2 sx-eyebrow text-white/30">
-                RECURSIVE
-              </span>
             </div>
 
             {/* Result Caption */}

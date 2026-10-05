@@ -4,7 +4,7 @@ import { useStoryStats } from "@/hooks/useStats";
 
 const STATIONS = [
   { id: "GS-BOM", name: "KJSIT Mumbai", lat: 19.0728, lng: 72.8826, passes: 12, primary: true },
-  { id: "GS-HEL", name: "ReOrbit Espoo", lat: 60.2055, lng: 24.6559, passes: 22 },
+  { id: "GS-HEL", name: "ReOrbit Espoo", lat: 60.2055, lng: 24.6559, passes: 22, below: true },
   { id: "GS-BLR", name: "Bengaluru", lat: 12.9716, lng: 77.5946, passes: 14, below: true },
   { id: "GS-TYO", name: "Tokyo", lat: 35.6762, lng: 139.6503, passes: 18 },
   { id: "GS-SVB", name: "Svalbard", lat: 78.2232, lng: 15.6267, passes: 57, below: true },

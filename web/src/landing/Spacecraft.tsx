@@ -90,12 +90,7 @@ function Blueprint() {
       <ambientLight intensity={0.5} />
       <directionalLight position={[4, 3, 5]} intensity={2.4} />
       <directionalLight position={[-4, -1, 2]} intensity={0.6} color="#ffffff" />
-      {/* the outline drawing behind, front view */}
-      <group position={[-0.15, 0.3, -2.4]} scale={0.95}>
-        <Satellite lineArt lineColor="#ffffff" />
-      </group>
-      {/* the rendered spacecraft in front, three-quarter view */}
-      <group ref={model} position={[0.45, -0.35, 1.0]} rotation={[0.25, -0.55, 0.12]} scale={0.78}>
+      <group ref={model} position={[0, -0.1, 0]} rotation={[0.25, -0.55, 0.12]} scale={0.85}>
         <Satellite />
       </group>
     </>

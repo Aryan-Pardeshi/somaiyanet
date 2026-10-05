@@ -613,7 +613,7 @@ export function PacketStepper() {
         className="mx-auto flex h-screen max-w-[1200px] flex-col justify-center overflow-hidden px-6 py-4 md:py-6"
       >
         <div className="flex items-center justify-between gap-4">
-          <span className="sx-eyebrow">Step {active + 1} of {STEPS.length}</span>
+          <span className="sx-eyebrow">Life of a packet</span>
           <span className="sx-num text-[13px] text-white">
             {String(active + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")}
           </span>
