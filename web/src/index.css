@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./styles/tokens.css";
+@import "./styles/sx.css";
 
 /* Local fonts (npm @fontsource) — no CDN, works offline. */
 @import "@fontsource/geist-sans/latin-400.css";
@@ -9,6 +10,10 @@
 @import "@fontsource/geist-mono/latin-400.css";
 @import "@fontsource/geist-mono/latin-500.css";
 @import "@fontsource/michroma/latin-400.css";
+@import "@fontsource/barlow/latin-400.css";
+@import "@fontsource/barlow/latin-500.css";
+@import "@fontsource/barlow/latin-600.css";
+@import "@fontsource/barlow/latin-700.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -69,7 +74,8 @@
   --color-danger: var(--danger);
   --color-somaiya: var(--somaiya);
 
-  --font-sans: "Geist Sans", system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", "Geist Sans", system-ui, sans-serif;
+  --font-display: "Barlow", "D-DIN", "Arial Narrow", Arial, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
@@ -104,9 +110,9 @@
   }
 
   h1, h2, h3 {
-    font-family: var(--font-sans);
-    font-weight: 600;
-    letter-spacing: -0.02em;
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.02em;
     line-height: 1.1;
   }
 
@@ -117,8 +123,8 @@
   }
 
   ::selection {
-    background: var(--ice);
-    color: #04122e;
+    background: #ffffff;
+    color: #000000;
   }
 
   ::-webkit-scrollbar {

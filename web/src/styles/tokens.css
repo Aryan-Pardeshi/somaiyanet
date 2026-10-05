@@ -1,17 +1,17 @@
-/* SomaiyaNet design tokens — black + navy (Brief 11, replaces spec §9). */
+/* SomaiyaNet legacy tokens, now neutral greys (see styles/sx.css and docs/design/DESIGN.md). */
 
 :root {
   --space: #000000;
-  --navy-900: #060d1f;
-  --navy-800: #0a1630;
-  --navy-700: #0f2147;
-  --navy-600: #16306a;
-  --line: #1b2d55;
-  --line-strong: #28427a;
+  --navy-900: #0a0a0a;
+  --navy-800: #111113;
+  --navy-700: #1c1c1e;
+  --navy-600: #2c2c2e;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
 
-  --text: #e6ecf8;
-  --text-2: #93a3c4;
-  --text-3: #5f6f93;
+  --text: #f5f5f7;
+  --text-2: rgba(235, 235, 245, 0.62);
+  --text-3: rgba(235, 235, 245, 0.38);
 
   --ice: #7fb2ff;
   --ice-strong: #a9caff;
@@ -26,7 +26,8 @@
 
   --radius: 0.75rem;
 
-  --font-sans: "Geist Sans", system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", "Geist Sans", system-ui, sans-serif;
+  --font-display: "Barlow", "D-DIN", "Arial Narrow", Arial, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Brief 16 & 16a: Command Center tokens */
