@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { ScrollTrigger } from "@/lib/gsap";
 import { Satellite } from "./Satellite";
 
 /*
- * Scroll-scrubbed hero:
- *   - FrameScrub: full-bleed canvas scrubbing 144 Earth/satellite frames over progress 0..0.72
- *   - Video canvas fades out over 0.72..0.82
- *   - Headline + paragraph and dark gradient fade out over 0.55..0.7
- *   - Small Mumbai caption fades in 0.6..0.72 and fades out with video (0.72..0.82)
- *   - Navy glow + line-art finale (LineArtScene) fades in over 0.74..0.9
+ * Scroll-scrubbed hero, one canvas, one progress value (0..1):
+ *   A 0.00-0.28  textured Earth wrapped in a constellation of orbit dots
+ *   B 0.28-0.46  dive: camera rushes in through warp streaks
+ *   C 0.46-0.66  a SomaiyaSat PocketQube hangs above the Earth's limb
+ *   D 0.66-1.00  Earth fades to black + navy glow; scene becomes white line art:
+ *                three outline PocketQubes, dashed beams, wireframe horizon,
+ *                and the red packet hopping cube -> cube -> KJSIT Mumbai
  */
 
 const TEX = (n: string) => `${import.meta.env.BASE_URL}assets/textures/${n}`;
@@ -25,11 +27,12 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 type Maps = { day: THREE.Texture; night: THREE.Texture; clouds: THREE.Texture };
 
-/** Textures hook kept for external consumers (e.g. Mission.tsx). */
 export function useEarthMaps(): Maps | null {
   const [maps, setMaps] = useState<Maps | null>(null);
   useEffect(() => {
     let alive = true;
+    // Never hold the page behind the loader for long on a cold cache.
+    const failsafe = window.setTimeout(() => document.getElementById("hero-loader")?.style.setProperty("opacity", "0"), 2500);
     const loader = new THREE.TextureLoader();
     const load = (n: string) =>
       new Promise<THREE.Texture>((res, rej) => loader.load(TEX(n), res, undefined, rej));
@@ -42,17 +45,19 @@ export function useEarthMaps(): Maps | null {
         setMaps({ day, night, clouds });
       })
       .catch(() => {
-        /* Missing textures handled gracefully */
-      });
+        /* Missing textures: the constellation and line art still render. */
+      })
+      .finally(() => document.getElementById("hero-loader")?.style.setProperty("opacity", "0"));
     return () => {
       alive = false;
+      window.clearTimeout(failsafe);
     };
   }, []);
   return maps;
 }
 
-/** Day/night Earth: exported for Mission.tsx. */
-export function Earth({ maps, opacity }: { maps: Maps; opacity: { current: number } }) {
+/** Day/night Earth: day map lit by the sun, city lights on the night side. */
+export function Earth({ maps, opacity }: { maps: Maps; opacity: React.MutableRefObject<number> }) {
   const mat = useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -112,8 +117,7 @@ export function Earth({ maps, opacity }: { maps: Maps; opacity: { current: numbe
   );
 }
 
-/** Atmosphere glow: exported for Mission.tsx. */
-export function Atmosphere({ opacity }: { opacity: { current: number } }) {
+export function Atmosphere({ opacity }: { opacity: React.MutableRefObject<number> }) {
   const mat = useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -135,6 +139,126 @@ export function Atmosphere({ opacity }: { opacity: { current: number } }) {
       <sphereGeometry args={[EARTH_R, 64, 64]} />
     </mesh>
   );
+}
+
+/** One SomaiyaNet plane (inc 97.5 deg, RAAN 75 deg) with 3 bright flying sats spaced 12 deg apart. */
+function OurPlanes({ opacity }: { opacity: React.MutableRefObject<number> }) {
+  const group = useRef<THREE.Group>(null);
+  const base = useMemo(
+    () =>
+      new THREE.Matrix4()
+        .makeRotationY(THREE.MathUtils.degToRad(75))
+        .multiply(new THREE.Matrix4().makeRotationX(THREE.MathUtils.degToRad(97.5))),
+    [],
+  );
+  const ring = useMemo(() => {
+    const pts: THREE.Vector3[] = [];
+    for (let i = 0; i <= 256; i++) {
+      const a = (i / 256) * Math.PI * 2;
+      pts.push(
+        new THREE.Vector3(Math.cos(a), 0, Math.sin(a))
+          .multiplyScalar(EARTH_R * 1.12)
+          .applyMatrix4(base),
+      );
+    }
+    return new THREE.BufferGeometry().setFromPoints(pts);
+  }, [base]);
+  const ringMat = useMemo(
+    () => new THREE.LineBasicMaterial({ color: "#a9caff", transparent: true, opacity: 0.35 }),
+    [],
+  );
+  const satMat = useMemo(() => new THREE.MeshBasicMaterial({ color: "#ffffff", transparent: true }), []);
+  useFrame((state) => {
+    const t = state.clock.elapsedTime * 0.08;
+    ringMat.opacity = 0.35 * opacity.current;
+    satMat.opacity = opacity.current;
+    group.current?.children.forEach((c, i) => {
+      const a = t + i * THREE.MathUtils.degToRad(12);
+      c.position.set(Math.cos(a), 0, Math.sin(a)).multiplyScalar(EARTH_R * 1.12).applyMatrix4(base);
+    });
+  });
+  return (
+    <>
+      <lineLoop geometry={ring} material={ringMat} />
+      <group ref={group}>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <mesh key={i} material={satMat}>
+            <sphereGeometry args={[0.022, 10, 10]} />
+          </mesh>
+        ))}
+      </group>
+    </>
+  );
+}
+
+/** Warp streaks: line segments stretched along the view axis, recycled. */
+function Warp({ amount, mobile }: { amount: React.MutableRefObject<number>; mobile: boolean }) {
+  const n = mobile ? 260 : 520;
+  const { geo, seeds } = useMemo(() => {
+    const pos = new Float32Array(n * 6);
+    const col = new Float32Array(n * 6);
+    const seeds = new Float32Array(n * 3);
+    const palette = [
+      [0.45, 0.62, 1],
+      [0.85, 0.9, 1],
+      [1, 0.35, 0.4],
+    ];
+    for (let i = 0; i < n; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const rad = 0.25 + Math.random() * 2.4;
+      seeds[i * 3] = Math.cos(ang) * rad;
+      seeds[i * 3 + 1] = Math.sin(ang) * rad;
+      seeds[i * 3 + 2] = Math.random() * 12;
+      const c = palette[i % 9 === 0 ? 2 : i % 2];
+      for (let e = 0; e < 2; e++) {
+        col[i * 6 + e * 3] = c[0] * (e ? 0.15 : 1);
+        col[i * 6 + e * 3 + 1] = c[1] * (e ? 0.15 : 1);
+        col[i * 6 + e * 3 + 2] = c[2] * (e ? 0.15 : 1);
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    return { geo, seeds };
+  }, [n]);
+  const mat = useMemo(
+    () =>
+      new THREE.LineBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      }),
+    [],
+  );
+  const lines = useRef<THREE.LineSegments>(null);
+  const { camera } = useThree();
+  useFrame((_, dt) => {
+    const a = amount.current;
+    mat.opacity = a;
+    if (!lines.current) return;
+    lines.current.visible = a > 0.01;
+    if (a <= 0.01) return;
+    const pos = geo.attributes.position.array as Float32Array;
+    const speed = 9 * dt;
+    for (let i = 0; i < n; i++) {
+      seeds[i * 3 + 2] -= speed;
+      if (seeds[i * 3 + 2] < 0.2) seeds[i * 3 + 2] += 12;
+      const z = seeds[i * 3 + 2];
+      const len = 0.6 + a * 1.6;
+      pos[i * 6] = seeds[i * 3];
+      pos[i * 6 + 1] = seeds[i * 3 + 1];
+      pos[i * 6 + 2] = -z;
+      pos[i * 6 + 3] = seeds[i * 3];
+      pos[i * 6 + 4] = seeds[i * 3 + 1];
+      pos[i * 6 + 5] = -z - len;
+    }
+    geo.attributes.position.needsUpdate = true;
+    lines.current.position.copy(camera.position);
+    lines.current.quaternion.copy(camera.quaternion);
+  });
+  return <lineSegments ref={lines} geometry={geo} material={mat} visible={false} frustumCulled={false} />;
 }
 
 function DashedLine({ points, opacity = 0.8, dash = 0.05 }: { points: THREE.Vector3[]; opacity?: number; dash?: number }) {
@@ -161,8 +285,8 @@ function SolidLine({ points, opacity = 0.8 }: { points: THREE.Vector3[]; opacity
   return <primitive object={obj} />;
 }
 
-/** Line-art finale: three line-art satellites, dashed beams, wireframe horizon, red packet route to KJSIT Mumbai. */
-function LineArtScene({ reveal }: { reveal: { current: number } }) {
+/** Stage D: white line-art scene in its own coordinate frame. */
+function LineArtScene({ reveal }: { reveal: React.MutableRefObject<number> }) {
   const root = useRef<THREE.Group>(null);
   const pkt = useRef<THREE.Mesh>(null);
   const cubes = useMemo(
@@ -268,246 +392,110 @@ function LineArtScene({ reveal }: { reveal: { current: number } }) {
   );
 }
 
-/** Scene containing only the line-art finale. */
-function Scene({ progress, glowRef }: { progress: { current: number }; glowRef: React.RefObject<HTMLDivElement | null> }) {
-  const { camera } = useThree();
-  const lineReveal = useRef(0);
-  const lookTarget = useMemo(() => new THREE.Vector3(0, 0.6, 0), []);
-
-  useFrame(() => {
-    const p = progress.current;
-    camera.position.set(0, 0.55, 6.4);
-    camera.lookAt(lookTarget);
-
-    const revealVal = smooth(0.74, 0.9, p);
-    lineReveal.current = revealVal;
-
-    if (glowRef.current) {
-      glowRef.current.style.opacity = String(revealVal);
-    }
-  });
-
-  return <LineArtScene reveal={lineReveal} />;
-}
-
-const getFrameUrl = (frameNum: number, isMobile: boolean) => {
-  const prefix = isMobile ? "m" : "f";
-  return `${import.meta.env.BASE_URL}assets/hero/${prefix}_${String(frameNum).padStart(3, "0")}.webp`;
-};
-
-function drawImageCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, cw: number, ch: number) {
-  const iw = img.naturalWidth || img.width;
-  const ih = img.naturalHeight || img.height;
-  if (!iw || !ih || !cw || !ch) return;
-
-  const canvasAspect = cw / ch;
-  const imgAspect = iw / ih;
-
-  let sx = 0;
-  let sy = 0;
-  let sw = iw;
-  let sh = ih;
-
-  if (canvasAspect > imgAspect) {
-    sh = iw / canvasAspect;
-    sy = (ih - sh) / 2;
-  } else {
-    sw = ih * canvasAspect;
-    sx = (iw - sw) / 2;
-  }
-
-  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
-}
-
-function loadHeroImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = url;
-    if ("decode" in img && typeof img.decode === "function") {
-      img.decode()
-        .then(() => resolve(img))
-        .catch(() => {
-          if (img.complete && img.naturalWidth > 0) {
-            resolve(img);
-          }
-        });
-    }
-  });
-}
-
-/** Full-bleed video frame canvas with Apple-style scroll-scrubbing. */
-function FrameScrub({
-  progress,
-  mobile,
-  reduced,
-}: {
-  progress: { current: number };
-  mobile: boolean;
-  reduced: boolean;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
+function Scene({ progress, mobile, glowRef }: { progress: React.MutableRefObject<number>; mobile: boolean; glowRef: React.RefObject<HTMLDivElement | null> }) {
+  const maps = useEarthMaps();
+  const { camera, gl, scene } = useThree();
+  // studio reflections for the metal and cover-glass of the satellite
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-
-    let cancelled = false;
-    let lastDrawnIndex = -1;
-    let lastOpacity = -1;
-
-    const dismissLoader = () => {
-      document.getElementById("hero-loader")?.style.setProperty("opacity", "0");
-    };
-
-    const resize = (imgToRedraw?: HTMLImageElement | null) => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const parent = canvas.parentElement;
-      const w = parent ? parent.clientWidth : window.innerWidth;
-      const h = parent ? parent.clientHeight : window.innerHeight;
-      const targetW = Math.round(w * dpr);
-      const targetH = Math.round(h * dpr);
-      if (canvas.width !== targetW || canvas.height !== targetH) {
-        canvas.width = targetW;
-        canvas.height = targetH;
-      }
-      if (imgToRedraw) {
-        drawImageCover(ctx, imgToRedraw, canvas.width, canvas.height);
-      }
-    };
-
-    resize();
-
-    // Failsafe timer (2.5s)
-    const failsafe = window.setTimeout(dismissLoader, 2500);
-
-    if (reduced) {
-      let staticImg: HTMLImageElement | null = null;
-      canvas.style.opacity = "1";
-
-      const onResize = () => resize(staticImg);
-      window.addEventListener("resize", onResize, { passive: true });
-
-      loadHeroImage(getFrameUrl(144, mobile))
-        .then((img) => {
-          if (cancelled) return;
-          staticImg = img;
-          resize(img);
-          dismissLoader();
-        })
-        .catch(() => {
-          dismissLoader();
-        });
-
-      return () => {
-        cancelled = true;
-        window.clearTimeout(failsafe);
-        window.removeEventListener("resize", onResize);
-      };
-    }
-
-    const images: (HTMLImageElement | null)[] = new Array(144).fill(null);
-
-    const drawFrameByIndex = (idx: number) => {
-      const img = images[idx];
-      if (!img) return;
-      drawImageCover(ctx, img, canvas.width, canvas.height);
-      lastDrawnIndex = idx;
-    };
-
-    const onResize = () => {
-      resize(lastDrawnIndex >= 0 ? images[lastDrawnIndex] : null);
-    };
-    window.addEventListener("resize", onResize, { passive: true });
-
-    // Preload frame 1 first and draw it immediately
-    loadHeroImage(getFrameUrl(1, mobile))
-      .then((firstImg) => {
-        if (cancelled) return;
-        images[0] = firstImg;
-        drawFrameByIndex(0);
-        dismissLoader();
-
-        // Load the rest in order with new Image() + decode()
-        (async () => {
-          for (let i = 1; i < 144; i++) {
-            if (cancelled) break;
-            try {
-              const nextImg = await loadHeroImage(getFrameUrl(i + 1, mobile));
-              if (cancelled) break;
-              images[i] = nextImg;
-            } catch {
-              // Ignore failure for individual frame
-            }
-          }
-        })();
-      })
-      .catch(() => {
-        dismissLoader();
-      });
-
-    let rafId = 0;
-    const tick = () => {
-      const p = progress.current;
-
-      // Video canvas fades out over progress 0.72 -> 0.82
-      const op = 1 - smooth(0.72, 0.82, p);
-      if (Math.abs(op - lastOpacity) > 0.001) {
-        canvas.style.opacity = String(op);
-        lastOpacity = op;
-      }
-
-      if (op > 0.001) {
-        // Frame index = Math.round(lerp(0, 143, smooth(0, 0.72, progress)))
-        const targetIdx = Math.round(lerp(0, 143, smooth(0, 0.72, p)));
-
-        // If the wanted frame is not loaded yet, draw the nearest loaded frame below it
-        let bestIdx = targetIdx;
-        while (bestIdx > 0 && !images[bestIdx]) {
-          bestIdx--;
-        }
-
-        if (images[bestIdx] && bestIdx !== lastDrawnIndex) {
-          drawFrameByIndex(bestIdx);
-        }
-      }
-
-      rafId = requestAnimationFrame(tick);
-    };
-
-    rafId = requestAnimationFrame(tick);
-
+    const pmrem = new THREE.PMREMGenerator(gl);
+    const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = env;
     return () => {
-      cancelled = true;
-      window.clearTimeout(failsafe);
-      cancelAnimationFrame(rafId);
-      window.removeEventListener("resize", onResize);
+      scene.environment = null;
+      env.dispose();
+      pmrem.dispose();
     };
-  }, [mobile, reduced, progress]);
+  }, [gl, scene]);
+  const earth = useRef<THREE.Group>(null);
+  const sat = useRef<THREE.Group>(null);
+  const earthOpacity = useRef(1);
+  const constOpacity = useRef(1);
+  const warpAmount = useRef(0);
+  const lineReveal = useRef(0);
+  const stars = useMemo(() => {
+    const n = mobile ? 700 : 1600;
+    const a = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      const v = new THREE.Vector3().randomDirection().multiplyScalar(40 + Math.random() * 40);
+      a.set([v.x, v.y, v.z], i * 3);
+    }
+    return a;
+  }, [mobile]);
+  const lineArtCam = useMemo(() => new THREE.Vector3(0, 0.55, 6.4), []);
+  const lookTmp = useMemo(() => new THREE.Vector3(), []);
+
+  useFrame((_, dt) => {
+    const p = progress.current;
+    // camera path
+    const a = smooth(0, 0.28, p);
+    const b = smooth(0.28, 0.46, p);
+    const c = smooth(0.46, 0.66, p);
+    const d = smooth(0.66, 0.86, p);
+    const pos = new THREE.Vector3(lerp(0.9, 0.55, a), lerp(0.35, 0.15, a), lerp(5.6, 4.6, a));
+    pos.z = lerp(pos.z, 2.35, b);
+    pos.y = lerp(pos.y, 0.35, b);
+    pos.x = lerp(pos.x, 0.0, b);
+    camera.position.copy(pos).lerp(lineArtCam, d);
+    lookTmp.set(lerp(0.9, 0, a), lerp(0, 0.45, c), 0).lerp(new THREE.Vector3(0, 0.6, 0), d);
+    camera.lookAt(lookTmp);
+
+    // earth: rotate, sink to a limb in stage C, fade in stage D
+    if (earth.current) {
+      earth.current.rotation.y += dt * 0.025;
+      earth.current.position.y = lerp(0, -1.75, c);
+    }
+    earthOpacity.current = 1 - smooth(0.68, 0.82, p);
+    constOpacity.current = (1 - smooth(0.3, 0.44, p)) * 0.95;
+    warpAmount.current = smooth(0.29, 0.36, p) * (1 - smooth(0.42, 0.5, p));
+    lineReveal.current = smooth(0.74, 0.9, p);
+
+    if (sat.current) {
+      const show = smooth(0.44, 0.52, p) * (1 - smooth(0.66, 0.74, p));
+      sat.current.visible = show > 0.01;
+      sat.current.position.set(0.28, lerp(0.36, 0.44, c), 0.85);
+      const tt = performance.now() / 1000;
+      sat.current.rotation.set(0.18, -0.5 + Math.sin(tt * 0.3) * 0.3, 0.32);
+      sat.current.traverse((o) => {
+        const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+        const list = Array.isArray(m) ? m : m ? [m] : [];
+        list.forEach((mm) => {
+          mm.transparent = true;
+          mm.opacity = show;
+        });
+      });
+    }
+    if (glowRef.current) {
+      glowRef.current.style.opacity = String(smooth(0.66, 0.84, p));
+    }
+  });
 
   return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 h-full w-full"
-      style={{ opacity: 1 }}
-    />
+    <>
+      <ambientLight intensity={0.35} />
+      <directionalLight position={SUN_DIR.clone().multiplyScalar(10)} intensity={2.2} />
+      <points>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[stars, 3]} />
+        </bufferGeometry>
+        <pointsMaterial color="#8fa3cc" size={0.08} sizeAttenuation transparent opacity={0.55} depthWrite={false} />
+      </points>
+      <group ref={earth}>
+        {maps && <Earth maps={maps} opacity={earthOpacity} />}
+        <Atmosphere opacity={earthOpacity} />
+        <OurPlanes opacity={constOpacity} />
+      </group>
+      <Warp amount={warpAmount} mobile={mobile} />
+      <group ref={sat} visible={false}>
+        <Satellite scale={0.2} />
+      </group>
+      <LineArtScene reveal={lineReveal} />
+    </>
   );
 }
 
 export function CinematicHero() {
   const outer = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
-  const headlineRef = useRef<HTMLDivElement>(null);
-  const gradientRef = useRef<HTMLDivElement>(null);
-  const captionRef = useRef<HTMLDivElement>(null);
   const progress = useRef(0);
   const reduced =
     typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -515,22 +503,9 @@ export function CinematicHero() {
 
   useEffect(() => {
     if (reduced) {
-      progress.current = 0;
+      progress.current = 1;
       return;
     }
-
-    const updateOverlays = (p: number) => {
-      const headOp = 1 - smooth(0.55, 0.7, p);
-      if (headlineRef.current) headlineRef.current.style.opacity = String(headOp);
-      if (gradientRef.current) gradientRef.current.style.opacity = String(headOp);
-
-      const capOp = p < 0.72 ? smooth(0.6, 0.72, p) : 1 - smooth(0.72, 0.82, p);
-      if (captionRef.current) captionRef.current.style.opacity = String(capOp);
-
-      const glowOp = smooth(0.74, 0.9, p);
-      if (glowRef.current) glowRef.current.style.opacity = String(glowOp);
-    };
-
     const st = ScrollTrigger.create({
       trigger: outer.current,
       start: "top top",
@@ -538,20 +513,15 @@ export function CinematicHero() {
       scrub: 1,
       onUpdate: (self) => {
         progress.current = self.progress;
-        updateOverlays(self.progress);
       },
     });
-
-    progress.current = st.progress;
-    updateOverlays(st.progress);
-
     return () => st.kill();
   }, [reduced]);
 
   return (
     <section ref={outer} id="hero" style={{ height: reduced ? "100vh" : "420vh", background: "#000" }}>
       <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {/* Navy glow sits BEHIND the transparent canvas and frame canvas */}
+        {/* navy glow sits BEHIND the transparent canvas */}
         <div
           ref={glowRef}
           id="hero-navy-glow"
@@ -559,38 +529,18 @@ export function CinematicHero() {
           className="pointer-events-none absolute inset-0"
           style={{
             background: "radial-gradient(ellipse 90% 70% at 50% -10%, #0b1f6b 0%, #050b26 45%, #000 80%)",
-            opacity: 0,
+            opacity: reduced ? 1 : 0,
           }}
         />
-
-        {/* Video frame scrub canvas */}
-        <FrameScrub progress={progress} mobile={mobile} reduced={reduced} />
-
-        {/* Dark gradient behind headline */}
-        <div
-          ref={gradientRef}
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: "linear-gradient(to top right, rgba(0,0,0,0.75), transparent 55%)",
-            opacity: 1,
-          }}
-        />
-
-        {/* Line-art finale: transparent R3F Canvas layered ABOVE frame canvas */}
-        {!reduced && (
-          <Canvas
-            className="!absolute inset-0 pointer-events-none"
-            dpr={mobile ? [1, 1.5] : [1, 2]}
-            gl={{ antialias: true, alpha: true }}
-            camera={{ position: [0, 0.55, 6.4], fov: 45, near: 0.05, far: 200 }}
-            aria-label="Interactive 3D simulation of SomaiyaNet PocketQube constellation"
-          >
-            <Scene progress={progress} glowRef={glowRef} />
-          </Canvas>
-        )}
-
-        {/* Hero loader */}
+        <Canvas
+          className="!absolute inset-0"
+          dpr={mobile ? [1, 1.5] : [1, 2]}
+          gl={{ antialias: true, alpha: true }}
+          camera={{ position: [0.9, 0.35, 5.6], fov: 45, near: 0.05, far: 200 }}
+          aria-label="Interactive 3D simulation of SomaiyaNet PocketQube constellation and orbital passes around Earth"
+        >
+          <Scene progress={progress} mobile={mobile} glowRef={glowRef} />
+        </Canvas>
         <div
           id="hero-loader"
           aria-hidden="true"
@@ -598,13 +548,7 @@ export function CinematicHero() {
         >
           <div className="h-px w-40 animate-pulse bg-white/60" />
         </div>
-
-        {/* Headline + paragraph overlay */}
-        <div
-          ref={headlineRef}
-          className="pointer-events-none absolute bottom-10 left-6 z-10 max-w-[760px] md:bottom-14 md:left-12"
-          style={{ opacity: 1 }}
-        >
+        <div className="pointer-events-none absolute bottom-10 left-6 z-10 max-w-[760px] md:bottom-14 md:left-12">
           <h1
             className="break-words text-white"
             style={{ fontSize: "clamp(40px, 7vw, 112px)", lineHeight: 0.98, letterSpacing: "-0.035em", fontWeight: 300 }}
@@ -616,19 +560,6 @@ export function CinematicHero() {
           <p className="mt-5 max-w-[56ch] text-[17px] leading-relaxed text-[#9aa3b8]">
             SomaiyaNet is a four-satellite PocketQube constellation (three flying, one waiting in its deployer) whose routing graphs, decision trees, and access permissions all live in PostgreSQL. Developed under specification KJS-SRS-01.
           </p>
-        </div>
-
-        {/* Small caption over Mumbai */}
-        <div
-          ref={captionRef}
-          className="pointer-events-none absolute bottom-20 right-6 z-10 max-w-[340px] text-right md:bottom-24 md:right-12"
-          style={{
-            fontSize: "13px",
-            color: "#dfe6f5",
-            opacity: 0,
-          }}
-        >
-          Over Mumbai, where KJSIT's ground station listens.
         </div>
       </div>
     </section>
