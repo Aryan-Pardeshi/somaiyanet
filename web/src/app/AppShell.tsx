@@ -174,8 +174,10 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   const role = profile?.role ?? null;
   const who = role ? accessFor(role)?.who : null;
-  const missionNav = MISSION_NAV.filter((m) => canVisit(role, m.to));
-  const labsNav = LABS_NAV.filter((l) => canVisit(role, l.to));
+  // No known profile (not picked yet, or backend offline): show no pages at
+  // all rather than every page, so nothing appears that the role may not use.
+  const missionNav = role ? MISSION_NAV.filter((m) => canVisit(role, m.to)) : [];
+  const labsNav = role ? LABS_NAV.filter((l) => canVisit(role, l.to)) : [];
 
   const switcher = (
     <div className="relative" ref={chipRef}>
@@ -279,9 +281,22 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   const navList = (
     <>
+      {role === null && !checking && (
+        <div className="px-3 pt-1 text-[12.5px] leading-relaxed text-[#8b96b0]">
+          <p>{offline ? "Backend offline, so no profile is loaded." : "No profile picked yet."}</p>
+          <Link
+            to="/console"
+            className="mt-2 inline-block border border-white/15 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-[#dfe6f5] hover:border-[#3d5bff] hover:text-white"
+          >
+            Pick a profile
+          </Link>
+        </div>
+      )}
+      {missionNav.length > 0 && (
       <p className="px-3 pt-1 pb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
         MISSION
       </p>
+      )}
       <nav className="mt-0.5 flex flex-col gap-0.5" aria-label="Mission">
         {missionNav.map(({ to, label, Icon }) => (
           <NavLink
@@ -330,9 +345,11 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
 
+      {labsNav.length > 0 && (
       <p className="mt-5 px-3 pt-1 pb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#8b96b0]">
         DATABASE LABS
       </p>
+      )}
       <nav className="mt-0.5 flex flex-col gap-0.5" aria-label="Database labs">
         {labsNav.map(({ to, label, Icon }) => (
           <NavLink

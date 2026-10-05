@@ -135,6 +135,18 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<Api
     };
   }
 
+  // The Vite dev proxy answers 502/503/504 with no JSON body when the API is
+  // not running; treat that exactly like a network failure (backend offline).
+  if ([502, 503, 504].includes(res.status) && body["error"] === undefined) {
+    const offline = new ApiError({
+      status: 0,
+      message: "Backend offline: run `python run.py`",
+      sql: [],
+    });
+    errPusher?.(offline);
+    throw offline;
+  }
+
   const e = (body["error"] ?? {}) as Record<string, unknown>;
   const err = new ApiError({
     status: res.status,
