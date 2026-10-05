@@ -4,14 +4,15 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { ScrollTrigger } from "@/lib/gsap";
 import { Satellite } from "./Satellite";
-import { ContactPlan } from "./ContactPlan";
+import { RouteDiagram } from "./RouteDiagram";
+import { CursorReadout } from "./CursorReadout";
 
 /*
  * Scroll-scrubbed hero, one canvas, one progress value (0..1):
  *   A 0.00-0.28  textured Earth wrapped in a constellation of orbit dots
  *   B 0.28-0.46  dive: camera rushes in through warp streaks
  *   C 0.46-0.66  a SomaiyaSat PocketQube hangs above the Earth's limb
- *   D 0.66-1.00  Earth fades to black + navy glow; ContactPlan SVG overlay:
+ *   D 0.66-1.00  Earth fades to black + navy glow; RouteDiagram overlay:
  *                four lanes, contact windows, and PKT#0412 routed via
  *                PostgreSQL cgr_routes() to KJSIT Mumbai
  */
@@ -428,7 +429,7 @@ export function CinematicHero() {
         >
           <Scene progress={progress} mobile={mobile} glowRef={glowRef} headlineRef={headlineRef} />
         </Canvas>
-        <ContactPlan progress={progress} reduced={reduced} mobile={mobile} />
+        <RouteDiagram progress={progress} reduced={reduced} mobile={mobile} />
         <div
           id="hero-loader"
           aria-hidden="true"
@@ -453,6 +454,7 @@ export function CinematicHero() {
           </p>
         </div>
       </div>
+      <CursorReadout targetRef={outer} />
     </section>
   );
 }
