@@ -4,15 +4,16 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { ScrollTrigger } from "@/lib/gsap";
 import { Satellite } from "./Satellite";
+import { ContactPlan } from "./ContactPlan";
 
 /*
  * Scroll-scrubbed hero, one canvas, one progress value (0..1):
  *   A 0.00-0.28  textured Earth wrapped in a constellation of orbit dots
  *   B 0.28-0.46  dive: camera rushes in through warp streaks
  *   C 0.46-0.66  a SomaiyaSat PocketQube hangs above the Earth's limb
- *   D 0.66-1.00  Earth fades to black + navy glow; scene becomes white line art:
- *                three outline PocketQubes, dashed beams, wireframe horizon,
- *                and the red packet hopping cube -> cube -> KJSIT Mumbai
+ *   D 0.66-1.00  Earth fades to black + navy glow; ContactPlan SVG overlay:
+ *                four lanes, contact windows, and PKT#0412 routed via
+ *                PostgreSQL cgr_routes() to KJSIT Mumbai
  */
 
 const TEX = (n: string) => `${import.meta.env.BASE_URL}assets/textures/${n}`;
@@ -261,138 +262,17 @@ function Warp({ amount, mobile }: { amount: React.MutableRefObject<number>; mobi
   return <lineSegments ref={lines} geometry={geo} material={mat} visible={false} frustumCulled={false} />;
 }
 
-function DashedLine({ points, opacity = 0.8, dash = 0.05 }: { points: THREE.Vector3[]; opacity?: number; dash?: number }) {
-  const obj = useMemo(() => {
-    const g = new THREE.BufferGeometry().setFromPoints(points);
-    const m = new THREE.LineDashedMaterial({ color: "#ffffff", transparent: true, opacity, dashSize: dash, gapSize: dash * 0.8 });
-    const l = new THREE.Line(g, m);
-    l.computeLineDistances();
-    l.userData.baseOpacity = opacity;
-    return l;
-  }, [points, opacity, dash]);
-  return <primitive object={obj} />;
-}
-
-function SolidLine({ points, opacity = 0.8 }: { points: THREE.Vector3[]; opacity?: number }) {
-  const obj = useMemo(() => {
-    const l = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints(points),
-      new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity }),
-    );
-    l.userData.baseOpacity = opacity;
-    return l;
-  }, [points, opacity]);
-  return <primitive object={obj} />;
-}
-
-/** Stage D: white line-art scene in its own coordinate frame. */
-function LineArtScene({ reveal }: { reveal: React.MutableRefObject<number> }) {
-  const root = useRef<THREE.Group>(null);
-  const pkt = useRef<THREE.Mesh>(null);
-  const cubes = useMemo(
-    () => [new THREE.Vector3(-2.75, 1.0, 0), new THREE.Vector3(0, 1.8, -0.4), new THREE.Vector3(2.75, 1.0, 0)],
-    [],
-  );
-  // horizon: arcs of a huge sphere seen edge-on, plus meridians
-  const horizon = useMemo(() => {
-    const R = 14;
-    const cy = -R - 0.9;
-    const arcs: THREE.Vector3[][] = [];
-    for (let i = 0; i < 5; i++) {
-      const pts: THREE.Vector3[] = [];
-      const depth = i * 0.9;
-      const r = Math.sqrt(R * R - depth * depth);
-      for (let x = -7; x <= 7; x += 0.25) {
-        const y = cy + Math.sqrt(Math.max(r * r - x * x, 0));
-        pts.push(new THREE.Vector3(x, y, -depth));
-      }
-      arcs.push(pts);
-    }
-    const mers: THREE.Vector3[][] = [];
-    for (const x0 of [-3.2, 0, 3.2]) {
-      const pts: THREE.Vector3[] = [];
-      for (let d = 0; d <= 4; d += 0.2) {
-        const x = x0 * (1 - d / 12);
-        const r = Math.sqrt(R * R - d * d);
-        pts.push(new THREE.Vector3(x, cy + Math.sqrt(Math.max(r * r - x * x, 0)), -d));
-      }
-      mers.push(pts);
-    }
-    return { arcs, mers, surfaceY: (x: number) => cy + Math.sqrt(R * R - x * x) };
-  }, []);
-  // dashed beams fanning down from each cube to the horizon
-  const beams = useMemo(() => {
-    const out: THREE.Vector3[][] = [];
-    cubes.forEach((c) => {
-      for (const dx of [-1.1, -0.45, 0.2, 0.85]) {
-        const x = c.x + dx;
-        out.push([c.clone().add(new THREE.Vector3(0, -0.3, 0)), new THREE.Vector3(x, horizon.surfaceY(x) + 0.02, -0.6)]);
-      }
-    });
-    return out;
-  }, [cubes, horizon]);
-  const station = useMemo(() => new THREE.Vector3(0.75, horizon.surfaceY(0.75) + 0.02, -0.6), [horizon]);
-  const route = useMemo(() => [cubes[0], cubes[1], cubes[2], station], [cubes, station]);
-  const isl = useMemo(
-    () => [
-      [cubes[0], cubes[1]],
-      [cubes[1], cubes[2]],
-    ],
-    [cubes],
-  );
-
-  useFrame((state) => {
-    const k = reveal.current;
-    if (!root.current) return;
-    root.current.visible = k > 0.01;
-    root.current.traverse((o) => {
-      const m = (o as THREE.Line).material as THREE.Material & { opacity?: number };
-      if (!m || m.opacity === undefined || o === pkt.current) return;
-      if (m.userData.base === undefined) m.userData.base = (o.userData.baseOpacity as number | undefined) ?? m.opacity;
-      m.transparent = true;
-      m.opacity = (m.userData.base as number) * k;
-    });
-    if (pkt.current) {
-      const loop = (state.clock.elapsedTime * 0.22) % 1;
-      const seg = Math.min(route.length - 2, Math.floor(loop * (route.length - 1)));
-      const f = loop * (route.length - 1) - seg;
-      pkt.current.position.lerpVectors(route[seg], route[seg + 1], f);
-      (pkt.current.material as THREE.MeshBasicMaterial).opacity = k;
-    }
-  });
-
-  return (
-    <group ref={root} visible={false}>
-      {cubes.map((c, i) => (
-        <group key={i} position={c} rotation={[0.12, i === 1 ? 0 : i === 0 ? 0.35 : -0.35, i === 1 ? 0 : i === 0 ? 0.08 : -0.08]}>
-          <Satellite lineArt scale={0.3} />
-        </group>
-      ))}
-      {beams.map((b, i) => (
-        <DashedLine key={`b${i}`} points={b} opacity={0.55} dash={0.07} />
-      ))}
-      {isl.map((b, i) => (
-        <DashedLine key={`i${i}`} points={b} opacity={0.9} dash={0.1} />
-      ))}
-      {horizon.arcs.map((p, i) => (
-        <SolidLine key={`a${i}`} points={p} opacity={i === 0 ? 0.9 : 0.45 - i * 0.06} />
-      ))}
-      {horizon.mers.map((p, i) => (
-        <SolidLine key={`m${i}`} points={p} opacity={0.4} />
-      ))}
-      <mesh position={station}>
-        <boxGeometry args={[0.07, 0.07, 0.07]} />
-        <meshBasicMaterial color="#ffffff" transparent />
-      </mesh>
-      <mesh ref={pkt}>
-        <sphereGeometry args={[0.055, 16, 16]} />
-        <meshBasicMaterial color="#ff3b4f" transparent />
-      </mesh>
-    </group>
-  );
-}
-
-function Scene({ progress, mobile, glowRef }: { progress: React.MutableRefObject<number>; mobile: boolean; glowRef: React.RefObject<HTMLDivElement | null> }) {
+function Scene({
+  progress,
+  mobile,
+  glowRef,
+  headlineRef,
+}: {
+  progress: React.MutableRefObject<number>;
+  mobile: boolean;
+  glowRef: React.RefObject<HTMLDivElement | null>;
+  headlineRef: React.RefObject<HTMLDivElement | null>;
+}) {
   const maps = useEarthMaps();
   const { camera, gl, scene } = useThree();
   // studio reflections for the metal and cover-glass of the satellite
@@ -411,7 +291,6 @@ function Scene({ progress, mobile, glowRef }: { progress: React.MutableRefObject
   const earthOpacity = useRef(1);
   const constOpacity = useRef(1);
   const warpAmount = useRef(0);
-  const lineReveal = useRef(0);
   const stars = useMemo(() => {
     const n = mobile ? 700 : 1600;
     const a = new Float32Array(n * 3);
@@ -447,7 +326,6 @@ function Scene({ progress, mobile, glowRef }: { progress: React.MutableRefObject
     earthOpacity.current = 1 - smooth(0.68, 0.82, p);
     constOpacity.current = (1 - smooth(0.3, 0.44, p)) * 0.95;
     warpAmount.current = smooth(0.29, 0.36, p) * (1 - smooth(0.42, 0.5, p));
-    lineReveal.current = smooth(0.74, 0.9, p);
 
     if (sat.current) {
       const show = smooth(0.44, 0.52, p) * (1 - smooth(0.66, 0.74, p));
@@ -466,6 +344,9 @@ function Scene({ progress, mobile, glowRef }: { progress: React.MutableRefObject
     }
     if (glowRef.current) {
       glowRef.current.style.opacity = String(smooth(0.66, 0.84, p));
+    }
+    if (headlineRef.current) {
+      headlineRef.current.style.opacity = String(1 - smooth(0.6, 0.68, p));
     }
   });
 
@@ -488,7 +369,6 @@ function Scene({ progress, mobile, glowRef }: { progress: React.MutableRefObject
       <group ref={sat} visible={false}>
         <Satellite scale={0.2} />
       </group>
-      <LineArtScene reveal={lineReveal} />
     </>
   );
 }
@@ -496,6 +376,7 @@ function Scene({ progress, mobile, glowRef }: { progress: React.MutableRefObject
 export function CinematicHero() {
   const outer = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
+  const headlineRef = useRef<HTMLDivElement>(null);
   const progress = useRef(0);
   const reduced =
     typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -504,6 +385,9 @@ export function CinematicHero() {
   useEffect(() => {
     if (reduced) {
       progress.current = 1;
+      if (headlineRef.current) {
+        headlineRef.current.style.opacity = "0";
+      }
       return;
     }
     const st = ScrollTrigger.create({
@@ -513,6 +397,9 @@ export function CinematicHero() {
       scrub: 1,
       onUpdate: (self) => {
         progress.current = self.progress;
+        if (headlineRef.current) {
+          headlineRef.current.style.opacity = String(1 - smooth(0.6, 0.68, self.progress));
+        }
       },
     });
     return () => st.kill();
@@ -539,8 +426,9 @@ export function CinematicHero() {
           camera={{ position: [0.9, 0.35, 5.6], fov: 45, near: 0.05, far: 200 }}
           aria-label="Interactive 3D simulation of SomaiyaNet PocketQube constellation and orbital passes around Earth"
         >
-          <Scene progress={progress} mobile={mobile} glowRef={glowRef} />
+          <Scene progress={progress} mobile={mobile} glowRef={glowRef} headlineRef={headlineRef} />
         </Canvas>
+        <ContactPlan progress={progress} reduced={reduced} mobile={mobile} />
         <div
           id="hero-loader"
           aria-hidden="true"
@@ -548,14 +436,17 @@ export function CinematicHero() {
         >
           <div className="h-px w-40 animate-pulse bg-white/60" />
         </div>
-        <div className="pointer-events-none absolute bottom-10 left-6 z-10 max-w-[760px] md:bottom-14 md:left-12">
+        <div
+          ref={headlineRef}
+          className="pointer-events-none absolute bottom-10 left-6 z-10 max-w-[min(92vw,1100px)] md:bottom-14 md:left-12"
+          style={{ opacity: reduced ? 0 : 1 }}
+        >
           <h1
-            className="break-words text-white"
-            style={{ fontSize: "clamp(40px, 7vw, 112px)", lineHeight: 0.98, letterSpacing: "-0.035em", fontWeight: 300 }}
+            className="text-white"
+            style={{ fontSize: "clamp(40px, 6.2vw, 104px)", lineHeight: 0.98, letterSpacing: "-0.035em", fontWeight: 300 }}
           >
-            Satellites that
-            <br />
-            route themselves.
+            <span className="block md:whitespace-nowrap">Satellites that</span>
+            <span className="block md:whitespace-nowrap">route themselves.</span>
           </h1>
           <p className="mt-5 max-w-[56ch] text-[17px] leading-relaxed text-[#9aa3b8]">
             SomaiyaNet is a four-satellite PocketQube constellation (three flying, one waiting in its deployer) whose routing graphs, decision trees, and access permissions all live in PostgreSQL. Developed under specification KJS-SRS-01.
