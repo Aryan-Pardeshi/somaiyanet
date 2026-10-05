@@ -67,16 +67,6 @@ export function SqlProvider({ children }: { children: ReactNode }) {
   return <SqlLogContext.Provider value={value}>{children}</SqlLogContext.Provider>;
 }
 
-function ExpCoChip({ r }: { r: SqlRecord }) {
-  if (!r.exp && !r.co) return null;
-  const label = [r.exp, r.co].filter(Boolean).join(" ");
-  return (
-    <span className="font-mono text-[9px] uppercase tracking-[0.14em] px-1.5 py-0.5 border border-[#3d5bff]/40 text-[#7fb2ff] bg-[#3d5bff]/10 shrink-0">
-      {label}
-    </span>
-  );
-}
-
 function copyText(text: string): void {
   void navigator.clipboard?.writeText(text).catch(() => {
     // Clipboard unavailable (permissions/headless): selection still works.
@@ -189,7 +179,6 @@ export function SqlDrawer() {
                       <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#dfe6f5]">
                         {r.label}
                       </span>
-                      <ExpCoChip r={r} />
                       {r.elapsed_ms !== null && r.elapsed_ms !== undefined && (
                         <span className="ml-auto font-mono text-[10px] text-[#8b96b0]">
                           {r.elapsed_ms.toFixed(1)} ms

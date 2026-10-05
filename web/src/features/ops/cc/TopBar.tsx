@@ -8,6 +8,8 @@ interface TopBarProps {
   selectedSat: ConstellationSat | null;
   sats: ConstellationSat[];
   contacts: Contact[];
+  /** Render the tab pill inline (CSS-glass fallback). False when the liquid-glass overlay owns it. */
+  showTabs?: boolean;
 }
 
 const TABS: Array<{ id: OpsTab; label: string }> = [
@@ -16,6 +18,37 @@ const TABS: Array<{ id: OpsTab; label: string }> = [
   { id: "contacts", label: "Upcoming passes" },
   { id: "telemetry", label: "Live data" },
 ];
+
+/** The four tab buttons, shared by the inline pill and the liquid-glass overlay. */
+export function TabButtons({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: OpsTab;
+  onTabChange: (tab: OpsTab) => void;
+}) {
+  return (
+    <>
+      {TABS.map((tab) => {
+        const active = activeTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => onTabChange(tab.id)}
+            className={`relative px-4 py-1.5 rounded-full text-[11px] font-mono tracking-wider transition-all duration-200 cursor-pointer ${
+              active
+                ? "liquid-glass-active font-semibold"
+                : "text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/10 border border-transparent"
+            }`}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
+    </>
+  );
+}
 
 function formatUtc(d: Date): string {
   const pad = (n: number): string => String(n).padStart(2, "0");
@@ -34,6 +67,7 @@ export function TopBar({
   selectedSat,
   sats,
   contacts,
+  showTabs = true,
 }: TopBarProps) {
   const [now, setNow] = useState(() => new Date());
 
@@ -76,37 +110,14 @@ export function TopBar({
         </div>
 
         {/* Center rounded-full glass tab bar */}
-        <nav
-          aria-label="Ops navigation"
-          className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1 p-1 rounded-full border border-white/10 shadow-2xl"
-          style={{
-            backgroundColor: "rgba(10, 14, 28, 0.85)",
-            backgroundImage:
-              "linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.025))",
-            backdropFilter: "blur(22px) saturate(170%)",
-            WebkitBackdropFilter: "blur(22px) saturate(170%)",
-            boxShadow:
-              "inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.04), 0 12px 40px rgba(0, 0, 0, 0.45)",
-          }}
-        >
-          {TABS.map((tab) => {
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => onTabChange(tab.id)}
-                className={`relative px-4 py-1.5 rounded-full text-[11px] font-mono tracking-wider transition-all duration-200 cursor-pointer ${
-                  active
-                    ? "bg-[#3d5bff]/85 text-white font-semibold shadow-[0_0_12px_rgba(61,91,255,0.4)] border border-[#3d5bff]"
-                    : "text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/10 border border-transparent"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </nav>
+        {showTabs && (
+          <nav
+            aria-label="Ops navigation"
+            className="liquid-glass pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1 p-1 rounded-full"
+          >
+            <TabButtons activeTab={activeTab} onTabChange={onTabChange} />
+          </nav>
+        )}
 
         {/* HUD top-right floating text */}
         <div className="hidden lg:flex flex-col gap-0.5 text-right font-mono pointer-events-auto">

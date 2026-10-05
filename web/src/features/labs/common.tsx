@@ -8,12 +8,12 @@ import { RoleHeader } from "@/app/access";
 export { Panel };
 
 export const LABS = [
-  { slug: "transactions", label: "Transactions", exp: "Exp 9", co: "CO1/CO4" },
-  { slug: "security", label: "Security", exp: "Exp 7", co: "CO2" },
-  { slug: "indexing", label: "Indexing", exp: "Exp 8", co: "CO3" },
-  { slug: "normalization", label: "Normalization", exp: "—", co: "CO3" },
-  { slug: "schema", label: "Schema", exp: "Exp 1–3", co: "CO1/CO2" },
-  { slug: "sql", label: "SQL console", exp: "Exp 4–6", co: "CO1" },
+  { slug: "transactions", label: "Transactions" },
+  { slug: "security", label: "Security" },
+  { slug: "indexing", label: "Indexing" },
+  { slug: "normalization", label: "Normalization" },
+  { slug: "schema", label: "Schema" },
+  { slug: "sql", label: "SQL console" },
 ] as const;
 
 export function StatusBadge({
@@ -69,7 +69,7 @@ export function LabShell({
 }) {
   return (
     <div className="w-full text-[#dfe6f5] flex flex-col gap-5">
-      {/* Title row: light 28-34px title, muted one-line description, experiment/CO badges */}
+      {/* Title row: light 28-34px title, muted one-line description, optional badges */}
       <div className="flex flex-col gap-2 border-b border-white/[0.08] pb-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-baseline gap-3">

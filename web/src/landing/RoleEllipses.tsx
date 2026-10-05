@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { SectionLabel } from "./SectionLabel";
 
 type RoleItem = {
   name: string;
@@ -55,7 +54,6 @@ export function RoleEllipses() {
           >
             Five operational roles. Enforced in the engine.
           </h2>
-          <SectionLabel>ACCESS CONTROL</SectionLabel>
         </div>
 
         <p className="mt-4 max-w-[62ch] text-[15px] leading-relaxed text-[#9aa3b8]">

@@ -1,7 +1,6 @@
 import { useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { SectionLabel } from "./SectionLabel";
 import { Atmosphere, Earth, useEarthMaps } from "./hero/CinematicHero";
 
 /** Centered mission sentence over a small real Earth with a tilted orbit. */
@@ -9,8 +8,7 @@ export function Mission() {
   return (
     <section className="border-t border-white/10 py-28" style={{ background: "#000" }}>
       <div className="mx-auto flex max-w-[860px] flex-col items-center px-6 text-center">
-        <SectionLabel>MISSION</SectionLabel>
-        <h2 className="mt-6 font-light text-white" style={{ fontSize: "clamp(28px, 3.6vw, 40px)", lineHeight: 1.22, letterSpacing: "-0.02em" }}>
+        <h2 className="font-light text-white" style={{ fontSize: "clamp(28px, 3.6vw, 40px)", lineHeight: 1.22, letterSpacing: "-0.02em" }}>
           Give a tiny satellite the judgement to send what matters first — and prove every decision in a
           database.
         </h2>

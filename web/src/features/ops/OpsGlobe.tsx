@@ -182,7 +182,10 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
       simRef.current.lastReal = Date.now();
       const texBase = `${import.meta.env.BASE_URL}assets/textures`;
 
-      const world: World = new Globe(el)
+      const world: World = new Globe(el, {
+        // The liquid-glass overlay copies this canvas each tick (see LiquidOverlay).
+        rendererConfig: { preserveDrawingBuffer: true },
+      })
         .backgroundColor("rgba(0,0,0,0)")
         .globeImageUrl(`${texBase}/earth_night.jpg`)
         .bumpImageUrl(`${texBase}/earth_topology.jpg`)

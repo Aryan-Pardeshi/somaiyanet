@@ -16,7 +16,7 @@ const META: Record<
     title: "Transactions",
     description:
       "Two-session concurrency workbench — row lock contention, SERIALIZABLE write-skew (40001), deadlock aborts (40P01), and MVCC tuple versions.",
-    chips: ["Exp 9", "CO1", "CO4"],
+    chips: [],
     roleNote: "Sessions A and B connect to PostgreSQL as the role you picked; resets run as the database owner.",
     notice: [
       "Session B waits on Session A's row lock — the lock table and wait-for arrows prove it.",
@@ -28,7 +28,7 @@ const META: Record<
     title: "Security",
     description:
       "Role privilege matrix, column-level secrets, station-isolated row-level security (RLS), and Postgres 42501 audit verification.",
-    chips: ["Exp 7", "CO2"],
+    chips: [],
     roleNote: "Every check below runs as the role you picked, against real GRANTs.",
     notice: [
       "The heatmap's denied cells are real has_*_privilege answers, not hard-coded.",
@@ -40,7 +40,7 @@ const META: Record<
     title: "Indexing",
     description:
       "B-Tree, BRIN, GIN, Partial and Covering index benchmarks with live EXPLAIN scan node comparisons.",
-    chips: ["Exp 8", "CO3"],
+    chips: [],
     roleNote: "Catalog reads run as the role you picked; index creation, drops, and benchmarks run as the database owner (mission_director).",
     notice: [
       "Before/after bars show the scan node flip: Seq Scan → Bitmap/Index Scan.",
@@ -52,7 +52,7 @@ const META: Record<
     title: "Normalization",
     description:
       "Lossless join decomposition from UNF to BCNF, functional dependencies, and anomaly isolation.",
-    chips: ["CO3", "UNF → BCNF"],
+    chips: ["UNF → BCNF"],
     roleNote: "All normalization queries and anomaly demonstrations run as the role you picked.",
     notice: [
       "Highlighted columns are the duplicated facts that each normal form removes.",
@@ -64,7 +64,7 @@ const META: Record<
     title: "Schema",
     description:
       "Relational EER model with table inheritance hierarchies, foreign keys, partition sets, and check constraints.",
-    chips: ["Exp 1–3", "CO1", "CO2"],
+    chips: [],
     roleNote: "Catalog queries for tables, columns, and constraints run as the role you picked.",
     notice: [
       "Ice d-circles are the disjoint EER splits: node and packet hierarchies.",
@@ -76,7 +76,7 @@ const META: Record<
     title: "SQL console",
     description:
       "Read-only interactive SQL command console with transaction safeguards, query plan inspection, and catalog presets.",
-    chips: ["Exp 4–6", "CO1"],
+    chips: [],
     roleNote: "Your query runs as the picked role inside a read-only transaction.",
     notice: [
       "Presets cover DML, aggregates, set ops, CGR, views and LIKE in one sidebar.",
@@ -144,13 +144,6 @@ export default function Lab() {
               }`}
             >
               <span>{item.label}</span>
-              <span
-                className={`text-[9px] px-1 py-0.2 rounded-[1px] ${
-                  active ? "bg-white/20 text-white" : "text-[#5f6f93]"
-                }`}
-              >
-                {item.exp}
-              </span>
             </Link>
           );
         })}

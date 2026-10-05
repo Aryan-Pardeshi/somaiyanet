@@ -104,9 +104,6 @@ export function SqlLab({ presetName }: { presetName?: string }) {
             <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#8b96b0]">
               Presets catalog
             </span>
-            <span className="font-mono text-[10px] text-[#5f6f93]">
-              Exp 4–9
-            </span>
           </div>
 
           {bootError !== null && presets.length === 0 ? (
@@ -311,7 +308,7 @@ export function SqlLab({ presetName }: { presetName?: string }) {
 function groupPresets(presets: ConsolePreset[]): Record<string, ConsolePreset[]> {
   const out: Record<string, ConsolePreset[]> = {};
   for (const p of presets) {
-    const g = p.group || "Other";
+    const g = (p.group || "Other").replace(/^Exp \d+\s*-\s*/i, "");
     (out[g] ??= []).push(p);
   }
   return out;
@@ -320,22 +317,22 @@ function groupPresets(presets: ConsolePreset[]): Record<string, ConsolePreset[]>
 function groupFallback(): Record<string, ConsolePreset[]> {
   const list: ConsolePreset[] = [
     {
-      group: "Exp 4 - DML",
+      group: "DML",
       name: "Queued packets by sat",
       sql: "SELECT origin_sat, mode, status, COUNT(*) FROM packet GROUP BY origin_sat, mode, status ORDER BY origin_sat LIMIT 50;",
     },
     {
-      group: "Exp 5 - Aggregates",
+      group: "Aggregates",
       name: "Low power sats (HAVING)",
       sql: "SELECT * FROM v_low_power;",
     },
     {
-      group: "Exp 6 - CGR",
+      group: "CGR",
       name: "CGR from SS-1",
       sql: "SELECT * FROM cgr_routes('SS-1', now());",
     },
     {
-      group: "Exp 7 - DCL",
+      group: "DCL",
       name: "Privilege matrix",
       sql: "SELECT grantee, table_name, privilege_type FROM information_schema.role_table_grants WHERE grantee IN ('mission_director','station_operator_bom','student_analyst','ai_router') ORDER BY grantee, table_name LIMIT 50;",
     },

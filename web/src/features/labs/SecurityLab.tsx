@@ -153,7 +153,7 @@ export function SecurityLab() {
       {/* 1. Privilege Matrix Panel */}
       <Card
         title="Role privilege matrix"
-        kicker="has_*_privilege · Exp 7 · CO2"
+        kicker="has_*_privilege"
         aside={
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1 font-mono text-[10px] text-[#7ee2b8]">

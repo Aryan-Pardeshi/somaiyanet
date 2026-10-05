@@ -399,9 +399,6 @@ export default function Deploy() {
             <RoleHeader />
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 border border-white/15 bg-white/5 text-[#8b96b0]">
-              EXP 9 · CO4
-            </span>
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10 text-[#7fb2ff]">
               TRANSACTION TIMELINE
             </span>

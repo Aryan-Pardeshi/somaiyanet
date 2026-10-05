@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRole } from "@/app/access";
 import { OpsGlobe, type OpsGlobeHandle } from "@/features/ops/OpsGlobe";
 import { useOpsData, type TelemetryEvent } from "@/features/ops/api";
-import { TopBar } from "@/features/ops/cc/TopBar";
-import { BottomDock } from "@/features/ops/cc/BottomDock";
+import { TabButtons, TopBar } from "@/features/ops/cc/TopBar";
+import { LiquidOverlay, type GlassSlab } from "@/features/ops/cc/LiquidOverlay";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { LeftRail } from "@/features/ops/cc/LeftRail";
 import { RightRail } from "@/features/ops/cc/RightRail";
 import type { FleetFilter, GlobeView, OpsTab } from "@/features/ops/cc/types";
@@ -44,11 +45,16 @@ export default function Ops() {
     return "globe";
   }, [access?.station]);
 
-  const [currentView, setCurrentView] = useState<GlobeView>(defaultView);
   const globeRef = useRef<OpsGlobeHandle>(null);
+  const globeLayerRef = useRef<HTMLDivElement>(null);
+
+  // Real WebGL liquid glass needs room for the floating tab pill; below this width
+  // (or if WebGL / the library fails) the rails fall back to CSS glass.
+  const wide = useMediaQuery("(min-width: 1280px)");
+  const [liquidFailed, setLiquidFailed] = useState(false);
+  const liquid = wide && !liquidFailed;
 
   useEffect(() => {
-    setCurrentView(defaultView);
     globeRef.current?.flyTo(defaultView);
   }, [defaultView]);
 
@@ -88,38 +94,81 @@ export default function Ops() {
       .map((s) => s.node_id);
   }, [data.sats, filter]);
 
-  const handleDemoRoute = () => {
-    const now = Date.now();
-    const iso = (ms: number): string => new Date(ms).toISOString();
-    globeRef.current?.playRoute([
-      {
-        from_node: "SS-1",
-        to_node: "SS-2",
-        depart_ts: iso(now),
-        arrive_ts: iso(now + 4000),
-        kind: "ISL",
-      },
-      {
-        from_node: "SS-2",
-        to_node: "SS-3",
-        depart_ts: iso(now + 4000),
-        arrive_ts: iso(now + 8000),
-        kind: "ISL",
-      },
-      {
-        from_node: "SS-3",
-        to_node: "GS-BOM",
-        depart_ts: iso(now + 8000),
-        arrive_ts: iso(now + 12000),
-        kind: "DOWNLINK",
-      },
-    ]);
-  };
+  const leftRail = (
+    <LeftRail
+      sats={data.sats}
+      contacts={data.contacts}
+      selectedId={selectedId}
+      onSelect={setSelectedId}
+      filter={filter}
+      onFilterChange={setFilter}
+    />
+  );
+  const rightRail = (
+    <RightRail
+      activeTab={activeTab}
+      selectedSat={activeSat}
+      histories={histories}
+      telemetry={data.telemetry}
+      alerts={data.alerts}
+      kpis={data.kpis}
+      contacts={data.contacts}
+      decisions={data.decisions}
+      onRefetchAlerts={data.refetchAlerts}
+    />
+  );
 
-  const handleViewChange = (v: GlobeView) => {
-    setCurrentView(v);
-    globeRef.current?.flyTo(v);
-  };
+  const scrollStyle = {
+    scrollbarWidth: "thin",
+    scrollbarColor: "rgba(255, 255, 255, 0.2) transparent",
+  } as const;
+  const scrollFade =
+    "[scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] [mask-image:linear-gradient(to_bottom,black_94%,transparent)]";
+
+  const slabs: GlassSlab[] = [
+    {
+      key: "tabs",
+      className: "inset-x-0 mx-auto top-3 h-11 w-[470px] rounded-full",
+      config: { cornerRadius: 22, zRadius: 16, brightness: -0.2, blurAmount: 0.2 },
+      clip: false,
+      children: (
+        <nav
+          aria-label="Ops navigation"
+          className="flex h-full items-center justify-center gap-1 px-1"
+        >
+          <TabButtons activeTab={activeTab} onTabChange={setActiveTab} />
+        </nav>
+      ),
+    },
+    {
+      key: "left",
+      className: "left-4 top-14 bottom-4 w-[320px] rounded-[36px]",
+      config: { cornerRadius: 36, zRadius: 28 },
+      children: (
+        <div
+          data-lenis-prevent
+          className={`h-full overflow-y-auto overscroll-contain px-3 pt-3 pb-8 ${scrollFade}`}
+          style={scrollStyle}
+        >
+          {leftRail}
+        </div>
+      ),
+    },
+    {
+      key: "right",
+      className: "right-4 top-14 bottom-4 w-[340px] rounded-[36px]",
+      config: { cornerRadius: 36, zRadius: 28 },
+      children: (
+        <div
+          data-lenis-prevent
+          className={`h-full overflow-y-auto overscroll-contain px-3 pt-3 pb-8 ${scrollFade}`}
+          style={scrollStyle}
+        >
+          {rightRail}
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="-m-4 sm:-m-6 relative min-h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-3.5rem)] lg:overflow-hidden bg-black text-[#dfe6f5] flex flex-col">
@@ -130,13 +179,17 @@ export default function Ops() {
         selectedSat={activeSat}
         sats={data.sats}
         contacts={data.contacts}
+        showTabs={!liquid}
       />
 
       {/* 2. Globe Canvas Background:
              On desktop (lg), it fills behind everything and is offset by -20px to center
              the 3D sphere perfectly in the gap between the 300px and 340px translucent rails.
              Below lg (<1024px), it renders as a 60vh box stacked above the rails. */}
-      <div className="relative h-[60vh] w-full shrink-0 lg:absolute lg:inset-0 lg:h-full lg:w-[calc(100%+40px)] lg:-left-[20px] lg:z-0 lg:translate-x-[-20px]">
+      <div
+        ref={globeLayerRef}
+        className="relative h-[60vh] w-full shrink-0 lg:absolute lg:inset-0 lg:h-full lg:w-[calc(100%+40px)] lg:-left-[20px] lg:z-0 lg:translate-x-[-20px]"
+      >
         <OpsGlobe
           ref={globeRef}
           sats={data.sats}
@@ -151,70 +204,47 @@ export default function Ops() {
         />
       </div>
 
-      {/* 3. Left Rail:
-             Constellation bar, 2x2 chips filter, and fleet cards list.
-             Overlays globe on desktop, stacks below globe on mobile. */}
-      <aside className="p-4 lg:p-0 lg:absolute lg:left-4 lg:top-14 lg:bottom-0 lg:w-[320px] lg:z-20 pointer-events-auto flex flex-col min-h-0">
-        <div className="relative flex-1 min-h-0 flex flex-col">
-          <div
-            data-lenis-prevent
-            className="h-auto lg:h-full min-h-0 lg:overflow-y-auto lg:overscroll-contain pr-1 pb-8 lg:pb-24 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] lg:[mask-image:linear-gradient(to_bottom,black_92%,transparent)]"
-            style={{
-              scrollbarWidth: "thin",
-              scrollbarColor: "rgba(255, 255, 255, 0.2) transparent",
-            }}
-          >
-            <LeftRail
-              sats={data.sats}
-              contacts={data.contacts}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-              filter={filter}
-              onFilterChange={setFilter}
-            />
-          </div>
-        </div>
-      </aside>
-
-      {/* 4. Right Rail:
-             Swaps by tab (Overview / Satellites / Upcoming passes / Live data).
-             Overlays globe on desktop, stacks below left rail on mobile.
-             Scrolls inside its own area with a soft fade at the bottom and dock clearance. */}
-      <aside className="p-4 lg:p-0 lg:absolute lg:right-4 lg:top-14 lg:bottom-0 lg:w-[340px] lg:z-20 pointer-events-auto flex flex-col min-h-0">
-        <div className="relative flex-1 min-h-0 flex flex-col">
-          <div
-            data-lenis-prevent
-            className="h-auto lg:h-full min-h-0 lg:overflow-y-auto lg:overscroll-contain pr-1 pb-8 lg:pb-24 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] lg:[mask-image:linear-gradient(to_bottom,black_92%,transparent)]"
-            style={{
-              scrollbarWidth: "thin",
-              scrollbarColor: "rgba(255, 255, 255, 0.2) transparent",
-            }}
-          >
-            <RightRail
-              activeTab={activeTab}
-              selectedSat={activeSat}
-              histories={histories}
-              telemetry={data.telemetry}
-              alerts={data.alerts}
-              kpis={data.kpis}
-              contacts={data.contacts}
-              decisions={data.decisions}
-              onRefetchAlerts={data.refetchAlerts}
-            />
-          </div>
-        </div>
-      </aside>
-
-      {/* 5. Bottom Dock:
-             View toggles (Whole Earth / Mumbai / Espoo / Selected satellite), Live pill, UTC clock, Demo route button. */}
-      <div className="mt-auto lg:mt-0 lg:absolute lg:bottom-0 lg:left-0 lg:right-0 lg:z-20">
-        <BottomDock
-          currentView={currentView}
-          onViewChange={handleViewChange}
-          mock={data.mock}
-          onDemoRoute={handleDemoRoute}
+      {liquid ? (
+        /* 3+4. Tab pill and both rails as WebGL liquid glass refracting the live globe. */
+        <LiquidOverlay
+          globeRef={globeLayerRef}
+          slabs={slabs}
+          onFail={() => setLiquidFailed(true)}
         />
-      </div>
+      ) : (
+        <>
+          {/* 3. Left Rail:
+                 Constellation bar, 2x2 chips filter, and fleet cards list.
+                 Overlays globe on desktop, stacks below globe on mobile. */}
+          <aside className="p-4 lg:p-0 lg:absolute lg:left-4 lg:top-14 lg:bottom-0 lg:w-[320px] lg:z-20 pointer-events-auto flex flex-col min-h-0">
+            <div className="relative flex-1 min-h-0 flex flex-col">
+              <div
+                data-lenis-prevent
+                className="h-auto lg:h-full min-h-0 lg:overflow-y-auto lg:overscroll-contain pr-1 pb-8 lg:pb-8 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] lg:[mask-image:linear-gradient(to_bottom,black_92%,transparent)]"
+                style={scrollStyle}
+              >
+                {leftRail}
+              </div>
+            </div>
+          </aside>
+
+          {/* 4. Right Rail:
+                 Swaps by tab (Overview / Satellites / Upcoming passes / Live data).
+                 Overlays globe on desktop, stacks below left rail on mobile.
+                 Scrolls inside its own area with a soft fade at the bottom. */}
+          <aside className="p-4 lg:p-0 lg:absolute lg:right-4 lg:top-14 lg:bottom-0 lg:w-[340px] lg:z-20 pointer-events-auto flex flex-col min-h-0">
+            <div className="relative flex-1 min-h-0 flex flex-col">
+              <div
+                data-lenis-prevent
+                className="h-auto lg:h-full min-h-0 lg:overflow-y-auto lg:overscroll-contain pr-1 pb-8 lg:pb-8 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] lg:[mask-image:linear-gradient(to_bottom,black_92%,transparent)]"
+                style={scrollStyle}
+              >
+                {rightRail}
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
     </div>
   );
 }

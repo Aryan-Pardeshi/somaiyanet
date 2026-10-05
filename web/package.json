@@ -17,6 +17,7 @@
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.8.0",
     "@xyflow/react": "^12",
+    "@ybouane/liquidglass": "^1.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cn": "^0.4.0",

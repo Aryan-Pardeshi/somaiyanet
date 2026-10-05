@@ -222,9 +222,6 @@ export default function Routing() {
             <RoleHeader note="Routes are computed live by the recursive query cgr_routes()." />
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 border border-white/15 bg-white/5 text-[#8b96b0]">
-              EXP 6 · CO3
-            </span>
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] px-2 py-0.5 border border-[#3d5bff]/40 bg-[#3d5bff]/10 text-[#7fb2ff]">
               RECURSIVE CTE
             </span>

@@ -403,10 +403,6 @@ export function TxLab() {
           <div className="p-3.5 sm:p-4 flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] pb-2.5">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#5f6f93]">
-                  Exp 9 · CO1/CO4
-                </span>
-                <span className="text-[#5f6f93] text-[10px]">·</span>
                 <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b96b0]">
                   {scenario.title}
                 </h2>

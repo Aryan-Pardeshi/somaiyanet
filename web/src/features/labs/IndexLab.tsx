@@ -132,7 +132,7 @@ export function IndexLab() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#5f6f93]">
-              bench_index_catalog() · Exp 8 · CO3
+              bench_index_catalog()
             </span>
             <span className="text-[#5f6f93] text-[10px]">·</span>
             <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b96b0]">

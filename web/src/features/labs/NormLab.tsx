@@ -55,7 +55,7 @@ export function NormLab() {
   return (
     <div className="flex flex-col gap-6">
       {/* 1. Normalization Stepper with Chamfered Tabs */}
-      <Card title="Decomposition pipeline" kicker="UNF → BCNF · Relational normal forms · CO3">
+      <Card title="Decomposition pipeline" kicker="UNF → BCNF · Relational normal forms">
         {/* Horizontal stepper of chamfered tabs */}
         <div
           className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none"

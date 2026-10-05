@@ -156,16 +156,7 @@ export function LeftRail({
       {/* 0. Compact Role Strip */}
       <div className="w-full flex flex-col gap-2">
         <div
-          className="flex items-center justify-between px-3.5 py-2 rounded-full border border-white/10 shadow-lg text-[11.5px] font-mono"
-          style={{
-            backgroundColor: "rgba(10, 14, 28, 0.85)",
-            backgroundImage:
-              "linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.025))",
-            backdropFilter: "blur(22px) saturate(170%)",
-            WebkitBackdropFilter: "blur(22px) saturate(170%)",
-            boxShadow:
-              "inset 0 1px 0 rgba(255,255,255,0.22), 0 8px 24px rgba(0,0,0,0.35)",
-          }}
+          className="liquid-glass flex items-center justify-between px-3.5 py-2 rounded-full text-[11.5px] font-mono"
         >
           <span className="text-[#dfe6f5] font-semibold truncate flex items-center gap-2">
             <span className="size-2 rounded-full bg-[#7ee2b8] shrink-0" />
@@ -253,8 +244,8 @@ export function LeftRail({
                   onClick={() => onFilterChange(item.id)}
                   className={`flex items-center justify-between px-3 py-1.5 rounded-full text-[11px] font-mono tracking-wider transition-all cursor-pointer ${
                     active
-                      ? "bg-[#3d5bff]/85 text-white font-semibold shadow-[0_0_12px_rgba(61,91,255,0.4)] border border-[#3d5bff]"
-                      : "bg-white/[0.04] text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/[0.08] border border-white/10"
+                      ? "liquid-glass-active font-semibold"
+                      : "liquid-glass-inset text-[#8b96b0] hover:text-[#dfe6f5] hover:bg-white/[0.1]"
                   }`}
                 >
                   <span className="inline-flex items-center truncate">
@@ -343,7 +334,7 @@ export function LeftRail({
                     </div>
 
                     {/* Next ground pass countdown */}
-                    <div className="flex items-center justify-between font-mono text-[10px] bg-black/40 px-2.5 py-1 rounded-md border border-white/5">
+                    <div className="flex items-center justify-between font-mono text-[10px] liquid-glass-inset px-2.5 py-1 rounded-md">
                       <span className="text-[#8b96b0]">
                         {sat.next_downlink_start ? "Next ground pass in" : "Ground pass"}
                       </span>

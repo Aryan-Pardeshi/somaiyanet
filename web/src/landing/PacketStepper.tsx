@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
-import { SectionLabel } from "./SectionLabel";
 
 type Step = { caption: string; title: string; body: string; sql: string; art: Kind };
 type Kind = "scan" | "tree" | "hop" | "dish" | "rows";
@@ -612,8 +611,7 @@ export function PacketStepper() {
         ref={root}
         className="mx-auto flex h-screen max-w-[1180px] flex-col justify-center overflow-hidden px-6 py-4 md:py-6"
       >
-        <div className="flex items-end justify-between gap-4">
-          <SectionLabel>LIFE OF A PACKET</SectionLabel>
+        <div className="flex items-end justify-end gap-4">
           <span className="font-mono text-[11px] tracking-[0.08em] text-[#5f6f93]">
             {String(active + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")}
           </span>

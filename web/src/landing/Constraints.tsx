@@ -1,4 +1,3 @@
-import { SectionLabel } from "./SectionLabel";
 
 type Constraint = {
   n: string;
@@ -74,7 +73,6 @@ export function Constraints() {
           >
             Minutes of contact. Milliwatts of power. Zero room for error.
           </h2>
-          <SectionLabel>CONSTRAINTS</SectionLabel>
         </div>
         <div className="mt-12 border-t border-white/10">
           {ROWS.map((row) => (

@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-import { SectionLabel } from "./SectionLabel";
 import { Satellite } from "./hero/Satellite";
 
 const SPECS: Array<[string, string]> = [
@@ -27,7 +26,6 @@ export function Spacecraft() {
           <h2 className="max-w-[16ch] font-light text-white" style={{ fontSize: "clamp(30px, 3.4vw, 46px)", lineHeight: 1.08, letterSpacing: "-0.02em" }}>
             Small enough to fit in your hand.
           </h2>
-          <SectionLabel>SOMAIYASAT</SectionLabel>
         </div>
 
         <div className="mt-12 grid items-center gap-12 lg:grid-cols-[1.25fr_1fr]">

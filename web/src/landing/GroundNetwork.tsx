@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { SectionLabel } from "./SectionLabel";
 import { loadLandMask } from "@/lib/landmask";
 import { useStoryStats } from "@/hooks/useStats";
 
@@ -92,7 +91,6 @@ export function GroundNetwork() {
           <h2 className="max-w-[18ch] font-light text-white" style={{ fontSize: "clamp(30px, 3.4vw, 46px)", lineHeight: 1.08, letterSpacing: "-0.02em" }}>
             Six stations. One of them is our college.
           </h2>
-          <SectionLabel>GROUND NETWORK</SectionLabel>
         </div>
 
         <div className="relative mt-12 overflow-hidden border border-white/10" style={{ aspectRatio: `${W} / ${H}` }}>

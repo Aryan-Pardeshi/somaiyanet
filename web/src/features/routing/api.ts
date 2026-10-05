@@ -189,7 +189,7 @@ export async function loadQueue(sat: string): Promise<QueueRow[]> {
 }
 
 /** Short static excerpt of the recursive CGR CTE for the "why" panel. */
-export const CGR_CTE_EXCERPT = `-- abbreviated: full CTE runs in cgr_routes() (Exp 6, CO3)
+export const CGR_CTE_EXCERPT = `-- abbreviated: full CTE runs in cgr_routes()
 WITH RECURSIVE hops(node, arrival, hops, bottleneck, path_nodes, path_contacts) AS (
   SELECT origin, p_t0, 0, 100, ARRAY[origin], ARRAY[]::BIGINT[]
   UNION ALL

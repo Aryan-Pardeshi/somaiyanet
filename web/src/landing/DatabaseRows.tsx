@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { SectionLabel } from "./SectionLabel";
 
 type LabRow = {
   n: string;
@@ -75,9 +74,8 @@ export function DatabaseRows() {
             className="max-w-[18ch] font-light text-white"
             style={{ fontSize: "clamp(30px, 3.4vw, 46px)", lineHeight: 1.08, letterSpacing: "-0.02em" }}
           >
-            Nine database experiments. Built on live PostgreSQL.
+            Nine database labs. Built on live PostgreSQL.
           </h2>
-          <SectionLabel>DATABASE AS MISSION CONTROL</SectionLabel>
         </div>
         <div className="mt-12 border-t border-white/10">
           {ROWS.map((row) => (

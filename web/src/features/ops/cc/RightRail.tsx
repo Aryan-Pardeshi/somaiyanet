@@ -246,7 +246,7 @@ export function RightRail({
                 return (
                   <div
                     key={c.contact_id}
-                    className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col gap-1.5"
+                    className="p-2.5 rounded-xl liquid-glass-inset flex flex-col gap-1.5"
                   >
                     <div className="flex items-center justify-between gap-1">
                       <span className="font-mono text-[11.5px] font-semibold text-[#dfe6f5]">
@@ -335,7 +335,7 @@ export function RightRail({
                   className={`p-2.5 rounded-xl font-mono text-[11px] flex flex-col gap-0.5 border ${
                     idx === 0
                       ? "bg-[#3d5bff]/10 border-[#3d5bff]/40 text-white"
-                      : "bg-black/30 border-white/5 text-[#8b96b0]"
+                      : "liquid-glass-inset text-[#8b96b0]"
                   }`}
                 >
                   <div className="flex items-center justify-between">
@@ -380,7 +380,7 @@ export function RightRail({
               {decisions.map((d, idx) => (
                 <div
                   key={`${d.sat_id}-${idx}`}
-                  className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col gap-1 font-mono text-[11px]"
+                  className="p-2.5 rounded-xl liquid-glass-inset flex flex-col gap-1 font-mono text-[11px]"
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[#dfe6f5] font-semibold">{d.sat_id}</span>
@@ -588,7 +588,7 @@ export function RightRail({
                 Today
               </span>
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col gap-0.5">
+                <div className="p-2.5 rounded-xl liquid-glass-inset flex flex-col gap-0.5">
                   <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
                     Working satellites
                   </span>
@@ -597,7 +597,7 @@ export function RightRail({
                   </span>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col gap-0.5">
+                <div className="p-2.5 rounded-xl liquid-glass-inset flex flex-col gap-0.5">
                   <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
                     Packets waiting to send
                   </span>
@@ -606,7 +606,7 @@ export function RightRail({
                   </span>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col gap-0.5">
+                <div className="p-2.5 rounded-xl liquid-glass-inset flex flex-col gap-0.5">
                   <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
                     Delivered in last 24 h
                   </span>
@@ -615,7 +615,7 @@ export function RightRail({
                   </span>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex flex-col gap-0.5">
+                <div className="p-2.5 rounded-xl liquid-glass-inset flex flex-col gap-0.5">
                   <span className="font-mono text-[9px] text-[#8b96b0] uppercase tracking-wider">
                     Times the safety check overruled the AI
                   </span>

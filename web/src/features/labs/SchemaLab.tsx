@@ -235,10 +235,6 @@ export function SchemaLab({ initialTab = "diagram" }: { initialTab?: Tab }) {
           <div className="p-3.5 sm:p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#5f6f93]">
-                  Exp 1–3 · CO1/CO2
-                </span>
-                <span className="text-[#5f6f93] text-[10px]">·</span>
                 <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8b96b0]">
                   Relational EER model ({tables.length} tables · click a table node)
                 </h2>
