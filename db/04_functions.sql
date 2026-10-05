@@ -292,15 +292,15 @@ BEGIN
 END;
 $$;
 
--- reset_deploy_demo restores POD-B4/SAT-B4 so the viva demo can be replayed.
+-- reset_deploy_demo restores POD-4/SS-4 so the viva demo can be replayed.
 CREATE OR REPLACE PROCEDURE reset_deploy_demo()
 LANGUAGE plpgsql
 AS $$
 BEGIN
     SET LOCAL somaiyanet.bypass_state_machine = 'on';
-    UPDATE deployer_pod SET status = 'ARMED', release_ts = NULL WHERE pod_id = 'POD-B4';
-    UPDATE satellite SET state = 'STOWED' WHERE node_id = 'SAT-B4';
-    DELETE FROM deployment_event WHERE pod_id = 'POD-B4';
+    UPDATE deployer_pod SET status = 'ARMED', release_ts = NULL WHERE pod_id = 'POD-4';
+    UPDATE satellite SET state = 'STOWED' WHERE node_id = 'SS-4';
+    DELETE FROM deployment_event WHERE pod_id = 'POD-4';
 END;
 $$;
 

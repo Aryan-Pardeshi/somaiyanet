@@ -1,8 +1,8 @@
-"""Build the 8-satellite SomaiyaSat constellation with real SGP4 orbits.
+"""Build the 4-satellite SomaiyaSat constellation with real SGP4 orbits.
 
-Circular SSO at ~525 km, inclination 97.5 deg, plane A RAAN 75 deg and
-plane B RAAN 105 deg, 12-deg in-plane spacing. Inserts network_node +
-satellite rows in one transaction per the spec pinned states.
+Circular SSO at ~525 km, inclination 97.5 deg, single plane A RAAN 75 deg,
+12-deg in-plane spacing. Inserts network_node + satellite rows in one
+transaction per the spec pinned states.
 """
 from __future__ import annotations
 
@@ -19,17 +19,13 @@ import _db  # noqa: E402
 
 # Pinned demo story: state per sat (latest battery pinned by telemetry step).
 PINNED = {
-    "SAT-A1": ("A", 1, "NOMINAL", 99901),
-    "SAT-A2": ("A", 2, "NOMINAL", 99902),
-    "SAT-A3": ("A", 3, "NOMINAL", 99903),
-    "SAT-A4": ("A", 4, "NOMINAL", 99904),
-    "SAT-B1": ("B", 1, "NOMINAL", 99905),
-    "SAT-B2": ("B", 2, "NOMINAL", 99906),
-    "SAT-B3": ("B", 3, "SAFE", 99907),
-    "SAT-B4": ("B", 4, "STOWED", 99908),
+    "SS-1": ("A", 1, "NOMINAL", 99901),
+    "SS-2": ("A", 2, "NOMINAL", 99902),
+    "SS-3": ("A", 3, "SAFE", 99903),
+    "SS-4": ("A", 4, "STOWED", 99904),
 }
 
-RAAN = {"A": 75.0, "B": 105.0}
+RAAN = {"A": 75.0}
 M0 = 0.0  # mean anomaly of slot 1; slot k gets M0 + (k-1)*12 deg
 ALT_KM = 525.0
 INCL_DEG = 97.5
@@ -78,10 +74,10 @@ def run(conn_factory) -> None:
         with conn.transaction():
             for node_id, (plane, slot, state, norad) in PINNED.items():
                 line1, line2, incl, mm = tles[node_id]
-                pod_id = f"POD-{plane}{slot}"
-                display = f"SomaiyaSat-{plane}{slot}"
-                # Callsign like VU2SA1: SAT-A1 -> VU2SA1, SAT-B4 -> VU2SB4.
-                callsign = f"VU2S{plane}{slot}"
+                pod_id = f"POD-{slot}"
+                display = f"SomaiyaSat-{slot}"
+                # Callsign like VU2SS1: SS-1 -> VU2SS1, SS-4 -> VU2SS4.
+                callsign = f"VU2SS{slot}"
                 conn.execute(
                     "INSERT INTO network_node (node_id, kind, display_name, callsign)"
                     " VALUES (%s, 'SAT', %s, %s)"

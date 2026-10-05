@@ -55,8 +55,8 @@ const FALLBACK_SCENARIOS: TxScenario[] = [
     title: "SKIP LOCKED dispatch",
     description: "Two router workers claim disjoint packet sets.",
     steps: [
-      { session: "A", sql: "BEGIN; SELECT * FROM dispatch_packets('SAT-A1', 'worker-A', 20000);", expect: "ok", explain: "Worker A claims its batch." },
-      { session: "B", sql: "BEGIN; SELECT * FROM dispatch_packets('SAT-A1', 'worker-B', 20000);", expect: "ok", explain: "Worker B skips A's locked rows — disjoint ids." },
+      { session: "A", sql: "BEGIN; SELECT * FROM dispatch_packets('SS-1', 'worker-A', 20000);", expect: "ok", explain: "Worker A claims its batch." },
+      { session: "B", sql: "BEGIN; SELECT * FROM dispatch_packets('SS-1', 'worker-B', 20000);", expect: "ok", explain: "Worker B skips A's locked rows — disjoint ids." },
       { session: "A", sql: "COMMIT;", expect: "ok", explain: "A commits." },
       { session: "B", sql: "COMMIT;", expect: "ok", explain: "B commits." },
     ],
@@ -66,9 +66,9 @@ const FALLBACK_SCENARIOS: TxScenario[] = [
     title: "MVCC row versions",
     description: "Uncommitted UPDATE shows xmin/xmax/ctid divergence between sessions.",
     steps: [
-      { session: "A", sql: "BEGIN; UPDATE deployer_pod SET temperature_c = temperature_c + 1 WHERE pod_id = 'POD-A1';", expect: "ok", explain: "A updates without committing." },
-      { session: "A", sql: "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-A1';", expect: "ok", explain: "A sees the new version." },
-      { session: "B", sql: "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-A1'; SELECT txid_current();", expect: "ok", explain: "B still sees the old version." },
+      { session: "A", sql: "BEGIN; UPDATE deployer_pod SET temperature_c = temperature_c + 1 WHERE pod_id = 'POD-1';", expect: "ok", explain: "A updates without committing." },
+      { session: "A", sql: "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-1';", expect: "ok", explain: "A sees the new version." },
+      { session: "B", sql: "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-1'; SELECT txid_current();", expect: "ok", explain: "B still sees the old version." },
       { session: "A", sql: "COMMIT;", expect: "ok", explain: "A commits; B now sees the new ctid." },
     ],
   },
@@ -78,7 +78,7 @@ const FALLBACK_SCENARIOS: TxScenario[] = [
     description: "Bulk telemetry insert moves pg_current_wal_lsn forward.",
     steps: [
       { session: "A", sql: "SELECT pg_current_wal_lsn() AS lsn_before;", expect: "ok", explain: "Record the LSN." },
-      { session: "A", sql: "BEGIN; INSERT INTO telemetry SELECT now(), 'SAT-A1', 7.5, 22.0, 100, NULL, '{}' FROM generate_series(1, 1000); COMMIT;", expect: "ok", explain: "Write 1000 rows in one transaction." },
+      { session: "A", sql: "BEGIN; INSERT INTO telemetry SELECT now(), 'SS-1', 7.5, 22.0, 100, NULL, '{}' FROM generate_series(1, 1000); COMMIT;", expect: "ok", explain: "Write 1000 rows in one transaction." },
       { session: "A", sql: "SELECT pg_current_wal_lsn() AS lsn_after;", expect: "ok", explain: "LSN advanced; diff is the WAL bytes." },
     ],
   },

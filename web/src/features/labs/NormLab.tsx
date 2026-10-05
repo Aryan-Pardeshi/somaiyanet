@@ -484,7 +484,7 @@ function flattenAnomalies(data: Record<string, NormAnomaly[]>): NormAnomaly[] {
 function fallbackStages(): NormStage[] {
   const row = (n: number) => ({
     log_no: n,
-    sat_name: "SomaiyaSat-A1",
+    sat_name: "SomaiyaSat-1",
     sat_plane: "A",
     pod_serial: "SPOD-2026-001",
     station_city: "Mumbai",
@@ -513,12 +513,12 @@ function fallbackStages(): NormStage[] {
     },
     {
       stage: "2NF",
-      tables: [{ name: "norm.pass_log", columns: ["log_no", "sat_name"], rows: [{ log_no: 1, sat_name: "SomaiyaSat-A1" }] }],
+      tables: [{ name: "norm.pass_log", columns: ["log_no", "sat_name"], rows: [{ log_no: 1, sat_name: "SomaiyaSat-1" }] }],
       fds: [{ fd: "{sat_name} → {sat_plane, pod_serial}", violates: "3NF (transitive)", fix: "extract norm.sat" }],
     },
     {
       stage: "3NF",
-      tables: [{ name: "norm.sat", columns: ["sat_name", "sat_plane"], rows: [{ sat_name: "SomaiyaSat-A1", sat_plane: "A" }] }],
+      tables: [{ name: "norm.sat", columns: ["sat_name", "sat_plane"], rows: [{ sat_name: "SomaiyaSat-1", sat_plane: "A" }] }],
       fds: [{ fd: "{operator_name} → {station_callsign}", violates: "BCNF (not a superkey)", fix: "split operator_station / duty_bcnf" }],
     },
     {
@@ -542,7 +542,7 @@ function fallbackAnomalies(): NormAnomaly[] {
   return [
     {
       stage: "update anomaly (UNF)",
-      before: "sat_plane = 'A' in 4 rows for SomaiyaSat-A1",
+      before: "sat_plane = 'A' in 4 rows for SomaiyaSat-1",
       after: "1 row says 'B', 3 say 'A' — inconsistent",
       explanation:
         "One fact lives in many rows. Updating a sat's plane in UNF leaves siblings stale; in 3NF norm.sat holds it once.",

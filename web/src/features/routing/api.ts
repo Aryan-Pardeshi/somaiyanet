@@ -87,7 +87,7 @@ export function txSeconds(sizeBytes: number): number {
   return (sizeBytes * 8) / 9600;
 }
 
-/** Operational = deployable relays; STOWED sats (B4) never relay. */
+/** Operational = deployable relays; STOWED sats (SS-4) never relay. */
 export function isOperational(state: string): boolean {
   return state === "NOMINAL" || state === "SAFE" || state === "COMMISSIONING";
 }

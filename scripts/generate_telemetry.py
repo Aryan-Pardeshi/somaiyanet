@@ -1,7 +1,7 @@
 """Generate 7 days of 1-row/min telemetry per operational sat.
 
 Battery is a sinusoid over the orbit period plus noise with eclipse
-dips; B2 drifts down over the last 24 h; the latest row per sat is
+dips; SS-2 drifts down over the last 24 h; the latest row per sat is
 pinned to the spec story values. Inserts run as ai_router (proving the
 INSERT grant), falling back to superuser before the security brief lands.
 """
@@ -17,14 +17,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _db  # noqa: E402
 
-# Pinned latest battery per sat (spec section 4); B4/STOWED gets no rows.
+# Pinned latest battery per sat (spec section 4); SS-4/STOWED gets no rows.
 PINNED_BATTERY = {
-    "SAT-A1": 7.90, "SAT-A2": 7.60, "SAT-A3": 7.40, "SAT-A4": 7.10,
-    "SAT-B1": 7.80, "SAT-B2": 6.95, "SAT-B3": 6.60,
+    "SS-1": 7.90,
+    "SS-2": 6.95,
+    "SS-3": 6.60,
 }
 BASE_MEAN = {
-    "SAT-A1": 7.75, "SAT-A2": 7.55, "SAT-A3": 7.45, "SAT-A4": 7.30,
-    "SAT-B1": 7.65, "SAT-B2": 7.05, "SAT-B3": 7.35,
+    "SS-1": 7.75,
+    "SS-2": 7.05,
+    "SS-3": 7.35,
 }
 MODES = ["TTC", "TTC", "TTC", "TTC", "SSTV", "M17", "M17", "CODEC2", "TTC", "M17"]
 ADCS = ["DETUMBLED", "SUN_POINT", "NADIR", "TRACKING"]
@@ -72,7 +74,7 @@ def run(conn_factory) -> None:
             sunlit = 1 if phase < 0.65 else 0
             batt = base + 0.25 * math.sin(2 * math.pi * phase) + rng.gauss(0, 0.04)
             batt += 0.10 if sunlit else -0.18
-            if sat == "SAT-B2":  # drift down over the last 24 h
+            if sat == "SS-2":  # drift down over the last 24 h
                 mins_ago = per_sat - 1 - k
                 if mins_ago <= 1440:
                     batt -= 0.9 * (1440 - mins_ago) / 1440.0
@@ -95,7 +97,7 @@ def run(conn_factory) -> None:
         # Enforce averages over the last 24 h (last 1440 rows, excl. latest).
         tail = [r[1] for r in rows[-1441:-1]]
         avg = sum(tail) / len(tail)
-        if sat == "SAT-B2":
+        if sat == "SS-2":
             if avg >= 7.0:
                 shift = round(avg - 6.82, 2)
                 for r in rows[:-1]:

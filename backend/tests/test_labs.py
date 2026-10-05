@@ -168,12 +168,12 @@ def _ensure_queued_packets(n: int = 300):
             # Park every big QUEUED packet so the 20000-byte budget splits
             # over small rows (dispatch stops at the first over-budget row).
             cur.execute("UPDATE packet SET status = 'DELIVERED', delivered_to = 'GS-BOM', delivered_at = now() "
-                        "WHERE origin_sat = 'SAT-A1' AND status = 'QUEUED' AND size_bytes > 500")
-            cur.execute("SELECT count(*) FROM packet WHERE origin_sat = 'SAT-A1' AND status = 'QUEUED' AND size_bytes <= 500")
+                        "WHERE origin_sat = 'SS-1' AND status = 'QUEUED' AND size_bytes > 500")
+            cur.execute("SELECT count(*) FROM packet WHERE origin_sat = 'SS-1' AND status = 'QUEUED' AND size_bytes <= 500")
             have = cur.fetchone()[0]
             need = max(0, n - have)
             for _ in range(need):
-                cur.execute("INSERT INTO packet (origin_sat, mode, size_bytes, status) VALUES ('SAT-A1', 'TTC', 200, 'QUEUED') RETURNING packet_id")
+                cur.execute("INSERT INTO packet (origin_sat, mode, size_bytes, status) VALUES ('SS-1', 'TTC', 200, 'QUEUED') RETURNING packet_id")
                 pid = cur.fetchone()[0]
                 cur.execute("INSERT INTO ttc_frame (packet_id, battery_v, temp_c, solar_ma) VALUES (%s, 7.5, 20.0, 300)", (pid,))
 
@@ -184,8 +184,8 @@ def test_tx_skip_locked_disjoint():
     lab = _open_lab()
     try:
         _reset(lab)
-        a = _exec(lab, "A", "SELECT * FROM dispatch_packets('SAT-A1', 'worker-A', 20000)")
-        b = _exec(lab, "B", "SELECT * FROM dispatch_packets('SAT-A1', 'worker-B', 20000)")
+        a = _exec(lab, "A", "SELECT * FROM dispatch_packets('SS-1', 'worker-A', 20000)")
+        b = _exec(lab, "B", "SELECT * FROM dispatch_packets('SS-1', 'worker-B', 20000)")
         assert a["status"] == "done" and b["status"] == "done", (a, b)
         ids_a = {r["packet_id"] for r in a["rows"]}
         ids_b = {r["packet_id"] for r in b["rows"]}
@@ -200,19 +200,19 @@ def test_tx_mvcc_and_wal():
     lab = _open_lab()
     try:
         _reset(lab)
-        assert _exec(lab, "A", "UPDATE deployer_pod SET temperature_c = COALESCE(temperature_c, 20) + 1 WHERE pod_id = 'POD-A1'")["status"] == "done"
-        a = _exec(lab, "A", "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-A1'")
-        b = _exec(lab, "B", "SELECT xmin, xmax, ctid, temperature_c, txid_current() AS txid FROM deployer_pod WHERE pod_id = 'POD-A1'")
+        assert _exec(lab, "A", "UPDATE deployer_pod SET temperature_c = COALESCE(temperature_c, 20) + 1 WHERE pod_id = 'POD-1'")["status"] == "done"
+        a = _exec(lab, "A", "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-1'")
+        b = _exec(lab, "B", "SELECT xmin, xmax, ctid, temperature_c, txid_current() AS txid FROM deployer_pod WHERE pod_id = 'POD-1'")
         assert a["status"] == "done" and b["status"] == "done"
         assert a["rows"][0]["temperature_c"] != b["rows"][0]["temperature_c"]
         assert _exec(lab, "A", "COMMIT")["status"] == "done"
-        b2 = _exec(lab, "B", "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-A1'")
+        b2 = _exec(lab, "B", "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-1'")
         assert b2["status"] == "done"
         assert _exec(lab, "B", "COMMIT")["status"] == "done"
         # WAL: LSN advances across a 1000-row telemetry transaction.
         before = _exec(lab, "A", "SELECT pg_current_wal_lsn() AS lsn_before")
         assert before["status"] == "done"
-        ins = _exec(lab, "A", "INSERT INTO telemetry (ts, sat_id, battery_v, temp_c, solar_ma) SELECT now() + (g || ' microseconds')::interval, 'SAT-A1', 7.50, 20.0, 300 FROM generate_series(1, 1000) AS g")
+        ins = _exec(lab, "A", "INSERT INTO telemetry (ts, sat_id, battery_v, temp_c, solar_ma) SELECT now() + (g || ' microseconds')::interval, 'SS-1', 7.50, 20.0, 300 FROM generate_series(1, 1000) AS g")
         assert ins["status"] == "done" and ins["rowcount"] == 1000, ins
         assert _exec(lab, "A", "COMMIT")["status"] == "done"
         after = _exec(lab, "A", "SELECT pg_current_wal_lsn() AS lsn_after, pg_wal_lsn_diff(pg_current_wal_lsn(), '%s') AS bytes_diff" % before["rows"][0]["lsn_before"])

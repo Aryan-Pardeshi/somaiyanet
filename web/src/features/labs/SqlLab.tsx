@@ -331,8 +331,8 @@ function groupFallback(): Record<string, ConsolePreset[]> {
     },
     {
       group: "Exp 6 - CGR",
-      name: "CGR from SAT-A1",
-      sql: "SELECT * FROM cgr_routes('SAT-A1', now());",
+      name: "CGR from SS-1",
+      sql: "SELECT * FROM cgr_routes('SS-1', now());",
     },
     {
       group: "Exp 7 - DCL",

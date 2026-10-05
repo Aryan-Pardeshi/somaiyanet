@@ -27,18 +27,18 @@ COMMENT ON TABLE norm.flight_log_unf IS 'UNF flight log: repeating group modes_s
 INSERT INTO norm.flight_log_unf
     (log_no, sat_name, sat_plane, pod_serial, pod_mechanism, station_city, station_callsign, pass_date, modes_sent, operator_name, operator_phone)
 VALUES
-    (1,  'SAT-A1', 'A', 'SPOD-2026-001', 'SPRING_PUSHER', 'Mumbai',    'VU2KJS', CURRENT_DATE - 6, 'TTC:512;SSTV:40960;M17:8000',   'Aarav Shah',  '+91-98200-00001'),
-    (2,  'SAT-A1', 'A', 'SPOD-2026-001', 'SPRING_PUSHER', 'Espoo',     'OH2SOM', CURRENT_DATE - 6, 'TTC:256;M17:4000',              'Aino Virtanen', '+358-40-000002'),
-    (3,  'SAT-A2', 'A', 'SPOD-2026-002', 'BURN_WIRE',     'Mumbai',    'VU2KJS', CURRENT_DATE - 5, 'TTC:512;CODEC2:3000',           'Aarav Shah',  '+91-98200-00001'),
-    (4,  'SAT-A2', 'A', 'SPOD-2026-002', 'BURN_WIRE',     'Bengaluru', 'VU2BLR', CURRENT_DATE - 5, 'TTC:128;SSTV:61440',           'Diya Nair',   '+91-98450-00003'),
-    (5,  'SAT-A3', 'A', 'SPOD-2026-003', 'SPRING_PUSHER', 'Mumbai',    'VU2KJS', CURRENT_DATE - 4, 'TTC:512;SSTV:30720;M17:8000',  'Aarav Shah',  '+91-98200-00001'),
-    (6,  'SAT-A4', 'A', 'SPOD-2026-004', 'BURN_WIRE',     'Tokyo',     'JA1SOM', CURRENT_DATE - 4, 'TTC:256',                     'Ren Sato',    '+81-90-000004'),
-    (7,  'SAT-B1', 'B', 'SPOD-2026-005', 'SPRING_PUSHER', 'Mumbai',    'VU2KJS', CURRENT_DATE - 3, 'TTC:512;M17:12000;CODEC2:2000','Aarav Shah',  '+91-98200-00001'),
-    (8,  'SAT-B1', 'B', 'SPOD-2026-005', 'SPRING_PUSHER', 'Cape Town', 'ZS1SOM', CURRENT_DATE - 3, 'TTC:256;SSTV:51200',           'Lena Botha',  '+27-82-000005'),
-    (9,  'SAT-B2', 'B', 'SPOD-2026-006', 'BURN_WIRE',     'Espoo',     'OH2SOM', CURRENT_DATE - 2, 'TTC:512;CODEC2:8000',          'Aino Virtanen', '+358-40-000002'),
-    (10, 'SAT-B3', 'B', 'SPOD-2026-007', 'SPRING_PUSHER', 'Longyearbyen','LA0SOM', CURRENT_DATE - 2, 'TTC:128;M17:6000',           'Ole Hansen',  '+47-90-000006'),
-    (11, 'SAT-A1', 'A', 'SPOD-2026-001', 'SPRING_PUSHER', 'Mumbai',    'VU2KJS', CURRENT_DATE - 1, 'TTC:512;SSTV:40960',          'Aarav Shah',  '+91-98200-00001'),
-    (12, 'SAT-B2', 'B', 'SPOD-2026-006', 'BURN_WIRE',     'Mumbai',    'VU2KJS', CURRENT_DATE - 1, 'TTC:256;SSTV:20480;M17:4000;CODEC2:1000', 'Aarav Shah', '+91-98200-00001');
+    (1,  'SS-1', 'A', 'SPOD-2026-001', 'SPRING_PUSHER', 'Mumbai',    'VU2KJS', CURRENT_DATE - 6, 'TTC:512;SSTV:40960;M17:8000',   'Aarav Shah',  '+91-98200-00001'),
+    (2,  'SS-1', 'A', 'SPOD-2026-001', 'SPRING_PUSHER', 'Espoo',     'OH2SOM', CURRENT_DATE - 6, 'TTC:256;M17:4000',              'Aino Virtanen', '+358-40-000002'),
+    (3,  'SS-2', 'A', 'SPOD-2026-002', 'BURN_WIRE',     'Mumbai',    'VU2KJS', CURRENT_DATE - 5, 'TTC:512;CODEC2:3000',           'Aarav Shah',  '+91-98200-00001'),
+    (4,  'SS-2', 'A', 'SPOD-2026-002', 'BURN_WIRE',     'Bengaluru', 'VU2BLR', CURRENT_DATE - 5, 'TTC:128;SSTV:61440',           'Diya Nair',   '+91-98450-00003'),
+    (5,  'SS-3', 'A', 'SPOD-2026-003', 'SPRING_PUSHER', 'Mumbai',    'VU2KJS', CURRENT_DATE - 4, 'TTC:512;SSTV:30720;M17:8000',  'Aarav Shah',  '+91-98200-00001'),
+    (6,  'SS-2', 'A', 'SPOD-2026-002', 'BURN_WIRE',     'Tokyo',     'JA1SOM', CURRENT_DATE - 4, 'TTC:256',                     'Ren Sato',    '+81-90-000004'),
+    (7,  'SS-1', 'A', 'SPOD-2026-001', 'SPRING_PUSHER', 'Mumbai',    'VU2KJS', CURRENT_DATE - 3, 'TTC:512;M17:12000;CODEC2:2000','Aarav Shah',  '+91-98200-00001'),
+    (8,  'SS-1', 'A', 'SPOD-2026-001', 'SPRING_PUSHER', 'Cape Town', 'ZS1SOM', CURRENT_DATE - 3, 'TTC:256;SSTV:51200',           'Lena Botha',  '+27-82-000005'),
+    (9,  'SS-2', 'A', 'SPOD-2026-002', 'BURN_WIRE',     'Espoo',     'OH2SOM', CURRENT_DATE - 2, 'TTC:512;CODEC2:8000',          'Aino Virtanen', '+358-40-000002'),
+    (10, 'SS-3', 'A', 'SPOD-2026-003', 'SPRING_PUSHER', 'Longyearbyen','LA0SOM', CURRENT_DATE - 2, 'TTC:128;M17:6000',           'Ole Hansen',  '+47-90-000006'),
+    (11, 'SS-1', 'A', 'SPOD-2026-001', 'SPRING_PUSHER', 'Mumbai',    'VU2KJS', CURRENT_DATE - 1, 'TTC:512;SSTV:40960',          'Aarav Shah',  '+91-98200-00001'),
+    (12, 'SS-2', 'A', 'SPOD-2026-002', 'BURN_WIRE',     'Mumbai',    'VU2KJS', CURRENT_DATE - 1, 'TTC:256;SSTV:20480;M17:4000;CODEC2:1000', 'Aarav Shah', '+91-98200-00001');
 
 -- ------------------------------------------------------------- 1NF ---
 -- 1NF: one row per (pass, mode); the repeating group becomes atomic rows.
@@ -223,7 +223,7 @@ CREATE OR REPLACE FUNCTION norm.demo_update_anomaly()
 RETURNS TABLE (stage TEXT, before TEXT, after TEXT, explanation TEXT)
 LANGUAGE plpgsql STABLE AS $$
 DECLARE
-    v_sat   TEXT := 'SAT-A1';
+    v_sat   TEXT := 'SS-1';
     v_planes INT;
     v_rows   INT;
 BEGIN
@@ -233,10 +233,10 @@ BEGIN
     stage := 'UNF'; before := v_sat || ' flies plane A in ' || v_rows || ' rows';
     after := 'updating 1 of ' || v_rows || ' rows leaves ' || (v_rows - 1)
              || ' rows claiming the old plane (' || v_planes || ' distinct values -> 2)';
-    explanation := 'Update anomaly: the fact "SAT-A1 is plane A" repeats, so a single-row UPDATE makes the table contradict itself.';
+    explanation := 'Update anomaly: the fact "SS-1 is plane A" repeats, so a single-row UPDATE makes the table contradict itself.';
     RETURN NEXT;
-    stage := '3NF'; before := 'norm.sat holds 1 row for SAT-A1';
-    after := 'UPDATE norm.sat SET sat_plane = ... WHERE sat_name = ''SAT-A1'' changes all passes at once';
+    stage := '3NF'; before := 'norm.sat holds 1 row for SS-1';
+    after := 'UPDATE norm.sat SET sat_plane = ... WHERE sat_name = ''SS-1'' changes all passes at once';
     explanation := 'Fixed: the plane fact lives once, so one UPDATE is automatically consistent.';
     RETURN NEXT;
 END;

@@ -29,10 +29,10 @@ async def _telemetry_tick() -> None:
             bv = float(s.get("bv") or 7.5)
         except Exception:
             bv = 7.5
-        # Keep demo story: B3 stays critical, B2 hovers 6.9-7.0.
-        if sat == "SAT-B3":
+        # Keep demo story: SS-3 stays critical, SS-2 hovers 6.9-7.0.
+        if sat == "SS-3":
             bv = min(bv + random.uniform(-0.03, 0.01), 6.65)
-        elif sat == "SAT-B2":
+        elif sat == "SS-2":
             bv = 6.95 + random.uniform(-0.05, 0.05)
         else:
             bv = max(6.5, min(8.2, bv + random.uniform(-0.04, 0.04)))

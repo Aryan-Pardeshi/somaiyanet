@@ -222,10 +222,10 @@ function StateDiagram({ current }: { current: string | null }) {
   );
 }
 
-const PASS_SATS = ["SAT-A1", "SAT-A2", "SAT-A3", "SAT-A4", "SAT-B1", "SAT-B2", "SAT-B3"];
+const PASS_SATS = ["SS-1", "SS-2", "SS-3"];
 
 export default function Deploy() {
-  const [pod, setPod] = useState("POD-B4");
+  const [pod, setPod] = useState("POD-4");
   const [bundle, setBundle] = useState<DeployBundle | null>(null);
   const [okState, setOkState] = useState<Record<string, boolean>>({
     SEPARATION_SWITCH: true,
@@ -243,7 +243,7 @@ export default function Deploy() {
   const [busy, setBusy] = useState<string | null>(null);
 
   // Pass execution state
-  const [passSat, setPassSat] = useState("SAT-A1");
+  const [passSat, setPassSat] = useState("SS-1");
   const [passContacts, setPassContacts] = useState<PassContact[]>([]);
   const [passContactId, setPassContactId] = useState<number | null>(null);
   const [passResult, setPassResult] = useState<PassResult | null>(null);
@@ -339,7 +339,7 @@ export default function Deploy() {
       await apiFetch("/api/console", {
         method: "POST",
         body: JSON.stringify({
-          query: "UPDATE satellite SET state = 'NOMINAL' WHERE node_id = 'SAT-B4'",
+          query: "UPDATE satellite SET state = 'NOMINAL' WHERE node_id = 'SS-4'",
         }),
       });
       setIllegalMsg("Unexpectedly allowed — the trigger should have fired.");
@@ -349,7 +349,7 @@ export default function Deploy() {
         setIllegalMsg(
           `Console refused (${e.sqlstate ?? e.status}): ${e.message}. ` +
             `The live trigger trg_satellite_state would raise ` +
-            `'illegal state transition STOWED -> NOMINAL for SAT-B4'.`,
+            `'illegal state transition STOWED -> NOMINAL for SS-4'.`,
         );
       }
     }

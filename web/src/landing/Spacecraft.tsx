@@ -7,8 +7,9 @@ import { Satellite } from "./hero/Satellite";
 
 const SPECS: Array<[string, string]> = [
   ["Form factor", "127.4 × 57.9 × 57.2 mm"],
+  ["Fleet size", "4 PocketQubes (3 flying, 1 in deployer)"],
   ["Deployer mechanism", "SomaiyaPod orbital deployer"],
-  ["Target orbit", "525 km sun-synchronous orbit"],
+  ["Target orbit", "525 km sun-synchronous orbit (Plane A)"],
   ["Payload communication", "Digital Voice (M17, Codec2) · SSTV Imagery · TT&C"],
   ["Inter-satellite range", "Up to 2,000 km line-of-sight"],
   ["Autonomous routing engine", "93-node decision tree in PostgreSQL"],

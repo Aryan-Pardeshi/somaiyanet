@@ -74,7 +74,7 @@ def run(conn_factory) -> None:
             " WHERE s.state <> 'STOWED' ORDER BY s.node_id"
         ).fetchall()
         stations = [r[0] for r in conn.execute("SELECT node_id FROM ground_station").fetchall()]
-        sat_call = {n: (c or "VU2SAT") for n, c in sats}
+        sat_call = {n: (c or "VU2SS0") for n, c in sats}
         sat_ids = [n for n, _ in sats]
         with conn.transaction():
             conn.execute("TRUNCATE packet CASCADE")

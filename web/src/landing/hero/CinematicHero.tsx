@@ -141,57 +141,28 @@ export function Atmosphere({ opacity }: { opacity: React.MutableRefObject<number
   );
 }
 
-/** Many thin orbital shells of glowing dots, like a mega-constellation map. */
-function useConstellation(mobile: boolean) {
-  return useMemo(() => {
-    const planes = mobile ? 16 : 30;
-    const perPlane = mobile ? 90 : 150;
-    const pos = new Float32Array(planes * perPlane * 3);
-    let k = 0;
-    for (let p = 0; p < planes; p++) {
-      const inc = THREE.MathUtils.degToRad(p % 3 === 0 ? 97.5 : 53 + (p % 5) * 6);
-      const raan = (p / planes) * Math.PI * 2;
-      const r = EARTH_R * (1.035 + (p % 4) * 0.012);
-      const m = new THREE.Matrix4()
-        .makeRotationY(raan)
-        .multiply(new THREE.Matrix4().makeRotationX(inc));
-      const phase = Math.random() * Math.PI * 2;
-      for (let i = 0; i < perPlane; i++) {
-        const a = phase + (i / perPlane) * Math.PI * 2;
-        const v = new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r).applyMatrix4(m);
-        pos[k++] = v.x;
-        pos[k++] = v.y;
-        pos[k++] = v.z;
-      }
-    }
-    return pos;
-  }, [mobile]);
-}
-
-/** Two SomaiyaNet planes (97.5 deg, RAAN 75/105) with 4 bright sats each. */
+/** One SomaiyaNet plane (inc 97.5 deg, RAAN 75 deg) with 3 bright flying sats spaced 12 deg apart. */
 function OurPlanes({ opacity }: { opacity: React.MutableRefObject<number> }) {
   const group = useRef<THREE.Group>(null);
-  const bases = useMemo(
+  const base = useMemo(
     () =>
-      [75, 105].map((raan) =>
-        new THREE.Matrix4()
-          .makeRotationY(THREE.MathUtils.degToRad(raan))
-          .multiply(new THREE.Matrix4().makeRotationX(THREE.MathUtils.degToRad(97.5))),
-      ),
+      new THREE.Matrix4()
+        .makeRotationY(THREE.MathUtils.degToRad(75))
+        .multiply(new THREE.Matrix4().makeRotationX(THREE.MathUtils.degToRad(97.5))),
     [],
   );
-  const rings = useMemo(
-    () =>
-      bases.map((m) => {
-        const pts: THREE.Vector3[] = [];
-        for (let i = 0; i <= 256; i++) {
-          const a = (i / 256) * Math.PI * 2;
-          pts.push(new THREE.Vector3(Math.cos(a), 0, Math.sin(a)).multiplyScalar(EARTH_R * 1.12).applyMatrix4(m));
-        }
-        return new THREE.BufferGeometry().setFromPoints(pts);
-      }),
-    [bases],
-  );
+  const ring = useMemo(() => {
+    const pts: THREE.Vector3[] = [];
+    for (let i = 0; i <= 256; i++) {
+      const a = (i / 256) * Math.PI * 2;
+      pts.push(
+        new THREE.Vector3(Math.cos(a), 0, Math.sin(a))
+          .multiplyScalar(EARTH_R * 1.12)
+          .applyMatrix4(base),
+      );
+    }
+    return new THREE.BufferGeometry().setFromPoints(pts);
+  }, [base]);
   const ringMat = useMemo(
     () => new THREE.LineBasicMaterial({ color: "#a9caff", transparent: true, opacity: 0.35 }),
     [],
@@ -202,18 +173,15 @@ function OurPlanes({ opacity }: { opacity: React.MutableRefObject<number> }) {
     ringMat.opacity = 0.35 * opacity.current;
     satMat.opacity = opacity.current;
     group.current?.children.forEach((c, i) => {
-      const m = bases[i < 4 ? 0 : 1];
-      const a = t + (i % 4) * THREE.MathUtils.degToRad(12) + (i < 4 ? 0 : 0.4);
-      c.position.set(Math.cos(a), 0, Math.sin(a)).multiplyScalar(EARTH_R * 1.12).applyMatrix4(m);
+      const a = t + i * THREE.MathUtils.degToRad(12);
+      c.position.set(Math.cos(a), 0, Math.sin(a)).multiplyScalar(EARTH_R * 1.12).applyMatrix4(base);
     });
   });
   return (
     <>
-      {rings.map((g, i) => (
-        <lineLoop key={i} geometry={g} material={ringMat} />
-      ))}
+      <lineLoop geometry={ring} material={ringMat} />
       <group ref={group}>
-        {Array.from({ length: 8 }).map((_, i) => (
+        {Array.from({ length: 3 }).map((_, i) => (
           <mesh key={i} material={satMat}>
             <sphereGeometry args={[0.022, 10, 10]} />
           </mesh>
@@ -444,19 +412,6 @@ function Scene({ progress, mobile, glowRef }: { progress: React.MutableRefObject
   const constOpacity = useRef(1);
   const warpAmount = useRef(0);
   const lineReveal = useRef(0);
-  const constellation = useConstellation(mobile);
-  const constMat = useMemo(
-    () =>
-      new THREE.PointsMaterial({
-        color: "#dbe7ff",
-        size: mobile ? 0.04 : 0.032,
-        sizeAttenuation: true,
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      }),
-    [mobile],
-  );
   const stars = useMemo(() => {
     const n = mobile ? 700 : 1600;
     const a = new Float32Array(n * 3);
@@ -491,7 +446,6 @@ function Scene({ progress, mobile, glowRef }: { progress: React.MutableRefObject
     }
     earthOpacity.current = 1 - smooth(0.68, 0.82, p);
     constOpacity.current = (1 - smooth(0.3, 0.44, p)) * 0.95;
-    constMat.opacity = constOpacity.current;
     warpAmount.current = smooth(0.29, 0.36, p) * (1 - smooth(0.42, 0.5, p));
     lineReveal.current = smooth(0.74, 0.9, p);
 
@@ -528,11 +482,6 @@ function Scene({ progress, mobile, glowRef }: { progress: React.MutableRefObject
       <group ref={earth}>
         {maps && <Earth maps={maps} opacity={earthOpacity} />}
         <Atmosphere opacity={earthOpacity} />
-        <points material={constMat}>
-          <bufferGeometry>
-            <bufferAttribute attach="attributes-position" args={[constellation, 3]} />
-          </bufferGeometry>
-        </points>
         <OurPlanes opacity={constOpacity} />
       </group>
       <Warp amount={warpAmount} mobile={mobile} />
@@ -609,7 +558,7 @@ export function CinematicHero() {
             route themselves.
           </h1>
           <p className="mt-5 max-w-[56ch] text-[17px] leading-relaxed text-[#9aa3b8]">
-            SomaiyaNet is an autonomous PocketQube constellation whose routing graphs, decision trees, and access permissions all live in PostgreSQL. Developed under specification KJS-SRS-01.
+            SomaiyaNet is a four-satellite PocketQube constellation (three flying, one waiting in its deployer) whose routing graphs, decision trees, and access permissions all live in PostgreSQL. Developed under specification KJS-SRS-01.
           </p>
         </div>
       </div>

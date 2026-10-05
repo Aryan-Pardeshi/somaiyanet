@@ -2,7 +2,7 @@
 // Offline fixture used only when the backend is unreachable (network error
 // or 404). TLEs below were computed offline with the same recipe as
 // scripts/build_constellation.py: circular SSO, ~525 km, inc 97.5 deg,
-// plane A RAAN 75 deg, plane B RAAN 105 deg, 12 deg in-plane spacing.
+// one plane at RAAN 75 deg, 12 deg in-plane spacing (SS-4 still stowed).
 
 import * as satellite from "satellite.js";
 import type {
@@ -16,37 +16,21 @@ import { lookAnglesEl, propagateSat } from "./orbit";
 
 /** node_id -> [line1, line2]. Epoch 2026-10-04 00:00 UTC. */
 export const MOCK_TLES: Record<string, [string, string]> = {
-  "SAT-A1": [
+  "SS-1": [
     "1 99901U          26277.00000000  .00000000  00000-0  00000+0 0    04",
     "2 99901  97.5000  75.0000 0001000   0.0000   0.0000 15.13676342    02",
   ],
-  "SAT-A2": [
+  "SS-2": [
     "1 99902U          26277.00000000  .00000000  00000-0  00000+0 0    05",
     "2 99902  97.5000  75.0000 0001000   0.0000  12.0000 15.13676342    06",
   ],
-  "SAT-A3": [
+  "SS-3": [
     "1 99903U          26277.00000000  .00000000  00000-0  00000+0 0    06",
     "2 99903  97.5000  75.0000 0001000   0.0000  24.0000 15.13676342    00",
   ],
-  "SAT-A4": [
+  "SS-4": [
     "1 99904U          26277.00000000  .00000000  00000-0  00000+0 0    07",
     "2 99904  97.5000  75.0000 0001000   0.0000  36.0000 15.13676342    04",
-  ],
-  "SAT-B1": [
-    "1 99905U          26277.00000000  .00000000  00000-0  00000+0 0    08",
-    "2 99905  97.5000 105.0000 0001000   0.0000   0.0000 15.13676342    00",
-  ],
-  "SAT-B2": [
-    "1 99906U          26277.00000000  .00000000  00000-0  00000+0 0    09",
-    "2 99906  97.5000 105.0000 0001000   0.0000  12.0000 15.13676342    04",
-  ],
-  "SAT-B3": [
-    "1 99907U          26277.00000000  .00000000  00000-0  00000+0 0    00",
-    "2 99907  97.5000 105.0000 0001000   0.0000  24.0000 15.13676342    08",
-  ],
-  "SAT-B4": [
-    "1 99908U          26277.00000000  .00000000  00000-0  00000+0 0    01",
-    "2 99908  97.5000 105.0000 0001000   0.0000  36.0000 15.13676342    02",
   ],
 };
 
@@ -58,20 +42,16 @@ const PINNED: Array<{
   state: string;
   battery: number | null;
 }> = [
-  { node_id: "SAT-A1", plane: "A", slot: 1, state: "NOMINAL", battery: 7.9 },
-  { node_id: "SAT-A2", plane: "A", slot: 2, state: "NOMINAL", battery: 7.6 },
-  { node_id: "SAT-A3", plane: "A", slot: 3, state: "NOMINAL", battery: 7.4 },
-  { node_id: "SAT-A4", plane: "A", slot: 4, state: "NOMINAL", battery: 7.1 },
-  { node_id: "SAT-B1", plane: "B", slot: 1, state: "NOMINAL", battery: 7.8 },
-  { node_id: "SAT-B2", plane: "B", slot: 2, state: "NOMINAL", battery: 6.95 },
-  { node_id: "SAT-B3", plane: "B", slot: 3, state: "SAFE", battery: 6.6 },
-  { node_id: "SAT-B4", plane: "B", slot: 4, state: "STOWED", battery: null },
+  { node_id: "SS-1", plane: "A", slot: 1, state: "NOMINAL", battery: 7.9 },
+  { node_id: "SS-2", plane: "A", slot: 2, state: "NOMINAL", battery: 6.95 },
+  { node_id: "SS-3", plane: "A", slot: 3, state: "SAFE", battery: 6.6 },
+  { node_id: "SS-4", plane: "A", slot: 4, state: "STOWED", battery: null },
 ];
 
 export function mockConstellation(nowMs: number): ConstellationSat[] {
   return PINNED.map((p, i) => ({
     node_id: p.node_id,
-    display_name: `SomaiyaSat-${p.plane}${p.slot}`,
+    display_name: `SomaiyaSat-${p.slot}`,
     plane: p.plane,
     slot: p.slot,
     state: p.state,
@@ -177,7 +157,7 @@ function satrecs(): Map<string, satellite.SatRec> {
  */
 export function mockContacts(atMs: number, windowMin = 90): Contact[] {
   const recs = satrecs();
-  const sats = [...recs.keys()].filter((id) => id !== "SAT-B4"); // STOWED excluded
+  const sats = [...recs.keys()].filter((id) => id !== "SS-4"); // STOWED excluded
   const stations = mockStations();
   const stepMs = 30_000;
   const steps = Math.floor((windowMin * 60_000) / stepMs);
@@ -338,7 +318,7 @@ export function mockAlerts(nowMs: number): Alert[] {
   return [
     {
       alert_id: -2,
-      sat_id: "SAT-B3",
+      sat_id: "SS-3",
       severity: "CRITICAL",
       message: "battery 6.60 V below 6.8 V safe-mode floor",
       raised_at: new Date(nowMs - 42 * 60_000).toISOString(),
@@ -346,7 +326,7 @@ export function mockAlerts(nowMs: number): Alert[] {
     },
     {
       alert_id: -1,
-      sat_id: "SAT-B2",
+      sat_id: "SS-2",
       severity: "WARN",
       message: "24 h avg battery below 7.0 V and drifting down",
       raised_at: new Date(nowMs - 3 * 3_600_000).toISOString(),

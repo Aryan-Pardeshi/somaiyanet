@@ -89,14 +89,10 @@ export interface PassContact {
 }
 
 export const PODS = [
-  "POD-A1",
-  "POD-A2",
-  "POD-A3",
-  "POD-A4",
-  "POD-B1",
-  "POD-B2",
-  "POD-B3",
-  "POD-B4",
+  "POD-1",
+  "POD-2",
+  "POD-3",
+  "POD-4",
 ];
 
 export const SIGNALS = ["SEPARATION_SWITCH", "RELEASE_TIMER", "RF_BEACON"] as const;

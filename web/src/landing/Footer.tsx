@@ -16,7 +16,7 @@ export function Footer() {
             <span className="text-[18px] font-light tracking-tight">SomaiyaNet</span>
           </Link>
           <p className="mt-4 max-w-[46ch] text-[13.5px] leading-relaxed text-[#9aa3b8]">
-            Autonomous PocketQube constellation routing and telemetry engine built entirely in PostgreSQL for amateur radio and Earth observation.
+            Autonomous four-satellite PocketQube constellation routing and telemetry engine built entirely in PostgreSQL for amateur radio and Earth observation.
           </p>
           <div className="mt-6 border-l border-white/15 pl-4">
             <p className="text-[12px] text-[#9aa3b8]">

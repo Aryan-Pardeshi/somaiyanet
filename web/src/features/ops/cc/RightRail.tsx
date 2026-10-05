@@ -604,7 +604,7 @@ export function RightRail({
                     Warning
                   </span>
                   <span className="ml-auto font-mono text-[10px] text-[#8b96b0]">
-                    {activeAlert.sat_id ?? "SAT-01"}
+                    {activeAlert.sat_id ?? "SS-1"}
                   </span>
                 </div>
 

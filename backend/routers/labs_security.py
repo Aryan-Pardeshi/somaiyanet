@@ -139,7 +139,7 @@ def _action_sql(action: str, role: str):
     if action == "insert_telemetry":
         # Plain INSERT (no RETURNING): ai_router is write-only by design.
         return ("INSERT INTO telemetry (ts, sat_id, battery_v, temp_c, solar_ma) "
-                "VALUES (now(), 'SAT-A1', 7.50, 20.0, 300)", ())
+                "VALUES (now(), 'SS-1', 7.50, 20.0, 300)", ())
     if action == "read_station_secret":
         return "SELECT station_id, secret FROM station_key LIMIT 2", ()
     if action == "read_station_keyid":
@@ -149,15 +149,15 @@ def _action_sql(action: str, role: str):
                 "WHERE kind = 'DOWNLINK' GROUP BY to_node ORDER BY to_node", ())
     if action == "insert_telecommand_own":
         return ("INSERT INTO telecommand (station_id, sat_id, opcode, args, nonce, hmac) "
-                "VALUES (%s, 'SAT-A1', 'PING', '{}', 990001, '\\x00') RETURNING cmd_id",
+                "VALUES (%s, 'SS-1', 'PING', '{}', 990001, '\\x00') RETURNING cmd_id",
                 (own_station,))
     if action == "insert_telecommand_other":
         other = "GS-HEL" if own_station == "GS-BOM" else "GS-BOM"
         return ("INSERT INTO telecommand (station_id, sat_id, opcode, args, nonce, hmac) "
-                "VALUES (%s, 'SAT-A1', 'PING', '{}', 990002, '\\x00') RETURNING cmd_id",
+                "VALUES (%s, 'SS-1', 'PING', '{}', 990002, '\\x00') RETURNING cmd_id",
                 (other,))
     if action == "execute_decide":
-        return "SELECT * FROM preview_decision('SAT-A1')", ()
+        return "SELECT * FROM preview_decision('SS-1')", ()
     if action == "ack_alert":
         return ("UPDATE alert SET acknowledged = TRUE "
                 "WHERE alert_id = (SELECT min(alert_id) FROM alert) RETURNING alert_id", ())
@@ -201,10 +201,10 @@ def try_action(request: Request, body: dict):
                                      autocommit=False, application_name=f"somaiyanet:lab:{target}") as conn:
                     with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
                         cur.execute("SELECT sign_telecommand(%s, %s, 'PING', '{}', %s) AS sig",
-                                    (station, "SAT-A1", nonce))
+                                    (station, "SS-1", nonce))
                         sig = cur.fetchone()["sig"]
                         cur.execute("INSERT INTO telecommand (station_id, sat_id, opcode, args, nonce, hmac) "
-                                    "VALUES (%s, 'SAT-A1', 'PING', '{}', %s, %s) RETURNING cmd_id",
+                                    "VALUES (%s, 'SS-1', 'PING', '{}', %s, %s) RETURNING cmd_id",
                                     (station, nonce, sig))
                         rows = cur.fetchall()
                     conn.rollback()

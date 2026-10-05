@@ -96,7 +96,7 @@ export default function Routing() {
   const [mock, setMock] = useState(false);
   const [offline, setOffline] = useState(false);
 
-  const [origin, setOrigin] = useState("SAT-A1");
+  const [origin, setOrigin] = useState("SS-1");
   const [t0Local, setT0Local] = useState(() => toIsoLocal(new Date()));
   const [size, setSize] = useState(4096);
   const [maxHops, setMaxHops] = useState(4);
@@ -681,7 +681,7 @@ export default function Routing() {
                 The recursive query walks forward in time from the start time, always taking the
                 earliest usable contact per neighbour (links only to working
                 satellites), and keeps the ground row with the smallest arrival — hops
-                break ties, weakest link score after that. Stowed satellites like SAT-B4
+                break ties, weakest link score after that. Stowed satellites like SS-4
                 are filtered out, so no relay ever hops through the pod.
               </p>
               <SqlRibbon

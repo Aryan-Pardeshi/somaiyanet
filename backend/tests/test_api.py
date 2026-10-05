@@ -45,7 +45,7 @@ def test_analyst_telecommand_403():
     _login("student_analyst")
     r = client.post(
         "/api/telecommand",
-        json={"station": "GS-BOM", "sat": "SAT-A1", "opcode": "PING", "args": {}, "forge": False},
+        json={"station": "GS-BOM", "sat": "SS-1", "opcode": "PING", "args": {}, "forge": False},
     )
     assert r.status_code == 403, r.text
     assert r.json()["error"]["sqlstate"] == "42501"
@@ -57,28 +57,28 @@ def test_bom_cross_station_refused_and_own_ok_plus_forged():
     # cross-station: RLS refuses (403 or 422 with a sqlstate)
     r = client.post(
         "/api/telecommand",
-        json={"station": "GS-HEL", "sat": "SAT-A1", "opcode": "PING", "args": {}, "forge": False},
+        json={"station": "GS-HEL", "sat": "SS-1", "opcode": "PING", "args": {}, "forge": False},
     )
     assert r.status_code in (403, 422), r.text
     assert r.json()["error"].get("sqlstate")
     # own station signed -> 200 verified
     r = client.post(
         "/api/telecommand",
-        json={"station": "GS-BOM", "sat": "SAT-A1", "opcode": "PING", "args": {}, "forge": False},
+        json={"station": "GS-BOM", "sat": "SS-1", "opcode": "PING", "args": {}, "forge": False},
     )
     assert r.status_code == 200, r.text
     assert r.json()["data"]["verified"] is True
     # forged -> 422
     r = client.post(
         "/api/telecommand",
-        json={"station": "GS-BOM", "sat": "SAT-A1", "opcode": "PING", "args": {}, "forge": True},
+        json={"station": "GS-BOM", "sat": "SS-1", "opcode": "PING", "args": {}, "forge": True},
     )
     assert r.status_code == 422, r.text
 
 
 def test_routes_returns_explanation():
     _login("mission_director")
-    r = client.get("/api/routing/routes", params={"origin": "SAT-A1", "size": 4096, "max_hops": 4})
+    r = client.get("/api/routing/routes", params={"origin": "SS-1", "size": 4096, "max_hops": 4})
     assert r.status_code == 200, r.text
     rows = r.json()["data"]
     assert len(rows) >= 1
@@ -109,13 +109,13 @@ def test_whatif_low_battery():
 
 def test_deploy_confirm_rollback_then_reset():
     _login("mission_director")
-    r = client.post("/api/deploy/POD-B4/confirm", json={"simulate_failure": True})
+    r = client.post("/api/deploy/POD-4/confirm", json={"simulate_failure": True})
     # error JSON plus before/after snapshots
     assert r.status_code in (400, 422, 409, 500), r.text
     body = r.json()
     assert body["data"]["before"] == body["data"]["after"]
-    # a ROLLED_BACK log row exists (latest for POD-B4)
-    r2 = client.get("/api/deploy/POD-B4")
+    # a ROLLED_BACK log row exists (latest for POD-4)
+    r2 = client.get("/api/deploy/POD-4")
     assert r2.status_code == 200, r2.text
     logs = r2.json()["data"]["log"]
     assert any(x["outcome"] == "ROLLED_BACK" for x in logs)

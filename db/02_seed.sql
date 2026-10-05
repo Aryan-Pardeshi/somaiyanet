@@ -46,21 +46,17 @@ INSERT INTO station_key (station_id, key_id, secret)
 SELECT node_id, 'K-' || node_id || '-1', gen_random_bytes(32)
 FROM ground_station;
 
--- Eight SomaiyaPod deployers. Mechanism alternates SPRING_PUSHER/BURN_WIRE
--- down the slot order; every pod is CONFIRMED ~95 min after launch except
--- POD-B4, which stays ARMED for the deployment demo.
+-- Four SomaiyaPod deployers (one plane, four slots). Mechanism alternates
+-- SPRING_PUSHER/BURN_WIRE down the slot order; every pod is CONFIRMED
+-- ~95 min after launch except POD-4, which stays ARMED for the deployment demo.
 INSERT INTO deployer_pod (pod_id, serial_no, release_mechanism, status, launch_date, release_ts) VALUES
-    ('POD-A1', 'SPOD-2026-001', 'SPRING_PUSHER', 'CONFIRMED', CURRENT_DATE - 21, (CURRENT_DATE - 21)::TIMESTAMPTZ + INTERVAL '95 minutes'),
-    ('POD-A2', 'SPOD-2026-002', 'BURN_WIRE',     'CONFIRMED', CURRENT_DATE - 21, (CURRENT_DATE - 21)::TIMESTAMPTZ + INTERVAL '95 minutes'),
-    ('POD-A3', 'SPOD-2026-003', 'SPRING_PUSHER', 'CONFIRMED', CURRENT_DATE - 21, (CURRENT_DATE - 21)::TIMESTAMPTZ + INTERVAL '95 minutes'),
-    ('POD-A4', 'SPOD-2026-004', 'BURN_WIRE',     'CONFIRMED', CURRENT_DATE - 21, (CURRENT_DATE - 21)::TIMESTAMPTZ + INTERVAL '95 minutes'),
-    ('POD-B1', 'SPOD-2026-005', 'SPRING_PUSHER', 'CONFIRMED', CURRENT_DATE - 21, (CURRENT_DATE - 21)::TIMESTAMPTZ + INTERVAL '95 minutes'),
-    ('POD-B2', 'SPOD-2026-006', 'BURN_WIRE',     'CONFIRMED', CURRENT_DATE - 21, (CURRENT_DATE - 21)::TIMESTAMPTZ + INTERVAL '95 minutes'),
-    ('POD-B3', 'SPOD-2026-007', 'SPRING_PUSHER', 'CONFIRMED', CURRENT_DATE - 21, (CURRENT_DATE - 21)::TIMESTAMPTZ + INTERVAL '95 minutes'),
-    ('POD-B4', 'SPOD-2026-008', 'BURN_WIRE',     'ARMED',     CURRENT_DATE - 21, NULL);
+    ('POD-1', 'SPOD-2026-001', 'SPRING_PUSHER', 'CONFIRMED', CURRENT_DATE - 21, (CURRENT_DATE - 21)::TIMESTAMPTZ + INTERVAL '95 minutes'),
+    ('POD-2', 'SPOD-2026-002', 'BURN_WIRE',     'CONFIRMED', CURRENT_DATE - 21, (CURRENT_DATE - 21)::TIMESTAMPTZ + INTERVAL '95 minutes'),
+    ('POD-3', 'SPOD-2026-003', 'SPRING_PUSHER', 'CONFIRMED', CURRENT_DATE - 21, (CURRENT_DATE - 21)::TIMESTAMPTZ + INTERVAL '95 minutes'),
+    ('POD-4', 'SPOD-2026-004', 'BURN_WIRE',     'ARMED',     CURRENT_DATE - 21, NULL);
 
 -- Signal evidence for each CONFIRMED pod: all three deploy signals, ok, at
--- release + 0 s / 2 s / 40 s. POD-B4 has no events until the demo fires.
+-- release + 0 s / 2 s / 40 s. POD-4 has no events until the demo fires.
 INSERT INTO deployment_event (pod_id, seq, signal, ok, value, observed_at)
 SELECT p.pod_id, s.seq, s.signal, TRUE, s.value, p.release_ts + s.delta
 FROM deployer_pod AS p

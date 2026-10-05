@@ -20,7 +20,7 @@ export function Mission() {
           </Canvas>
         </div>
         <p className="mt-4 max-w-[62ch] text-[15px] leading-relaxed text-[#9aa3b8]">
-          SomaiyaSat is a PocketQube satellite released by the SomaiyaPod deployer, developed in collaboration with ReOrbit, Finland, for the amateur radio community. Critical health telemetry transmits first, followed by SSTV imagery, and finally digital voice.
+          SomaiyaNet is a four-satellite PocketQube constellation (three flying, one waiting in its deployer) released by the SomaiyaPod deployer, developed in collaboration with ReOrbit, Finland, for the amateur radio community. Critical health telemetry transmits first, followed by SSTV imagery, and finally digital voice.
         </p>
       </div>
     </section>

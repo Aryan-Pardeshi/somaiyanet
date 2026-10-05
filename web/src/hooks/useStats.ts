@@ -20,13 +20,13 @@ export interface StoryStats {
 
 export const FALLBACK_STORY_STATS: StoryStats = {
   source: "fallback",
-  sats_total: 8,
-  sats_operational: 7,
+  sats_total: 4,
+  sats_operational: 2,
   telemetry_rows: 70560,
-  packets_queued: 420,
-  packets_delivered_24h: 144,
-  contacts_next_24h: 697,
-  isl_contacts_next_24h: 480,
+  packets_queued: 418,
+  packets_delivered_24h: 296,
+  contacts_next_24h: 132,
+  isl_contacts_next_24h: 96,
   ai_decisions: 7,
   stations: 6,
 }

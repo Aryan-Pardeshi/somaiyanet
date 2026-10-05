@@ -240,7 +240,7 @@ def lab_reset(request: Request, lab_id: str):
                     "UPDATE lab_account SET power_credits = 100 WHERE id IN (1, 2)", superuser=True)
         # If a scenario left a stray uncommitted change from a killed conn, force reset.
         sqlbook.run("mission_director", f"lab {lab_id} reset check",
-                    "INSERT INTO lab_account (id, sat_id, power_credits) VALUES (1, 'SAT-A1', 100), (2, 'SAT-A2', 100) "
+                    "INSERT INTO lab_account (id, sat_id, power_credits) VALUES (1, 'SS-1', 100), (2, 'SS-2', 100) "
                     "ON CONFLICT (id) DO UPDATE SET power_credits = 100", superuser=True)
         return sqlbook.envelope({"lab_id": lab_id, "reset": True}, role)
     except Exception as exc:
@@ -315,18 +315,18 @@ SCENARIOS = {
     "skip_locked": {
         "title": "SKIP LOCKED: two router workers claim disjoint packets",
         "steps": [
-            {"session": "A", "sql": "SELECT * FROM dispatch_packets('SAT-A1', 'worker-A', 20000)", "expect": "ok", "explain": "Worker A claims within budget."},
-            {"session": "B", "sql": "SELECT * FROM dispatch_packets('SAT-A1', 'worker-B', 20000)", "expect": "ok", "explain": "Worker B skips A's locked rows, claims disjoint ids."},
+            {"session": "A", "sql": "SELECT * FROM dispatch_packets('SS-1', 'worker-A', 20000)", "expect": "ok", "explain": "Worker A claims within budget."},
+            {"session": "B", "sql": "SELECT * FROM dispatch_packets('SS-1', 'worker-B', 20000)", "expect": "ok", "explain": "Worker B skips A's locked rows, claims disjoint ids."},
         ],
     },
     "mvcc": {
         "title": "MVCC versions: xmin/xmax/ctid across sessions",
         "steps": [
-            {"session": "A", "sql": "UPDATE deployer_pod SET temperature_c = COALESCE(temperature_c, 20) + 1 WHERE pod_id = 'POD-A1'", "expect": "ok", "explain": "A writes a new version, uncommitted."},
-            {"session": "A", "sql": "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-A1'", "expect": "ok", "explain": "A sees its own new version."},
-            {"session": "B", "sql": "SELECT xmin, xmax, ctid, temperature_c, txid_current() AS txid FROM deployer_pod WHERE pod_id = 'POD-A1'", "expect": "ok", "explain": "B still sees the old committed version."},
+            {"session": "A", "sql": "UPDATE deployer_pod SET temperature_c = COALESCE(temperature_c, 20) + 1 WHERE pod_id = 'POD-1'", "expect": "ok", "explain": "A writes a new version, uncommitted."},
+            {"session": "A", "sql": "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-1'", "expect": "ok", "explain": "A sees its own new version."},
+            {"session": "B", "sql": "SELECT xmin, xmax, ctid, temperature_c, txid_current() AS txid FROM deployer_pod WHERE pod_id = 'POD-1'", "expect": "ok", "explain": "B still sees the old committed version."},
             {"session": "A", "sql": "COMMIT", "expect": "ok", "explain": "A commits the new version."},
-            {"session": "B", "sql": "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-A1'", "expect": "ok", "explain": "B now sees the new version with a new ctid."},
+            {"session": "B", "sql": "SELECT xmin, xmax, ctid, temperature_c FROM deployer_pod WHERE pod_id = 'POD-1'", "expect": "ok", "explain": "B now sees the new version with a new ctid."},
             {"session": "B", "sql": "COMMIT", "expect": "ok", "explain": "End B's snapshot."},
         ],
     },
@@ -334,7 +334,7 @@ SCENARIOS = {
         "title": "WAL: LSN moves as 1000 telemetry rows are written",
         "steps": [
             {"session": "A", "sql": "SELECT pg_current_wal_lsn() AS lsn_before", "expect": "ok", "explain": "LSN before the write txn."},
-            {"session": "A", "sql": "INSERT INTO telemetry (ts, sat_id, battery_v, temp_c, solar_ma) SELECT now() + (g || ' microseconds')::interval, 'SAT-A1', 7.50, 20.0, 300 FROM generate_series(1, 1000) AS g", "expect": "ok", "explain": "1000-row write transaction."},
+            {"session": "A", "sql": "INSERT INTO telemetry (ts, sat_id, battery_v, temp_c, solar_ma) SELECT now() + (g || ' microseconds')::interval, 'SS-1', 7.50, 20.0, 300 FROM generate_series(1, 1000) AS g", "expect": "ok", "explain": "1000-row write transaction."},
             {"session": "A", "sql": "COMMIT", "expect": "ok", "explain": "Commit forces WAL flush (durability)."},
             {"session": "A", "sql": "SELECT pg_current_wal_lsn() AS lsn_after", "expect": "ok", "explain": "LSN after; pg_wal_lsn_diff shows bytes written."},
         ],

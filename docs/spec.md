@@ -114,7 +114,7 @@ FK `(node_id, kind)` → `network_node (node_id, kind)` ON DELETE CASCADE. Parti
 
 | column | type | constraints |
 |---|---|---|
-| pod_id | VARCHAR(10) | PK, e.g. 'POD-A1' |
+| pod_id | VARCHAR(10) | PK, e.g. 'POD-1' |
 | serial_no | VARCHAR(20) | NOT NULL UNIQUE |
 | release_mechanism | VARCHAR(20) | NOT NULL CHECK IN ('BURN_WIRE','SPRING_PUSHER','NON_PYRO_ACTUATOR') |
 | status | pod_status | NOT NULL DEFAULT 'INTEGRATED' |
@@ -130,7 +130,7 @@ Plus `CHECK ((status IN ('RELEASED','CONFIRMED')) = (release_ts IS NOT NULL))`.
 |---|---|---|
 | node_id | VARCHAR(12) | PK |
 | kind | node_kind | NOT NULL DEFAULT 'SAT' CHECK (kind = 'SAT') |
-| norad_id | INT | NOT NULL UNIQUE (synthetic 99901..99908) |
+| norad_id | INT | NOT NULL UNIQUE (synthetic 99901..99904) |
 | plane | CHAR(1) | NOT NULL CHECK IN ('A','B') |
 | slot | SMALLINT | NOT NULL CHECK 1..8 |
 | pod_id | VARCHAR(10) | NOT NULL UNIQUE REFERENCES deployer_pod ON DELETE RESTRICT (1:1) |
@@ -494,34 +494,28 @@ The signature is `hmac(message, secret, 'sha256')`.
   | GS-CPT | Cape Town | ZS1SOM | Cape Town, ZA | -33.9249, 18.4241 | 20 | 10 | FALSE | mission_director |
 
 - **station_key:** one row per station, with `key_id = 'K-' || node_id || '-1'` and `secret = gen_random_bytes(32)`.
-- **deployer_pod:** POD-A1..A4 and POD-B1..B4.
-  - serial_no is `'SPOD-2026-' || lpad(n, 3, '0')`.
+- **deployer_pod:** POD-1..POD-4.
+  - serial_no is `'SPOD-2026-' || lpad(n, 3, '0')` (001..004).
   - release_mechanism alternates SPRING_PUSHER and BURN_WIRE.
   - launch_date is `current_date - 21`.
-  - Every pod is CONFIRMED with `release_ts = launch_date + ~95 min`, **except POD-B4**, which is ARMED with `release_ts NULL`. It is used by the deployment demo.
-- **deployment_event:** for each CONFIRMED pod, 3 ok events (all three signals) at `release_ts + 0 s / 2 s / 40 s`. For POD-B4, none.
+  - Every pod is CONFIRMED with `release_ts = launch_date + ~95 min`, **except POD-4**, which is ARMED with `release_ts NULL`. It is used by the deployment demo.
+- **deployment_event:** for each CONFIRMED pod, 3 ok events (all three signals) at `release_ts + 0 s / 2 s / 40 s`. For POD-4, none.
 - **Satellites are NOT seeded here.** `build_constellation.py` inserts them (network_node + satellite), because their TLEs are computed at build time.
 
 ## 4. Constellation contract (scripts)
 
-- **Satellites:** 8 of them, `SAT-A1..SAT-A4` and `SAT-B1..SAT-B4`. Each has `display_name = 'SomaiyaSat-' || plane || slot`, a callsign like `VU2SA1`, norad_id 99901..99908, and `pod_id = 'POD-' || plane || slot`.
-- **Orbits:** circular SSO with altitude ≈ 525 km, inclination 97.5°, eccentricity ≈ 0.0001, epoch = today 00:00 UTC.
-  - Plane A has RAAN 75° and plane B has RAAN 105°.
-  - In-plane mean-anomaly spacing is 12°: slot k gets M = M0 + (k-1)·12°.
-  - Plane B uses the same M values as plane A, so the sats meet near the poles.
+- **Satellites:** 4 of them, `SS-1..SS-4`. Each has `display_name = 'SomaiyaSat-' || slot`, a callsign like `VU2SS1`, norad_id 99901..99904, and `pod_id = 'POD-' || slot`.
+- **Orbits:** circular SSO with altitude ≈ 525 km, inclination 97.5°, eccentricity ≈ 0.0001, epoch = today 00:00 UTC. ONE plane: RAAN 75°.
+  - In-plane mean-anomaly spacing is 12°: slot k gets M = M0 + (k-1)·12°, so SS-1/SS-2/SS-3 inter-satellite links stay up and a packet can go SS-1 -> SS-2 -> SS-3 -> ground (two relay hops).
   - Build each orbit with `sgp4.api.Satrec.sgp4init` and export the TLE with `sgp4.exporter.export_tle`. The lines must round-trip through `Satrec.twoline2rv`.
 - **States and pinned latest battery** (the demo story depends on these):
 
-  | sat | state | latest battery_v | decision story |
-  |---|---|---|---|
-  | A1 | NOMINAL | 7.90 | full downlink |
-  | A2 | NOMINAL | 7.60 | |
-  | A3 | NOMINAL | 7.40 | |
-  | A4 | NOMINAL | 7.10 | TTC_VOICE (SSTV too power-hungry) |
-  | B1 | NOMINAL | 7.80 | |
-  | B2 | NOMINAL | 6.95 | low-power WARN |
-  | B3 | SAFE | 6.60 | CRITICAL, safe mode |
-  | B4 | STOWED | (no telemetry) | still in POD-B4 |
+  | sat | display_name | callsign | pod | state | latest battery_v | decision story |
+  |---|---|---|---|---|---|---|
+  | SS-1 | SomaiyaSat-1 | VU2SS1 | POD-1 (SPOD-2026-001) | NOMINAL | 7.90 | healthy workhorse, full downlink |
+  | SS-2 | SomaiyaSat-2 | VU2SS2 | POD-2 (SPOD-2026-002) | NOMINAL | 6.95 | weak battery, low-power WARN + watchdog overrides |
+  | SS-3 | SomaiyaSat-3 | VU2SS3 | POD-3 (SPOD-2026-003) | SAFE | 6.60 | battery below 6.8 V, CRITICAL, safe mode |
+  | SS-4 | SomaiyaSat-4 | VU2SS4 | POD-4 (SPOD-2026-004) | STOWED | (no telemetry) | still in POD-4, used by the Deploy demo |
 
   The satellite rows are inserted in the final state directly. The state-machine trigger allows a non-STOWED INSERT only when the pod is CONFIRMED (see §6).
 - **Contacts** (`compute_contacts.py`):
@@ -530,17 +524,17 @@ The signature is `hmac(message, secret, 'sha256')`.
   - DOWNLINK: a DOWNLINK exists when elevation ≥ the station's `min_elevation_deg`. Use `rate_bps = 9600`, `link_score = link_score_downlink(max_elevation_deg, range_at_max_km)` computed **by calling the SQL function**, and fill in `max_elevation_deg` and `min_range_km`.
   - Merge consecutive in-range samples into one window. Windows shorter than 60 s are dropped.
   - Insert with `executemany` or `COPY`.
-  - Expected volume: in-plane ISLs mostly continuous, cross-plane ISL windows near the poles (about 2 per orbit per nearby pair), and about 3–6 downlinks per sat per station per day. Print the counts.
+  - Expected volume: in-plane ISLs mostly continuous (adjacent slots ~12 deg / ~1450 km apart, so SS-1 <-> SS-2 <-> SS-3 stay up), and about 3–6 downlinks per sat per station per day. Print the counts.
 - **Telemetry** (`generate_telemetry.py`):
   - Connect **as `ai_router`** using its password from `.env`, which proves the INSERT grant.
-  - Cover the last 7 days, one row per 60 s per deployed sat (about 70k rows).
+  - Cover the last 7 days, one row per 60 s per active sat (SS-1/SS-2/SS-3; SS-4 STOWED gets none): about 10 080 rows per active sat per day, ~30 000 rows total, so BRIN / partition pruning and the KPIs stay non-trivial.
   - Call `ensure_telemetry_partitions` first, as the superuser.
   - Battery is a sinusoid over the orbit period plus noise, with eclipse dips (`housekeeping.sunlit` follows the orbit).
-  - B2 drifts down over the last 24 h so that AVG < 7.0.
+  - SS-2 drifts down over the last 24 h so that AVG < 7.0.
   - The **latest** row per sat equals the pinned battery above.
   - Insert with COPY for speed.
 - **Packets** (`generate_packets.py`, run as superuser):
-  - About 60 QUEUED packets per deployed sat with a realistic mode mix, each with a matching subtype row.
+  - About 60 QUEUED packets per active sat with a realistic mode mix, each with a matching subtype row.
     - TTC: 128–512 bytes
     - SSTV: 30–120 KB
     - M17: 2–20 KB
@@ -568,7 +562,7 @@ The signature is `hmac(message, secret, 'sha256')`.
   - Arrival is `greatest(c.start_ts, cur.arrival) + tx`, where `tx = make_interval(secs => p_size_bytes*8.0/c.rate_bps)`.
   - Use `CYCLE node SET is_cycle USING visited` and a hop limit.
   - Final select: rows whose node is GROUND, ordered by arrival, hops, then bottleneck DESC, keeping the best row per destination and then `LIMIT p_limit`.
-  - `explanation` reads like `SAT-A3 -ISL(78)-> SAT-A2 -DOWNLINK(64)-> GS-HEL, arrives 14:20:05Z`.
+  - `explanation` reads like `SS-1 -ISL(78)-> SS-2 -DOWNLINK(64)-> GS-HEL, arrives 14:20:05Z`.
   - STABLE and SECURITY DEFINER, so it sees all contacts despite RLS.
 - **`route_packet(p_packet_id BIGINT) RETURNS BIGINT`** takes the rank-1 route from `cgr_routes(origin, now(), size)`, inserts `route` plus `route_hop` rows (depart/arrive per hop), sets `packet.route_id`, and returns route_id. It returns NULL when no route exists.
 - **`plan_route(p_origin VARCHAR, p_t0 TIMESTAMPTZ, p_size_bytes INT DEFAULT 4096) RETURNS BIGINT`** does the same with no packet.
@@ -579,7 +573,7 @@ The signature is `hmac(message, secret, 'sha256')`.
   - If `p_simulate_failure`, RAISE after the updates. The caller sees the rollback, and the procedure's EXCEPTION handler is **not** used for this.
   - On success, COMMIT and write a COMMITTED log entry.
   - Rolled-back attempts are logged by the caller (the backend) in a separate transaction with outcome ROLLED_BACK. Mirror the friend's pattern in `reference/sql/04_functions.sql`.
-- **`PROCEDURE reset_deploy_demo()`** puts POD-B4 back to ARMED and SAT-B4 back to STOWED (bypassing the state machine with `SET LOCAL somaiyanet.bypass_state_machine = 'on'`, which the trigger honours), and deletes POD-B4's events.
+- **`PROCEDURE reset_deploy_demo()`** puts POD-4 back to ARMED and SS-4 back to STOWED (bypassing the state machine with `SET LOCAL somaiyanet.bypass_state_machine = 'on'`, which the trigger honours), and deletes POD-4's events.
 - **`dispatch_packets(p_sat VARCHAR, p_worker TEXT, p_budget_bytes INT)`** returns `TABLE(packet_id BIGINT, mode VARCHAR, size_bytes INT, running_bytes BIGINT)`.
   - A CTE locks candidates with `SELECT … FROM packet WHERE origin_sat = p_sat AND status = 'QUEUED' ORDER BY (priority from payload_mode), created_at FOR UPDATE SKIP LOCKED LIMIT 200`.
   - The outer query computes `SUM(size_bytes) OVER (ORDER BY priority, created_at)` and keeps rows within budget.

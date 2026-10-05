@@ -25,7 +25,7 @@ import {
 } from "@/features/brain/api";
 import { TreeSvg } from "@/features/brain/TreeSvg";
 
-const SATS = ["SAT-A1", "SAT-A2", "SAT-A3", "SAT-A4", "SAT-B1", "SAT-B2", "SAT-B3"];
+const SATS = ["SS-1", "SS-2", "SS-3"];
 
 function RefusedCard({ err, context }: { err: ApiError; context?: string }) {
   return (
@@ -117,7 +117,7 @@ export default function Brain() {
   const [models, setModels] = useState<AiModel[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [tree, setTree] = useState<DtNode[]>([]);
-  const [sat, setSat] = useState("SAT-A1");
+  const [sat, setSat] = useState("SS-1");
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [whatif, setWhatif] = useState<WhatIfData | null>(null);
   const [wi, setWi] = useState<Features>({ ...DEFAULT_WHATIF });

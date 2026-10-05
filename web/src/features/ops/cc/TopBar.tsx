@@ -70,7 +70,7 @@ export function TopBar({
           <div className="text-[10.5px] text-[#8b96b0]">
             <span>Selected: </span>
             <span className="text-[#3d5bff] font-semibold">
-              {selectedSat ? (selectedSat.display_name || selectedSat.node_id) : "SomaiyaSat-A1"}
+              {selectedSat ? (selectedSat.display_name || selectedSat.node_id) : "SomaiyaSat-1"}
             </span>
           </div>
         </div>

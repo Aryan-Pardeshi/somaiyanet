@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS lab_account (
 );
 COMMENT ON TABLE lab_account IS 'Tx-lab ledger (Exp 9): two credit rows used by the lost-update / write-skew / deadlock scenarios.';
 INSERT INTO lab_account (id, sat_id, power_credits) VALUES
-    (1, 'SAT-A1', 100),
-    (2, 'SAT-A2', 100)
+    (1, 'SS-1', 100),
+    (2, 'SS-2', 100)
 ON CONFLICT (id) DO UPDATE SET sat_id = EXCLUDED.sat_id, power_credits = 100;
 GRANT SELECT, INSERT, UPDATE, DELETE ON lab_account TO grp_director;
 
@@ -245,7 +245,7 @@ AS $$
     SELECT * FROM (VALUES
         ('q_btree_range',
          'Time range for one sat (btree)',
-         'SELECT sat_id, ts, battery_v FROM telemetry WHERE sat_id = ''SAT-A1'' AND ts >= now() - INTERVAL ''7 days'' ORDER BY ts LIMIT 1000',
+         'SELECT sat_id, ts, battery_v FROM telemetry WHERE sat_id = ''SS-1'' AND ts >= now() - INTERVAL ''7 days'' ORDER BY ts LIMIT 1000',
          'btree_cube_ts'),
         ('q_brin_range',
          'Wide ts range count (BRIN)',
@@ -257,7 +257,7 @@ AS $$
          'gin_housekeeping'),
         ('q_partial_queued',
          'Dispatch hot set (partial)',
-         'SELECT packet_id, origin_sat, created_at FROM packet WHERE status = ''QUEUED'' AND origin_sat = ''SAT-A1'' ORDER BY created_at LIMIT 200',
+         'SELECT packet_id, origin_sat, created_at FROM packet WHERE status = ''QUEUED'' AND origin_sat = ''SS-1'' ORDER BY created_at LIMIT 200',
          'partial_queued'),
         ('q_covering_contact',
          'Station downlinks index-only (covering)',
@@ -265,7 +265,7 @@ AS $$
          'covering_contact'),
         ('q_hash_callsign',
          'Callsign equality (hash)',
-         'SELECT node_id, display_name FROM network_node WHERE callsign = ''VU2SA1''',
+         'SELECT node_id, display_name FROM network_node WHERE callsign = ''VU2SS1''',
          'hash_callsign'),
         ('q_partition_pruning',
          'Partition pruning probe (last 6 h)',

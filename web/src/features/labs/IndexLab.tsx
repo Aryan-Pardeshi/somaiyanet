@@ -532,7 +532,7 @@ function fallbackQueries(): IndexQuery[] {
     {
       key: "recent_tel",
       title: "Recent telemetry per sat",
-      sql: "SELECT * FROM telemetry WHERE sat_id = 'SAT-A1' AND ts >= now() - interval '1 day' ORDER BY ts DESC LIMIT 100;",
+      sql: "SELECT * FROM telemetry WHERE sat_id = 'SS-1' AND ts >= now() - interval '1 day' ORDER BY ts DESC LIMIT 100;",
       best_index: "btree_cube_ts",
     },
     {
@@ -550,7 +550,7 @@ function fallbackQueries(): IndexQuery[] {
     {
       key: "queued",
       title: "Queued dispatch",
-      sql: "SELECT * FROM packet WHERE origin_sat = 'SAT-A1' AND status = 'QUEUED' ORDER BY created_at LIMIT 50;",
+      sql: "SELECT * FROM packet WHERE origin_sat = 'SS-1' AND status = 'QUEUED' ORDER BY created_at LIMIT 50;",
       best_index: "partial_queued",
     },
     {
@@ -562,7 +562,7 @@ function fallbackQueries(): IndexQuery[] {
     {
       key: "callsign",
       title: "Callsign equality",
-      sql: "SELECT * FROM network_node WHERE callsign = 'VU2SA1';",
+      sql: "SELECT * FROM network_node WHERE callsign = 'VU2SS1';",
       best_index: "hash_callsign",
     },
   ];

@@ -21,7 +21,7 @@ def _role_or_401(request: Request):
 
 
 @router.get("/api/routing/routes")
-def routes(request: Request, origin: str = "SAT-A1", t0: str | None = None, size: int = 4096, max_hops: int = 4):
+def routes(request: Request, origin: str = "SS-1", t0: str | None = None, size: int = 4096, max_hops: int = 4):
     role, err = _role_or_401(request)
     if err is not None:
         return err
@@ -65,7 +65,7 @@ def plan(request: Request, body: dict):
     role, err = _role_or_401(request)
     if err is not None:
         return err
-    origin = (body or {}).get("origin", "SAT-A1")
+    origin = (body or {}).get("origin", "SS-1")
     t0 = (body or {}).get("t0")
     size = int((body or {}).get("size", 4096))
     try:

@@ -93,21 +93,21 @@ export default function Ops() {
     const iso = (ms: number): string => new Date(ms).toISOString();
     globeRef.current?.playRoute([
       {
-        from_node: "SAT-A1",
-        to_node: "SAT-A2",
+        from_node: "SS-1",
+        to_node: "SS-2",
         depart_ts: iso(now),
         arrive_ts: iso(now + 4000),
         kind: "ISL",
       },
       {
-        from_node: "SAT-A2",
-        to_node: "SAT-A3",
+        from_node: "SS-2",
+        to_node: "SS-3",
         depart_ts: iso(now + 4000),
         arrive_ts: iso(now + 8000),
         kind: "ISL",
       },
       {
-        from_node: "SAT-A3",
+        from_node: "SS-3",
         to_node: "GS-BOM",
         depart_ts: iso(now + 8000),
         arrive_ts: iso(now + 12000),

@@ -122,7 +122,7 @@ PRESETS = [
     {"group": "Exp 5 - Link budget fn", "name": "ISL scores", "sql": "SELECT link_score_isl(300), link_score_isl(1500)"},
     {"group": "Exp 6 - Joins/Views", "name": "Constellation status", "sql": "SELECT * FROM v_constellation_status"},
     {"group": "Exp 6 - Joins/Views", "name": "Route detail", "sql": "SELECT * FROM v_route_detail LIMIT 50"},
-    {"group": "Exp 6 - CGR", "name": "CGR from SAT-A1", "sql": "SELECT * FROM cgr_routes('SAT-A1', now())"},
+    {"group": "Exp 6 - CGR", "name": "CGR from SS-1", "sql": "SELECT * FROM cgr_routes('SS-1', now())"},
     {"group": "Exp 6 - Set ops", "name": "Heard by BOM not HEL", "sql": "SELECT * FROM v_heard_by_bom_not_hel"},
     {"group": "Exp 6 - Set ops", "name": "Heard by both", "sql": "SELECT * FROM v_heard_by_both"},
     {"group": "Exp 6 - Set ops", "name": "Mode mix UNION ALL", "sql": "SELECT * FROM v_mode_mix"},

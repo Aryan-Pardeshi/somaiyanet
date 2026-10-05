@@ -126,15 +126,11 @@ export async function ackAlertApi(alertId: number): Promise<void> {
 
 /** Local synthetic telemetry tick used only while on mock data. */
 function mockTick(prev: TelemetryEvent[]): TelemetryEvent {
-  const ids = ["SAT-A1", "SAT-A2", "SAT-A3", "SAT-A4", "SAT-B1", "SAT-B2", "SAT-B3"];
+  const ids = ["SS-1", "SS-2", "SS-3"];
   const base: Record<string, number> = {
-    "SAT-A1": 7.9,
-    "SAT-A2": 7.6,
-    "SAT-A3": 7.4,
-    "SAT-A4": 7.1,
-    "SAT-B1": 7.8,
-    "SAT-B2": 6.95,
-    "SAT-B3": 6.6,
+    "SS-1": 7.9,
+    "SS-2": 6.95,
+    "SS-3": 6.6,
   };
   const id = ids[Math.floor(Math.random() * ids.length)];
   const last = [...prev].reverse().find((t) => t.sat_id === id);
@@ -164,8 +160,8 @@ export function useOpsData(): OpsData {
   const [alerts, setAlerts] = useState<Alert[]>(() => mockAlerts(Date.now()));
   const [telemetry, setTelemetry] = useState<TelemetryEvent[]>([]);
   const [decisions, setDecisions] = useState<DecisionEvent[]>([
-    { sat_id: "SAT-B3", final_action: "SAFE_TTC_ONLY", overridden: true },
-    { sat_id: "SAT-A1", final_action: "FULL_DOWNLINK", overridden: false },
+    { sat_id: "SS-3", final_action: "SAFE_TTC_ONLY", overridden: true },
+    { sat_id: "SS-1", final_action: "FULL_DOWNLINK", overridden: false },
   ]);
   const [role, setRole] = useState("mock");
   const [mock, setMock] = useState(true);

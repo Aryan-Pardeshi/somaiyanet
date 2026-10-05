@@ -72,8 +72,10 @@ def run(conn_factory) -> None:
     raw: list[tuple] = []
 
     # --- ISL: every unordered pair, range <= 2000 km, both directions ---
+    # Single plane A: neighbours sit ~12 deg (~1450 km) apart so adjacent
+    # ISLs stay up; SS-1 -> SS-2 -> SS-3 gives the 2-hop relay demo.
     n_isl_windows = 0
-    n_cross = 0
+    n_inplane = 0
     n_sat = len(sat_ids)
     for i in range(n_sat):
         for j in range(i + 1, n_sat):
@@ -89,8 +91,8 @@ def run(conn_factory) -> None:
                 raw.append(("ISL", a, b, start, end, min_r, None))
                 raw.append(("ISL", b, a, start, end, min_r, None))
                 n_isl_windows += 1
-                if planes[a] != planes[b]:
-                    n_cross += 1
+                if planes[a] == planes[b]:
+                    n_inplane += 1
 
     # --- DOWNLINK: sat x station, el >= station mask ---
     dl_per_station: dict[str, int] = {}
@@ -138,12 +140,12 @@ def run(conn_factory) -> None:
             )
 
     print(f"ISL windows (undirected pairs): {n_isl_windows}")
-    print(f"cross-plane ISL windows: {n_cross}")
+    print(f"in-plane ISL windows: {n_inplane}")
     print("downlinks per station:")
     for gs in sorted(dl_per_station):
         print(f"  {gs}: {dl_per_station[gs]}")
 
-    assert n_cross >= 1, "need at least 1 cross-plane ISL window"
+    assert n_inplane >= 1, "need at least 1 in-plane ISL window"
     # Every operational sat needs a downlink in the next 24 h.
     with conn_factory() as conn:
         rows = conn.execute(
