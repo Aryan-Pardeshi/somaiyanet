@@ -8,6 +8,7 @@
 @import "@fontsource/geist-sans/latin-700.css";
 @import "@fontsource/geist-mono/latin-400.css";
 @import "@fontsource/geist-mono/latin-500.css";
+@import "@fontsource/michroma/latin-400.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -238,4 +239,58 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .draw-in, .row-in, .fade-step { animation: none; stroke-dashoffset: 0; opacity: 1; }
+}
+
+/* brief 21b: footer links, wordmark, packet beam */
+.footer-link {
+  position: relative;
+  transition: color 0.25s ease;
+}
+.footer-link:hover {
+  color: #fff;
+}
+.footer-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  height: 1px;
+  width: 0;
+  background: #3d5bff;
+  transition: width 0.28s ease;
+}
+.footer-link:hover::after {
+  width: 26px;
+}
+.footer-wordmark {
+  position: absolute;
+  left: 50%;
+  bottom: -0.24em;
+  transform: translate(-50%, 24px);
+  white-space: nowrap;
+  font-family: "Geist Sans", system-ui, sans-serif;
+  font-weight: 300;
+  font-size: 16vw;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: rgba(255, 255, 255, 0.04);
+  transition: transform 1s ease-out;
+  pointer-events: none;
+  user-select: none;
+}
+.footer-wordmark.is-visible {
+  transform: translate(-50%, 0);
+}
+.footer-beam {
+  stroke-dasharray: 4 3;
+  animation: footer-beam 2s ease-out forwards;
+}
+@keyframes footer-beam {
+  from { stroke-dashoffset: 14; opacity: 0; }
+  25% { opacity: 0.9; }
+  to { stroke-dashoffset: 0; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .footer-wordmark { transform: translate(-50%, 0); transition: none; }
+  .footer-beam { animation: none; }
 }

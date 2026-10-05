@@ -1,21 +1,69 @@
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
-/** SomaiyaNet wordmark. The logo mark is a Somaiya-red packet dot. */
+/**
+ * SomaiyaNet logo: a wide, engineered uppercase wordmark (Michroma) with one
+ * tapered launch-trajectory swoosh that runs under the word and climbs past
+ * its end, finishing in the red packet dot. Everything is sized in em, so the
+ * logo scales with the font size set through `className` (e.g. "text-lg").
+ */
+
+// Swoosh drawn in a 200x39 box that spans the word plus the climb-out on the
+// right. Outer edge then inner edge back, so it tapers from a hairline at the
+// start to its full width at the tip.
+const SWOOSH = "M 2 31 Q 170 44 197 5 L 196.2 8.6 Q 166 40.2 2 31 Z";
+
 export function Brand({ className }: { className?: string }) {
   return (
     <span
-      className={cn(
-        "font-sans inline-flex select-none items-center gap-2 font-bold tracking-tight",
-        className
-      )}
+      className={cn("relative inline-flex select-none items-center leading-none text-white", className)}
+      style={{ paddingRight: "2.1em", paddingTop: "0.5em", paddingBottom: "0.45em" }}
     >
       <span
         aria-hidden="true"
-        className="inline-block size-[0.55em] rounded-[30%] bg-[var(--somaiya)]"
-        style={{ boxShadow: "0 0 14px 2px var(--navy-700), 0 0 4px var(--somaiya)" }}
+        className="relative z-10 uppercase"
+        style={{ fontFamily: "Michroma, var(--font-sans)", letterSpacing: "0.14em", fontSize: "0.8em" }}
+      >
+        Somaiya<span style={{ color: "#9fb2ff" }}>Net</span>
+      </span>
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 200 39"
+        preserveAspectRatio="none"
+        className="pointer-events-none absolute inset-0 h-full w-full"
+      >
+        <defs>
+          <linearGradient id="sn-swoosh" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#3d5bff" stopOpacity="0.15" />
+            <stop offset="0.55" stopColor="#3d5bff" stopOpacity="0.9" />
+            <stop offset="1" stopColor="#ffffff" />
+          </linearGradient>
+        </defs>
+        <path d={SWOOSH} fill="url(#sn-swoosh)" />
+      </svg>
+      {/* The packet at the end of the trajectory (an HTML dot so it stays round). */}
+      <span
+        aria-hidden="true"
+        className="absolute rounded-full"
+        style={{
+          width: "0.26em",
+          height: "0.26em",
+          right: "0.08em",
+          top: "0.12em",
+          background: "#ff3b4f",
+          boxShadow: "0 0 0.35em rgba(255,59,79,0.8)",
+        }}
       />
-      <span className="text-[var(--text)]">SomaiyaNet</span>
       <span className="sr-only">SomaiyaNet</span>
     </span>
-  )
+  );
+}
+
+/** The trajectory and packet alone, for tight spots and the favicon. */
+export function BrandMark({ size = 22, className }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={cn("shrink-0", className)}>
+      <path d="M 2 20 Q 15 24 21 5 L 20 4.6 Q 13.5 21.6 2 20 Z" fill="#3d5bff" />
+      <circle cx="21" cy="4" r="2.1" fill="#ff3b4f" />
+    </svg>
+  );
 }
