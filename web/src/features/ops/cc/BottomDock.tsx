@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useRole } from "@/app/access";
 import type { GlobeView } from "./types";
 
@@ -16,15 +15,6 @@ export function BottomDock({
   onDemoRoute,
 }: BottomDockProps) {
   const { access } = useRole();
-  const [clock, setClock] = useState(() => new Date());
-
-  useEffect(() => {
-    const t = window.setInterval(() => setClock(new Date()), 1000);
-    return () => window.clearInterval(t);
-  }, []);
-
-  const p = (n: number): string => String(n).padStart(2, "0");
-
   const views: Array<{ id: GlobeView; label: string }> = [
     { id: "globe", label: "Whole Earth" },
     { id: "mumbai", label: "Mumbai" },
@@ -54,19 +44,12 @@ export function BottomDock({
           })}
         </div>
 
-        {/* Live or Mock pill */}
-        <span
-          className="sx-status text-[12px] px-2.5 select-none"
-          data-tone={mock ? "warn" : "ok"}
-        >
-          {mock ? "Mock data" : "Live PostgreSQL"}
-        </span>
-
-        {/* UTC Clock box */}
-        <span className="sx-num text-[12px] text-[var(--sx-text-2)] tabular-nums px-2">
-          {p(clock.getUTCHours())}:{p(clock.getUTCMinutes())}:
-          {p(clock.getUTCSeconds())} <span className="text-[var(--sx-text-3)]">UTC</span>
-        </span>
+        {/* only flag fallback data; live is the normal state */}
+        {mock && (
+          <span className="sx-status text-[12px] px-2.5 select-none" data-tone="warn">
+            Mock data
+          </span>
+        )}
 
         {/* Demo route button */}
         <button
