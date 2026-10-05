@@ -6,6 +6,7 @@ interface BottomDockProps {
   onViewChange: (view: GlobeView) => void;
   mock: boolean;
   onDemoRoute: () => void;
+  hasActiveRoute?: boolean;
 }
 
 export function BottomDock({
@@ -13,6 +14,7 @@ export function BottomDock({
   onViewChange,
   mock,
   onDemoRoute,
+  hasActiveRoute = false,
 }: BottomDockProps) {
   const { access } = useRole();
   const views: Array<{ id: GlobeView; label: string }> = [
@@ -51,13 +53,13 @@ export function BottomDock({
           </span>
         )}
 
-        {/* Demo route button */}
+        {/* Packet route playback button */}
         <button
           type="button"
           onClick={onDemoRoute}
           className="sx-btn sx-btn--sm"
         >
-          Show sample route
+          {hasActiveRoute ? "Replay Route" : "Show Packet Route"}
         </button>
       </div>
     </div>

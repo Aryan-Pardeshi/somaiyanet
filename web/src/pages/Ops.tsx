@@ -2,7 +2,8 @@
 // Dark, cinematic mission console on pure black built around glowing night-lights Earth.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRole } from "@/app/access";
-import { OpsGlobe, type OpsGlobeHandle } from "@/features/ops/OpsGlobe";
+import { ApiError } from "@/app/api";
+import { OpsGlobe, type OpsGlobeHandle, type RouteHop } from "@/features/ops/OpsGlobe";
 import { useOpsData, type TelemetryEvent } from "@/features/ops/api";
 import { TabButtons, TopBar } from "@/features/ops/cc/TopBar";
 import { LiquidOverlay, type GlassSlab } from "@/features/ops/cc/LiquidOverlay";
@@ -10,6 +11,8 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { LeftRail } from "@/features/ops/cc/LeftRail";
 import { RightRail } from "@/features/ops/cc/RightRail";
 import { BottomDock } from "@/features/ops/cc/BottomDock";
+import { RouteCard, type RouteHopCardData } from "@/features/ops/cc/RouteCard";
+import { findRoutes, type CgrRoute } from "@/features/routing/api";
 import type { FleetFilter, GlobeView, OpsTab } from "@/features/ops/cc/types";
 
 function seedHistories(
@@ -39,6 +42,20 @@ export default function Ops() {
   const [activeTab, setActiveTab] = useState<OpsTab>("overview");
   const [filter, setFilter] = useState<FleetFilter>("ALL");
 
+  interface RoutePlaybackState {
+    origin: string;
+    route: CgrRoute | null;
+    hops: RouteHopCardData[];
+    globeHops: RouteHop[];
+    activeHopIndex: number;
+    isCompleted: boolean;
+    isLoading: boolean;
+    isFallback: boolean;
+    sqlError?: { sqlstate?: string; message: string } | null;
+  }
+
+  const [routeState, setRouteState] = useState<RoutePlaybackState | null>(null);
+
   // Station operators (access.station): default camera = their station (Mumbai for GS-BOM, Espoo for GS-HEL)
   const defaultView: GlobeView = useMemo(() => {
     if (access?.station === "GS-HEL") return "espoo";
@@ -67,26 +84,265 @@ export default function Ops() {
     globeRef.current?.flyTo(v);
   };
 
-  const handleDemoRoute = (): void => {
-    const nowIso = new Date().toISOString();
-    const hop1Iso = new Date(Date.now() + 1400).toISOString();
-    const hop2Iso = new Date(Date.now() + 2800).toISOString();
-    globeRef.current?.playRoute([
-      {
-        from_node: "SS-1",
-        to_node: "SS-2",
-        depart_ts: nowIso,
-        arrive_ts: hop1Iso,
-        kind: "ISL",
+  const handleReplayRoute = (): void => {
+    if (!routeState || routeState.globeHops.length === 0) return;
+    setRouteState((prev) =>
+      prev ? { ...prev, activeHopIndex: 0, isCompleted: false } : null,
+    );
+    globeRef.current?.playRoute(routeState.globeHops, {
+      onHop: (hopIdx) => {
+        setRouteState((prev) =>
+          prev ? { ...prev, activeHopIndex: hopIdx } : null,
+        );
       },
-      {
-        from_node: "SS-2",
-        to_node: "GS-BOM",
-        depart_ts: hop1Iso,
-        arrive_ts: hop2Iso,
-        kind: "DOWNLINK",
+      onDone: () => {
+        setRouteState((prev) =>
+          prev ? { ...prev, isCompleted: true } : null,
+        );
       },
-    ]);
+    });
+  };
+
+  const handleCloseRoute = (): void => {
+    setRouteState(null);
+    globeRef.current?.clearRoute();
+  };
+
+  const handlePlayRoute = async (): Promise<void> => {
+    if (routeState && !routeState.isLoading) {
+      handleReplayRoute();
+      return;
+    }
+
+    const selectedSat = selectedId
+      ? data.sats.find((s) => s.node_id === selectedId)
+      : null;
+    const isFlying =
+      selectedSat &&
+      selectedSat.state !== "STOWED" &&
+      /^SS-[1-3]$/.test(selectedSat.node_id);
+    const origin = isFlying ? selectedSat.node_id : "SS-1";
+
+    globeRef.current?.clearRoute();
+
+    setRouteState({
+      origin,
+      route: null,
+      hops: [],
+      globeHops: [],
+      activeHopIndex: 0,
+      isCompleted: false,
+      isLoading: true,
+      isFallback: false,
+      sqlError: null,
+    });
+
+    const t0 = new Date().toISOString();
+    const t0Ms = Date.parse(t0);
+
+    let route: CgrRoute | null = null;
+    let isFallback = false;
+    let sqlError: { sqlstate?: string; message: string } | null = null;
+
+    try {
+      const routes = await findRoutes(origin, t0, 41216, 4);
+      if (routes && routes.length > 0) {
+        const sorted = [...routes].sort((a, b) => a.rank - b.rank);
+        route = sorted[0];
+      } else {
+        isFallback = true;
+      }
+    } catch (err) {
+      isFallback = true;
+      if (err instanceof ApiError) {
+        sqlError = { sqlstate: err.sqlstate, message: err.message };
+      } else if (err && typeof err === "object" && "message" in err) {
+        sqlError = { message: String((err as { message: string }).message) };
+      } else {
+        sqlError = { message: "Database offline" };
+      }
+    }
+
+    const cardHops: RouteHopCardData[] = [];
+    const globeHops: RouteHop[] = [];
+
+    if (!isFallback && route && route.path_nodes.length >= 2) {
+      let prevArriveMs = t0Ms;
+      for (let i = 0; i < route.path_nodes.length - 1; i++) {
+        const fromNode = route.path_nodes[i];
+        const toNode = route.path_nodes[i + 1];
+        const contactId = route.path_contacts[i];
+        const contact = data.contacts.find((c) => c.contact_id === contactId);
+
+        let kind: "ISL" | "DOWNLINK" = toNode.startsWith("GS-")
+          ? "DOWNLINK"
+          : "ISL";
+        let linkScore: number | null = null;
+        let departRel = "n/a";
+        let departTs: string | undefined = undefined;
+        let arriveTs: string | undefined = undefined;
+
+        if (contact) {
+          kind = contact.kind;
+          linkScore = contact.link_score;
+          const cStartMs = Date.parse(contact.start_ts);
+          const departMs = Math.max(prevArriveMs, cStartMs);
+          const arriveMs = departMs;
+          prevArriveMs = arriveMs;
+
+          departTs = new Date(departMs).toISOString();
+          arriveTs = new Date(arriveMs).toISOString();
+
+          const deltaS = Math.round((departMs - t0Ms) / 1000);
+          if (deltaS <= 0) {
+            departRel = "now";
+          } else {
+            const mins = Math.round(deltaS / 60);
+            departRel = mins === 0 ? "now" : `T+${String(mins).padStart(2, "0")} min`;
+          }
+        }
+
+        cardHops.push({
+          hopNo: i + 1,
+          fromNode,
+          toNode,
+          kind,
+          linkScore,
+          departRel,
+        });
+
+        globeHops.push({
+          from_node: fromNode,
+          to_node: toNode,
+          kind,
+          depart_ts: departTs,
+          arrive_ts: arriveTs,
+          link_score: linkScore,
+        });
+      }
+    } else {
+      isFallback = true;
+      let nextSat = origin === "SS-2" ? "SS-1" : "SS-2";
+      let destStation = "GS-BOM";
+
+      const islContact = data.contacts.find(
+        (c) => c.from_node === origin && c.kind === "ISL",
+      );
+      if (islContact) nextSat = islContact.to_node;
+      const dlContact = data.contacts.find(
+        (c) => c.from_node === nextSat && c.kind === "DOWNLINK",
+      );
+      if (dlContact) destStation = dlContact.to_node;
+
+      const hop1Contact =
+        islContact ??
+        data.contacts.find(
+          (c) => c.from_node === origin && c.to_node === nextSat,
+        );
+      const hop2Contact =
+        dlContact ??
+        data.contacts.find(
+          (c) => c.from_node === nextSat && c.to_node === destStation,
+        );
+
+      let prevArriveMs = t0Ms;
+      const fallbackDefs: Array<{
+        from: string;
+        to: string;
+        kind: "ISL" | "DOWNLINK";
+        contact: typeof hop1Contact;
+      }> = [
+        { from: origin, to: nextSat, kind: "ISL", contact: hop1Contact },
+        { from: nextSat, to: destStation, kind: "DOWNLINK", contact: hop2Contact },
+      ];
+
+      for (let i = 0; i < fallbackDefs.length; i++) {
+        const def = fallbackDefs[i];
+        let linkScore: number | null = null;
+        let departRel = "n/a";
+        let departTs: string | undefined = undefined;
+        let arriveTs: string | undefined = undefined;
+
+        if (def.contact) {
+          linkScore = def.contact.link_score;
+          const cStartMs = Date.parse(def.contact.start_ts);
+          const departMs = Math.max(prevArriveMs, cStartMs);
+          const arriveMs = departMs;
+          prevArriveMs = arriveMs;
+          departTs = new Date(departMs).toISOString();
+          arriveTs = new Date(arriveMs).toISOString();
+          const deltaS = Math.round((departMs - t0Ms) / 1000);
+          departRel =
+            deltaS <= 0
+              ? "now"
+              : `T+${String(Math.round(deltaS / 60)).padStart(2, "0")} min`;
+        }
+
+        cardHops.push({
+          hopNo: i + 1,
+          fromNode: def.from,
+          toNode: def.to,
+          kind: def.kind,
+          linkScore,
+          departRel,
+        });
+
+        globeHops.push({
+          from_node: def.from,
+          to_node: def.to,
+          kind: def.kind,
+          depart_ts: departTs,
+          arrive_ts: arriveTs,
+          link_score: linkScore,
+        });
+      }
+
+      const knownScores = cardHops
+        .map((h) => h.linkScore)
+        .filter((s): s is number => s !== null);
+      const bottleneck = knownScores.length > 0 ? Math.min(...knownScores) : 43;
+      const latencyS = Math.max(1, Math.round((prevArriveMs - t0Ms) / 1000));
+
+      route = {
+        rank: 1,
+        destination: destStation,
+        arrival_ts: new Date(prevArriveMs).toISOString(),
+        hops: cardHops.length,
+        bottleneck_score: bottleneck,
+        latency_s: latencyS > 1 ? latencyS : 1527,
+        path_nodes: [origin, nextSat, destStation],
+        path_contacts: [
+          hop1Contact?.contact_id ?? 0,
+          hop2Contact?.contact_id ?? 0,
+        ],
+        explanation: "Sample route fallback",
+      };
+    }
+
+    setRouteState({
+      origin,
+      route,
+      hops: cardHops,
+      globeHops,
+      activeHopIndex: 0,
+      isCompleted: false,
+      isLoading: false,
+      isFallback,
+      sqlError,
+    });
+
+    globeRef.current?.playRoute(globeHops, {
+      onHop: (hopIdx) => {
+        setRouteState((prev) =>
+          prev ? { ...prev, activeHopIndex: hopIdx } : null,
+        );
+      },
+      onDone: () => {
+        setRouteState((prev) =>
+          prev ? { ...prev, isCompleted: true } : null,
+        );
+      },
+    });
   };
 
   const histories = useMemo(
@@ -269,15 +525,35 @@ export default function Ops() {
         </>
       )}
 
-      {/* 5. Bottom Dock: view switching and sample route playback */}
+      {/* 5. Bottom Dock: view switching and packet route playback */}
       <div className="p-4 lg:p-0 lg:absolute lg:bottom-2 lg:inset-x-0 lg:z-20 pointer-events-none flex justify-center">
         <BottomDock
           currentView={currentView}
           onViewChange={handleViewChange}
           mock={data.mock}
-          onDemoRoute={handleDemoRoute}
+          onDemoRoute={handlePlayRoute}
+          hasActiveRoute={routeState !== null}
         />
       </div>
+
+      {/* 6. Route Card floating above BottomDock */}
+      {routeState && (
+        <div className="fixed sm:absolute bottom-20 inset-x-0 mx-auto w-[calc(100%-32px)] max-w-[480px] z-30 pointer-events-auto">
+          <RouteCard
+            origin={routeState.origin}
+            route={routeState.route}
+            hops={routeState.hops}
+            activeHopIndex={routeState.activeHopIndex}
+            isCompleted={routeState.isCompleted}
+            isLoading={routeState.isLoading}
+            isFallback={routeState.isFallback}
+            sqlError={routeState.sqlError}
+            stations={data.stations}
+            onReplay={handleReplayRoute}
+            onClose={handleCloseRoute}
+          />
+        </div>
+      )}
     </div>
   );
 }

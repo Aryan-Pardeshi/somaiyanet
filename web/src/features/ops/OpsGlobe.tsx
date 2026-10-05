@@ -20,16 +20,23 @@ import {
   type LatLngAlt,
 } from "./orbit";
 
+export interface RoutePlaybackCallbacks {
+  onHop?: (hopIndex: number) => void;
+  onDone?: () => void;
+}
+
 export interface RouteHop {
   from_node: string;
   to_node: string;
-  depart_ts: string;
-  arrive_ts: string;
+  depart_ts?: string;
+  arrive_ts?: string;
   kind: "ISL" | "DOWNLINK";
+  link_score?: number | null;
 }
 
 export interface OpsGlobeHandle {
-  playRoute: (hops: RouteHop[]) => void;
+  playRoute: (hops: RouteHop[], callbacks?: RoutePlaybackCallbacks) => void;
+  clearRoute: () => void;
   flyTo: (view: GlobeView) => void;
 }
 
@@ -80,11 +87,182 @@ const MODEL_ALT = 525 / EARTH_R_KM;
 // and links are drawn on a raised shell (about 0.2 Earth radii) for legibility.
 const VIS_ALT = 0.2;
 
+interface PlaybackState {
+  hops: RouteHop[];
+  callbacks?: RoutePlaybackCallbacks;
+  phase: "camera" | "travel" | "wait" | "done";
+  phaseStartReal: number;
+  hopIdx: number;
+  completedHops: number;
+}
+
+function computeRouteFraming(
+  nodeNames: string[],
+  nodePosFn: (name: string) => LatLngAlt | null,
+): { lat: number; lng: number; altitude: number } {
+  let sumX = 0;
+  let sumY = 0;
+  let sumZ = 0;
+  let count = 0;
+  const positions: Array<{ lat: number; lng: number; alt: number; x: number; y: number; z: number }> = [];
+
+  for (const name of nodeNames) {
+    const p = nodePosFn(name);
+    if (!p) continue;
+    const la = (p.lat * Math.PI) / 180;
+    const lo = (p.lng * Math.PI) / 180;
+    const x = Math.cos(la) * Math.cos(lo);
+    const y = Math.sin(la);
+    const z = Math.cos(la) * Math.sin(lo);
+    positions.push({ ...p, x, y, z });
+    sumX += x;
+    sumY += y;
+    sumZ += z;
+    count++;
+  }
+
+  if (count === 0) {
+    return { lat: 19.07, lng: 72.9, altitude: 2.2 };
+  }
+
+  const avgX = sumX / count;
+  const avgY = sumY / count;
+  const avgZ = sumZ / count;
+  const len = Math.sqrt(avgX * avgX + avgY * avgY + avgZ * avgZ);
+
+  let midLat = 19.07;
+  let midLng = 72.9;
+  if (len > 1e-4) {
+    const unitY = avgY / len;
+    midLat = Math.asin(Math.max(-1, Math.min(1, unitY))) * (180 / Math.PI);
+    midLng = Math.atan2(avgZ, avgX) * (180 / Math.PI);
+  }
+
+  const mla = (midLat * Math.PI) / 180;
+  const mlo = (midLng * Math.PI) / 180;
+  const midX = Math.cos(mla) * Math.cos(mlo);
+  const midY = Math.sin(mla);
+  const midZ = Math.cos(mla) * Math.sin(mlo);
+
+  let maxAngleRad = 0.2;
+  for (const pos of positions) {
+    const dot = Math.max(-1, Math.min(1, midX * pos.x + midY * pos.y + midZ * pos.z));
+    const ang = Math.acos(dot);
+    if (ang > maxAngleRad) maxAngleRad = ang;
+  }
+
+  const altitude = Math.min(2.8, Math.max(2.3, 1.7 + maxAngleRad * 1.0));
+  // Aim a little south of the route so it sits in the upper half of the view,
+  // clear of the route card docked at the bottom.
+  return { lat: Math.max(-80, midLat - 9 * altitude), lng: midLng, altitude };
+}
+
+function generateIslPath(
+  from: LatLngAlt,
+  to: LatLngAlt,
+  steps = 16,
+): Array<[number, number, number]> {
+  const getCart = (p: LatLngAlt) => {
+    const R = 1 + p.alt;
+    const latRad = p.lat * (Math.PI / 180);
+    const lngRad = p.lng * (Math.PI / 180);
+    return {
+      x: R * Math.cos(latRad) * Math.sin(lngRad),
+      y: R * Math.sin(latRad),
+      z: R * Math.cos(latRad) * Math.cos(lngRad),
+    };
+  };
+  const c1 = getCart(from);
+  const c2 = getCart(to);
+  const pts: Array<[number, number, number]> = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const x = (1 - t) * c1.x + t * c2.x;
+    const y = (1 - t) * c1.y + t * c2.y;
+    const z = (1 - t) * c1.z + t * c2.z;
+    const r = Math.sqrt(x * x + y * y + z * z);
+    const lat = Math.asin(Math.max(-1, Math.min(1, y / r))) * (180 / Math.PI);
+    const lng = Math.atan2(x, z) * (180 / Math.PI);
+    const alt = Math.max(0.004, r - 1.0);
+    pts.push([lat, lng, alt]);
+  }
+  return pts;
+}
+
+function generateDownlinkPath(
+  from: LatLngAlt,
+  to: LatLngAlt,
+  steps = 20,
+): Array<[number, number, number]> {
+  let dLng = to.lng - from.lng;
+  if (dLng > 180) dLng -= 360;
+  else if (dLng < -180) dLng += 360;
+
+  const pts: Array<[number, number, number]> = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const lat = from.lat + (to.lat - from.lat) * t;
+    let lng = from.lng + dLng * t;
+    if (lng > 180) lng -= 360;
+    else if (lng < -180) lng += 360;
+
+    const easeDown = t * t * (3 - 2 * t);
+    const alt = from.alt + (to.alt - from.alt) * easeDown;
+    pts.push([lat, lng, alt]);
+  }
+  return pts;
+}
+
+function interpolateHopPos(
+  from: LatLngAlt,
+  to: LatLngAlt,
+  kind: "ISL" | "DOWNLINK",
+  k: number,
+): LatLngAlt {
+  if (kind === "ISL") {
+    const R1 = 1 + from.alt;
+    const lat1 = from.lat * (Math.PI / 180);
+    const lng1 = from.lng * (Math.PI / 180);
+    const x1 = R1 * Math.cos(lat1) * Math.sin(lng1);
+    const y1 = R1 * Math.sin(lat1);
+    const z1 = R1 * Math.cos(lat1) * Math.cos(lng1);
+
+    const R2 = 1 + to.alt;
+    const lat2 = to.lat * (Math.PI / 180);
+    const lng2 = to.lng * (Math.PI / 180);
+    const x2 = R2 * Math.cos(lat2) * Math.sin(lng2);
+    const y2 = R2 * Math.sin(lat2);
+    const z2 = R2 * Math.cos(lat2) * Math.cos(lng2);
+
+    const x = (1 - k) * x1 + k * x2;
+    const y = (1 - k) * y1 + k * y2;
+    const z = (1 - k) * z1 + k * z2;
+    const r = Math.sqrt(x * x + y * y + z * z);
+    const lat = Math.asin(Math.max(-1, Math.min(1, y / r))) * (180 / Math.PI);
+    const lng = Math.atan2(x, z) * (180 / Math.PI);
+    const alt = Math.max(0.004, r - 1.0);
+    return { lat, lng, alt };
+  } else {
+    let dLng = to.lng - from.lng;
+    if (dLng > 180) dLng -= 360;
+    else if (dLng < -180) dLng += 360;
+
+    const lat = from.lat + (to.lat - from.lat) * k;
+    let lng = from.lng + dLng * k;
+    if (lng > 180) lng -= 360;
+    else if (lng < -180) lng += 360;
+
+    const easeDown = k * k * (3 - 2 * k);
+    const alt = from.alt + (to.alt - from.alt) * easeDown;
+    return { lat, lng, alt };
+  }
+}
 
 export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
   function OpsGlobe(props, ref) {
     const containerRef = useRef<HTMLDivElement>(null);
     const dotRef = useRef<HTMLDivElement>(null);
+    const ringRef = useRef<HTMLDivElement>(null);
     const worldRef = useRef<World | null>(null);
     const sunRef = useRef<{ lastMin: number; lights: unknown[] | null }>({
       lastMin: -1,
@@ -95,14 +273,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
     const recsRef = useRef(new Map<string, satellite.SatRec>());
     const satsRef = useRef<SatDatum[]>([]);
     const stationsRef = useRef<StationDatum[]>([]);
-    const playRef = useRef<{
-      hops: RouteHop[];
-      idx: number;
-      t0: number;
-      dur: number;
-      from: LatLngAlt;
-      to: LatLngAlt;
-    } | null>(null);
+    const playRef = useRef<PlaybackState | null>(null);
     const liveRef = useRef(props);
     liveRef.current = props;
 
@@ -110,27 +281,100 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
 
     const nodePos = (name: string, tMs: number): LatLngAlt | null => {
       const rec = recsRef.current.get(name);
-      if (rec) return propagateSat(rec, tMs);
+      if (rec) {
+        const p = propagateSat(rec, tMs);
+        if (p) return { lat: p.lat, lng: p.lng, alt: VIS_ALT };
+        return null;
+      }
       const st = liveRef.current.stations.find((s) => s.node_id === name);
       if (st) return { lat: st.latitude, lng: st.longitude, alt: 0.004 };
       return null;
     };
 
-    const playRouteHops = (hops: RouteHop[]): void => {
+    const playRouteHops = (
+      hops: RouteHop[],
+      callbacks?: RoutePlaybackCallbacks,
+    ): void => {
       if (hops.length === 0) return;
-      const t0 = Date.parse(hops[0].depart_ts);
-      if (Number.isFinite(t0)) simRef.current.simMs = t0;
-      const from = nodePos(hops[0].from_node, simRef.current.simMs);
-      const to = nodePos(hops[0].to_node, simRef.current.simMs);
-      if (!from || !to) return;
+      const world = worldRef.current;
+      if (!world) return;
+
+      const allNodes = Array.from(
+        new Set(hops.flatMap((h) => [h.from_node, h.to_node])),
+      );
+
+      const framing = computeRouteFraming(allNodes, (name) =>
+        nodePos(name, simRef.current.simMs),
+      );
+
+      const prefersReducedMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (prefersReducedMotion) {
+        world.pointOfView(framing, 0);
+        playRef.current = {
+          hops,
+          callbacks,
+          phase: "done",
+          phaseStartReal: performance.now(),
+          hopIdx: hops.length - 1,
+          completedHops: hops.length,
+        };
+        const lastHop = hops[hops.length - 1];
+        const dest = nodePos(lastHop.to_node, simRef.current.simMs);
+        if (dest && dotRef.current) {
+          try {
+            const xy = world.getScreenCoords(dest.lat, dest.lng, dest.alt) as {
+              x: number;
+              y: number;
+            };
+            dotRef.current.style.display = "block";
+            dotRef.current.style.transform = `translate(${xy.x.toFixed(1)}px, ${xy.y.toFixed(1)}px) translate(-50%,-50%)`;
+          } catch {
+            dotRef.current.style.display = "none";
+          }
+        }
+        callbacks?.onHop?.(hops.length - 1);
+        callbacks?.onDone?.();
+        return;
+      }
+
+      // Step 1: Camera eases (1.2 s) to frame the whole route
+      world.pointOfView(framing, 1200);
+
+      // Step 2: The whole route appears first as a faint preview
       playRef.current = {
         hops,
-        idx: 0,
-        t0: performance.now(),
-        dur: 1400,
-        from,
-        to,
+        callbacks,
+        phase: "camera",
+        phaseStartReal: performance.now(),
+        hopIdx: 0,
+        completedHops: 0,
       };
+
+      const startNode = nodePos(hops[0].from_node, simRef.current.simMs);
+      if (startNode && dotRef.current) {
+        try {
+          const xy = world.getScreenCoords(
+            startNode.lat,
+            startNode.lng,
+            startNode.alt,
+          ) as { x: number; y: number };
+          dotRef.current.style.display = "block";
+          dotRef.current.style.transform = `translate(${xy.x.toFixed(1)}px, ${xy.y.toFixed(1)}px) translate(-50%,-50%)`;
+        } catch {
+          dotRef.current.style.display = "none";
+        }
+      }
+
+      callbacks?.onHop?.(0);
+    };
+
+    const clearRoute = (): void => {
+      playRef.current = null;
+      if (dotRef.current) dotRef.current.style.display = "none";
+      if (ringRef.current) ringRef.current.style.display = "none";
     };
 
     const flyToView = (view: GlobeView): void => {
@@ -166,6 +410,7 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
 
     useImperativeHandle(ref, () => ({
       playRoute: playRouteHops,
+      clearRoute,
       flyTo: flyToView,
     }));
 
@@ -396,48 +641,124 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
           }
         }
 
-        // Packet-dot playback for demo route
+        // Packet-dot & ring playback for packet route
         const play = playRef.current;
         const dot = dotRef.current;
+        const ring = ringRef.current;
+
         if (play && dot) {
-          const k = Math.min(1, (real - play.t0) / play.dur);
-          let dLng = play.to.lng - play.from.lng;
-          if (dLng > 180) dLng -= 360;
-          else if (dLng < -180) dLng += 360;
-          const lat = play.from.lat + (play.to.lat - play.from.lat) * k;
-          const lng = play.from.lng + dLng * k;
-          const alt = play.from.alt + (play.to.alt - play.from.alt) * k;
-          try {
-            const xy = world.getScreenCoords(lat, lng, alt) as {
-              x: number;
-              y: number;
-            };
-            dot.style.display = "block";
-            dot.style.transform = `translate(${xy.x.toFixed(1)}px, ${xy.y.toFixed(1)}px) translate(-50%,-50%)`;
-          } catch {
-            dot.style.display = "none";
-          }
-          if (k >= 1) {
-            const next = play.idx + 1;
-            if (next >= play.hops.length) {
-              playRef.current = null;
-              dot.style.display = "none";
-            } else {
-              const hop = play.hops[next];
-              const t = Date.parse(hop.depart_ts);
-              if (Number.isFinite(t)) simRef.current.simMs = t;
-              const from =
-                nodePos(hop.from_node, simRef.current.simMs) ?? play.to;
-              const to = nodePos(hop.to_node, simRef.current.simMs) ?? play.to;
-              playRef.current = {
-                ...play,
-                idx: next,
-                t0: real,
-                from,
-                to,
-              };
+          if (play.phase === "camera") {
+            const startNode = nodePos(play.hops[0].from_node, simMs);
+            if (startNode) {
+              try {
+                const xy = world.getScreenCoords(
+                  startNode.lat,
+                  startNode.lng,
+                  startNode.alt,
+                ) as { x: number; y: number };
+                dot.style.display = "block";
+                dot.style.transform = `translate(${xy.x.toFixed(1)}px, ${xy.y.toFixed(1)}px) translate(-50%,-50%)`;
+              } catch {
+                dot.style.display = "none";
+              }
             }
+            if (real - play.phaseStartReal >= 1200) {
+              play.phase = "travel";
+              play.phaseStartReal = real;
+              play.hopIdx = 0;
+            }
+          } else if (play.phase === "travel") {
+            const hop = play.hops[play.hopIdx];
+            const hopElapsed = real - play.phaseStartReal;
+            const progress = Math.min(1, hopElapsed / 1600);
+            const k = (1 - Math.cos(progress * Math.PI)) / 2;
+
+            const from = nodePos(hop.from_node, simMs);
+            const to = nodePos(hop.to_node, simMs);
+            if (from && to) {
+              const packetPos = interpolateHopPos(from, to, hop.kind, k);
+              try {
+                const xy = world.getScreenCoords(
+                  packetPos.lat,
+                  packetPos.lng,
+                  packetPos.alt,
+                ) as { x: number; y: number };
+                dot.style.display = "block";
+                dot.style.transform = `translate(${xy.x.toFixed(1)}px, ${xy.y.toFixed(1)}px) translate(-50%,-50%)`;
+              } catch {
+                dot.style.display = "none";
+              }
+            }
+
+            if (progress >= 1) {
+              play.completedHops = play.hopIdx + 1;
+              play.phase = "wait";
+              play.phaseStartReal = real;
+            }
+          } else if (play.phase === "wait") {
+            const waitElapsed = real - play.phaseStartReal;
+            const waitProgress = Math.min(1, waitElapsed / 600);
+            const currNodeName = play.hops[play.hopIdx].to_node;
+            const currNode = nodePos(currNodeName, simMs);
+
+            if (currNode) {
+              try {
+                const xy = world.getScreenCoords(
+                  currNode.lat,
+                  currNode.lng,
+                  currNode.alt,
+                ) as { x: number; y: number };
+                dot.style.display = "block";
+                dot.style.transform = `translate(${xy.x.toFixed(1)}px, ${xy.y.toFixed(1)}px) translate(-50%,-50%)`;
+
+                if (ring && waitProgress < 1) {
+                  const size = 8 + waitProgress * 30;
+                  const alpha = Math.max(0, 1 - waitProgress);
+                  ring.style.display = "block";
+                  ring.style.width = `${size.toFixed(1)}px`;
+                  ring.style.height = `${size.toFixed(1)}px`;
+                  ring.style.borderColor = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
+                  ring.style.transform = `translate(${xy.x.toFixed(1)}px, ${xy.y.toFixed(1)}px) translate(-50%,-50%)`;
+                }
+              } catch {
+                dot.style.display = "none";
+                if (ring) ring.style.display = "none";
+              }
+            }
+
+            if (waitProgress >= 1) {
+              if (ring) ring.style.display = "none";
+              if (play.hopIdx + 1 < play.hops.length) {
+                play.hopIdx += 1;
+                play.phase = "travel";
+                play.phaseStartReal = real;
+                play.callbacks?.onHop?.(play.hopIdx);
+              } else {
+                play.phase = "done";
+                play.callbacks?.onDone?.();
+              }
+            }
+          } else if (play.phase === "done") {
+            const destNodeName = play.hops[play.hops.length - 1].to_node;
+            const destNode = nodePos(destNodeName, simMs);
+            if (destNode) {
+              try {
+                const xy = world.getScreenCoords(
+                  destNode.lat,
+                  destNode.lng,
+                  destNode.alt,
+                ) as { x: number; y: number };
+                dot.style.display = "block";
+                dot.style.transform = `translate(${xy.x.toFixed(1)}px, ${xy.y.toFixed(1)}px) translate(-50%,-50%)`;
+              } catch {
+                dot.style.display = "none";
+              }
+            }
+            if (ring) ring.style.display = "none";
           }
+        } else {
+          if (dot && dot.style.display !== "none") dot.style.display = "none";
+          if (ring && ring.style.display !== "none") ring.style.display = "none";
         }
 
         // Layer refresh throttled
@@ -482,7 +803,8 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
           }
         }
 
-        if (real - lastPath > 600) {
+        const pathInterval = playRef.current ? 80 : 600;
+        if (real - lastPath > pathInterval) {
           lastPath = real;
           const paths: PathDatum[] = [];
           const { selectedId, contacts, stations, sats } = liveRef.current;
@@ -576,17 +898,40 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
             }
           }
 
-          // 4. The active route (#ff453a)
+          // 4. Packet route lines (#ff453a)
           if (playRef.current) {
             const p = playRef.current;
-            paths.push({
-              pts: [
-                [p.from.lat, p.from.lng, p.from.alt],
-                [p.to.lat, p.to.lng, p.to.alt],
-              ],
-              colors: "#ff453a",
-              stroke: 2.0,
-            });
+            for (let i = 0; i < p.hops.length; i++) {
+              const hop = p.hops[i];
+              const from = nodePos(hop.from_node, simMs);
+              const to = nodePos(hop.to_node, simMs);
+              if (!from || !to) continue;
+
+              const pts =
+                hop.kind === "ISL"
+                  ? generateIslPath(from, to)
+                  : generateDownlinkPath(from, to);
+
+              if (i < p.completedHops) {
+                // Completed hop becomes solid 2px #ff453a and stays
+                paths.push({
+                  pts,
+                  colors: "#ff453a",
+                  stroke: 2.0,
+                  dashLength: 0,
+                  dashGap: 0,
+                });
+              } else {
+                // Faint preview: each hop drawn 1px #ff453a at 30% (dashed)
+                paths.push({
+                  pts,
+                  colors: "rgba(255, 69, 58, 0.30)",
+                  stroke: 1.0,
+                  dashLength: 0.015,
+                  dashGap: 0.015,
+                });
+              }
+            }
           }
 
           world.pathsData(paths as unknown as object[]);
@@ -786,9 +1131,6 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
  background: #ffffff;
  flex-shrink: 0;
  }
- .ops-station-sq.ops-mumbai {
- background: #ff453a;
- }
  .ops-station-tag {
  position: absolute;
  left: 10px;
@@ -806,7 +1148,16 @@ export const OpsGlobe = forwardRef<OpsGlobeHandle, OpsGlobeProps>(
         <div ref={containerRef} className="absolute inset-0" />
         <div
           ref={dotRef}
-          className="pointer-events-none absolute left-0 top-0 z-30 hidden h-2.5 w-2.5 rounded-full bg-[#ff453a]"
+          className="pointer-events-none absolute left-0 top-0 z-30 hidden rounded-full bg-[#ff453a]"
+          style={{
+            width: "8px",
+            height: "8px",
+            display: "none",
+          }}
+        />
+        <div
+          ref={ringRef}
+          className="pointer-events-none absolute left-0 top-0 z-30 hidden rounded-full border border-white"
           style={{
             display: "none",
           }}
