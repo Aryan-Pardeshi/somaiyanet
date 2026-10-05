@@ -7,8 +7,6 @@ import { PacketStepper } from "@/landing/PacketStepper";
 import { Spacecraft } from "@/landing/Spacecraft";
 import { GroundNetwork } from "@/landing/GroundNetwork";
 import { DatabaseRows } from "@/landing/DatabaseRows";
-import { RoleEllipses } from "@/landing/RoleEllipses";
-import { CtaBanner } from "@/landing/CtaBanner";
 import { Footer } from "@/landing/Footer";
 
 /**
@@ -27,8 +25,6 @@ export default function Landing() {
         <Spacecraft />
         <GroundNetwork />
         <DatabaseRows />
-        <RoleEllipses />
-        <CtaBanner />
       </main>
       <Footer />
     </div>
