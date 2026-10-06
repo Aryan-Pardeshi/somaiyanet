@@ -42,6 +42,18 @@ export function setSqlErrorPusher(fn: ErrPusher | null): void {
   errPusher = fn;
 }
 
+/**
+ * Production uses VITE_API_BASE_URL to point the static frontend at the
+ * separately deployed FastAPI service. Locally this stays empty so Vite's
+ * /api proxy continues to work.
+ */
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
+
+export function apiUrl(path: string): string {
+  if (!API_BASE) return path;
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 export class ApiError extends Error {
   status: number;
   sqlstate?: string;
@@ -99,8 +111,8 @@ function toRecords(raw: unknown): SqlRecord[] {
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<ApiOk<T>> {
   let res: Response;
   try {
-    res = await fetch(path, {
-      credentials: "same-origin",
+    res = await fetch(apiUrl(path), {
+      credentials: "include",
       ...init,
       headers: {
         "Content-Type": "application/json",
