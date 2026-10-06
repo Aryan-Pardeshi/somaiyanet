@@ -4,7 +4,7 @@
 // guards it), network errors fall back to mock data.
 
 import { useEffect, useState } from "react";
-import { apiFetch } from "@/app/api";
+import { apiFetch, apiUrl } from "@/app/api";
 import {
   mockAlerts,
   mockConstellation,
@@ -186,7 +186,9 @@ export function useOpsData(): OpsData {
 
     const startStream = (): void => {
       try {
-        const src = new EventSource("/api/stream");
+        const src = new EventSource(apiUrl("/api/stream"), {
+          withCredentials: true,
+        });
         sources.push(src);
         src.addEventListener("telemetry", (ev) => {
           const msg = ev as MessageEvent;
