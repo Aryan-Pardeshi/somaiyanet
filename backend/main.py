@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -42,6 +43,23 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SomaiyaNet", lifespan=lifespan)
 
+# The React app is a separate Render Static Site in production. Set
+# CORS_ORIGINS to the exact frontend origin (comma-separated for multiple
+# origins); leave unset for local same-origin/Vite-proxy development.
+cors_origins = [
+    origin.strip()
+    for origin in os.environ.get("CORS_ORIGINS", "").split(",")
+    if origin.strip()
+]
+if cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
 
 @app.exception_handler(Exception)
 async def unhandled(request: Request, exc: Exception):
@@ -57,7 +75,6 @@ async def unhandled(request: Request, exc: Exception):
             status_code=sqlbook.status_for(exc),
             content={"error": sqlbook.error_payload(exc), "sql": sqlbook.get_log(), "role": role},
         )
-    raise exc
 
 
 app.include_router(profiles.router)
