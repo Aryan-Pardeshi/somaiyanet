@@ -39,6 +39,54 @@ interface HopTimeline {
   kind: "ISL" | "DOWNLINK";
 }
 
+/** "52 min" or "1 h 05 min" for carry times. */
+function formatCarry(ms: number): string {
+  const min = Math.max(1, Math.round(ms / 60000));
+  if (min < 60) return `${min} min`;
+  return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")} min`;
+}
+
+/**
+ * The route in plain words, one sentence per radio hop, e.g.
+ * "SS-1 carried it for 52 min, then sent it down to Tokyo (1,604 km). Arrives 22:43."
+ * Distances are measured between the drawn positions, which are at true scale.
+ */
+function routeStory(
+  t0: number,
+  hops: HopTimeline[],
+  satrecs: Map<string, satellite.SatRec>,
+  stationsMap: Map<string, PublicStation>,
+  arrivalTs: string
+): string {
+  const where = (node: string, ms: number): THREE.Vector3 | null => {
+    const rec = satrecs.get(node);
+    if (rec) return getSatVector3(rec, ms);
+    const st = stationsMap.get(node);
+    return st ? getStationVector3(st.lat, st.lng) : null;
+  };
+  const sentences: string[] = [];
+  let prev = t0;
+  for (const h of hops) {
+    const a = where(h.fromNode, h.departMs);
+    const b = where(h.toNode, h.departMs);
+    const km = a && b ? Math.round((a.distanceTo(b) / EARTH_R) * 6371) : null;
+    const st = stationsMap.get(h.toNode);
+    const send = st
+      ? `sent it down to ${st.city || st.name}`
+      : `sent it to ${h.toNode} by radio`;
+    const dist = km !== null ? ` (${km.toLocaleString()} km)` : "";
+    const wait = h.departMs - prev;
+    sentences.push(
+      wait >= 60_000
+        ? `${h.fromNode} carried it for ${formatCarry(wait)}, then ${send}${dist}.`
+        : `${h.fromNode} ${send}${dist}.`
+    );
+    prev = h.arriveMs;
+  }
+  sentences.push(`Arrives ${formatLocalTime(arrivalTs)}.`);
+  return sentences.join(" ");
+}
+
 const TRANSFER_ANIM_MS = 900;
 
 /**
@@ -179,6 +227,8 @@ interface HeroSceneProps {
   stationsMap: Map<string, PublicStation>;
   satrecs: Map<string, satellite.SatRec>;
   replayCaptionRef: React.RefObject<HTMLSpanElement | null>;
+  /** Plain DOM labels over the canvas, placed by projecting each satellite every frame. */
+  satLabelRefs: React.RefObject<Map<string, HTMLSpanElement>>;
   userDragDelta: React.MutableRefObject<{ x: number; y: number }>;
   isVisible: boolean;
 }
@@ -191,6 +241,7 @@ function HeroScene({
   stationsMap,
   satrecs,
   replayCaptionRef,
+  satLabelRefs,
   userDragDelta,
   isVisible,
 }: HeroSceneProps) {
@@ -322,6 +373,7 @@ function HeroScene({
 
   // Replay control state inside refs
   const followRef = useRef(false);
+  const tmpWorld = useMemo(() => new THREE.Vector3(), []);
   const replayState = useRef({
     t0: 0,
     lastArrive: 0,
@@ -338,6 +390,7 @@ function HeroScene({
     targetRotY: 0,
     targetRotX: 0,
     lastCaption: "",
+    story: "",
   });
 
   // Track selection changes to re-trigger replay
@@ -366,7 +419,9 @@ function HeroScene({
       }
       const cStart = new Date(contact.start_ts).getTime();
       const depart = Math.max(prevArrive, Number.isFinite(cStart) ? cStart : prevArrive);
-      const arrive = depart + 34_000;
+      // The ~34 s radio transfer is drawn as an instant: satellites hold still while the
+      // packet crosses (the replay clock still gives each send 0.9 s on screen).
+      const arrive = depart + 1;
       hops.push({
         hopIndex: i,
         fromNode: selectedRoute.path_nodes[i] ?? contact.from_node,
@@ -380,6 +435,9 @@ function HeroScene({
     }
 
     const lastArrive = hops.length > 0 ? hops[hops.length - 1].arriveMs : t0;
+    const story = missingContactId === null
+      ? routeStory(t0, hops, satrecs, stationsMap, selectedRoute.arrival_ts)
+      : "";
     const numHops = Math.max(1, hops.length);
     const durationMs = Math.min(8000, Math.max(4000, numHops * 1500));
 
@@ -447,8 +505,7 @@ function HeroScene({
         packetMeshRef.current.visible = true;
       }
 
-      const destName = destStation?.city || destStation?.name || selectedRoute.destination;
-      const finalCap = `Delivered to ${destName} at ${formatLocalTime(selectedRoute.arrival_ts)}`;
+      const finalCap = story;
       if (replayCaptionRef.current) replayCaptionRef.current.textContent = finalCap;
 
       replayState.current = {
@@ -467,6 +524,7 @@ function HeroScene({
         targetRotY,
         targetRotX,
         lastCaption: finalCap,
+        story,
       };
     } else {
       // Animated replay
@@ -487,6 +545,7 @@ function HeroScene({
         targetRotY,
         targetRotX,
         lastCaption: `Packet on ${selectedSatId}, T+0 min`,
+        story,
       };
       syncTrail(0);
       if (replayCaptionRef.current) {
@@ -504,7 +563,7 @@ function HeroScene({
     replayCaptionRef,
   ]);
 
-  useFrame((_, dt) => {
+  useFrame((state, dt) => {
     if (!isVisible || !earthGroup.current) return;
     const now = performance.now();
     const s = replayState.current;
@@ -577,7 +636,7 @@ function HeroScene({
           selectedRoute.destination
         );
         currentPktPos = st.pos;
-        currentCaption = st.caption;
+        currentCaption = s.story || st.caption;
       }
     }
 
@@ -592,6 +651,17 @@ function HeroScene({
         mesh.visible = true;
       } else {
         mesh.visible = false;
+      }
+      // Hide the label while the satellite is behind the Earth.
+      const label = satLabelRefs.current.get(satId);
+      if (label) {
+        mesh.getWorldPosition(tmpWorld);
+        const inFront = tmpWorld.dot(state.camera.position) > EARTH_R * EARTH_R;
+        tmpWorld.project(state.camera);
+        const x = ((tmpWorld.x + 1) / 2) * state.size.width;
+        const y = ((1 - tmpWorld.y) / 2) * state.size.height;
+        label.style.transform = `translate(${Math.round(x + 7)}px, ${Math.round(y - 8)}px)`;
+        label.style.opacity = mesh.visible && inFront ? "1" : "0";
       }
     }
 
@@ -748,6 +818,7 @@ export function LiveHero() {
 
   // Ref for caption update without React state changes
   const replayCaptionRef = useRef<HTMLSpanElement>(null);
+  const satLabelRefs = useRef(new Map<string, HTMLSpanElement>());
 
   // Drag interaction
   const pointerDown = useRef(false);
@@ -932,10 +1003,28 @@ export function LiveHero() {
                 stationsMap={stationsMap}
                 satrecs={satrecs}
                 replayCaptionRef={replayCaptionRef}
+                satLabelRefs={satLabelRefs}
                 userDragDelta={userDragDelta}
                 isVisible={isVisible}
               />
             </Canvas>
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+              {(network?.satellites ?? [])
+                .filter((sat) => sat.state !== "STOWED")
+                .map((sat) => (
+                  <span
+                    key={sat.id}
+                    ref={(el) => {
+                      if (el) satLabelRefs.current.set(sat.id, el);
+                      else satLabelRefs.current.delete(sat.id);
+                    }}
+                    className="absolute left-0 top-0 whitespace-nowrap text-[11px]"
+                    style={{ opacity: 0, color: "rgba(255,255,255,0.7)", fontFamily: "var(--font-sans)" }}
+                  >
+                    {sat.id}
+                  </span>
+                ))}
+            </div>
           </div>
 
           {/* Left Column: Copy & Route Finder */}
