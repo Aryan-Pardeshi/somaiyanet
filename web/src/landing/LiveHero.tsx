@@ -378,6 +378,7 @@ function HeroScene({
       shown: reduced ? 1 : 0,
       lastDrawn: -1,
       reduced,
+      lastCaption: "",
     };
     if (reduced) {
       if (g) {
@@ -758,13 +759,16 @@ export function LiveHero() {
     <section
       id="network"
       ref={sectionRef}
-      className="relative bg-black text-white pt-16 lg:pt-20"
+      className="relative bg-black text-white lg:h-[calc(100svh+140vh)]"
     >
-      <div className="mx-auto max-w-[1200px] w-full px-4 md:px-8 pb-8 lg:pb-12">
-        <div className="flex min-h-[calc(100svh+70vh)] flex-col lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
+      {/* Desktop: the whole hero is pinned while scrolling draws the route, then the page
+          moves on. Phones: only the globe sticks while the text scrolls beside it. */}
+      <div className="pt-16 lg:sticky lg:top-0 lg:flex lg:h-[100svh] lg:items-center lg:overflow-hidden">
+      <div className="mx-auto max-w-[1200px] w-full px-4 md:px-8 pb-8 lg:pb-0">
+        <div className="flex min-h-[calc(100svh+70vh)] flex-col lg:min-h-0 lg:grid lg:grid-cols-12 lg:gap-8 lg:items-center">
           {/* Earth Canvas: Phones on top (order-1, ~52svh), Desktop on right (order-2, col-span-7, bleed-off) */}
           <div
-            className="order-1 lg:order-2 lg:col-span-7 w-full h-[46svh] lg:h-[calc(100svh-80px)] sticky top-16 lg:top-20 z-10 bg-black lg:bg-transparent lg:-mr-16 xl:-mr-32 overflow-visible select-none cursor-grab active:cursor-grabbing"
+            className="order-1 lg:order-2 lg:col-span-7 w-full h-[46svh] lg:h-[calc(100svh-96px)] sticky top-16 lg:relative lg:top-auto z-10 bg-black lg:bg-transparent lg:-mr-16 xl:-mr-32 overflow-visible select-none cursor-grab active:cursor-grabbing"
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -822,9 +826,9 @@ export function LiveHero() {
           </div>
 
           {/* Left Column: Copy & Route Finder */}
-          <div className="order-2 lg:order-1 lg:col-span-5 mt-6 lg:mt-16">
-            <h1 className="sx-display">Satellites That Route Themselves</h1>
-            <p className="sx-lead mt-5 mb-8">
+          <div className="order-2 lg:order-1 lg:col-span-5 mt-6 lg:mt-0 lg:flex lg:max-h-[calc(100svh-112px)] lg:flex-col">
+            <h1 className="sx-display lg:text-[clamp(44px,4.4vw,64px)]">Satellites That Route Themselves</h1>
+            <p className="sx-lead mt-4 mb-6 lg:mt-3 lg:mb-5">
               Pick a satellite. PostgreSQL works out the earliest way to get its data to every ground
               station, using only the contact windows stored in the database.
             </p>
@@ -893,7 +897,7 @@ export function LiveHero() {
                 </div>
               </div>
             ) : (
-              <div className="sx-group">
+              <div className="sx-group lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
                 {routesData.routes.map((route) => {
                   const isSelected = selectedRoute?.destination === route.destination;
                   const st = stationsMap.get(route.destination);
@@ -947,7 +951,7 @@ export function LiveHero() {
                             ref={replayCaptionRef}
                             className="sx-caption text-[var(--sx-text-2)] block"
                           >
-                            Packet on {selectedSatId}, T+0 min
+                            Scroll to send the packet.
                           </span>
                         </div>
                       )}
@@ -959,8 +963,11 @@ export function LiveHero() {
 
             {/* SQL Execution Block */}
             {routesSql && (
-              <div className="mt-4">
-                <div className="sx-code text-[12px] whitespace-pre-wrap break-words font-mono">
+              <div className="mt-4 lg:mt-3 lg:shrink-0">
+                <div
+                  className="sx-code text-[12px] whitespace-pre-wrap break-words font-mono lg:truncate lg:whitespace-nowrap lg:py-2.5"
+                  title={routesSql.sql}
+                >
                   {routesSql.sql}
                 </div>
                 <div className="sx-caption mt-2">
@@ -972,6 +979,7 @@ export function LiveHero() {
             )}
           </div>
         </div>
+      </div>
       </div>
     </section>
   );
