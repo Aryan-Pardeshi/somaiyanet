@@ -583,26 +583,44 @@ export function LiveHero() {
   const replayCaptionRef = useRef<HTMLSpanElement>(null);
   const satLabelRefs = useRef(new Map<string, HTMLSpanElement>());
   const destLabelRef = useRef<HTMLSpanElement>(null);
-  const scrollProgressRef = useRef(0);
+  /** How much of the current route is drawn, 0..1, driven by scrolling. */
+  const routeProgressRef = useRef(0);
+  const routesRef = useRef<PublicRoute[]>([]);
+  const autoIdxRef = useRef(-1);
+  const listRef = useRef<HTMLDivElement>(null);
 
-  // How far the page has scrolled through this section, 0..1. The globe is sticky, so
-  // this is the stretch where it stays on screen while the text scrolls past.
-  useEffect(() => {
-    const update = (): void => {
-      const el = sectionRef.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      const range = Math.max(1, r.height - window.innerHeight);
-      scrollProgressRef.current = Math.min(1, Math.max(0, -r.top / range));
-    };
-    update();
-    window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
+  // Scrolling through this section steps through every route in the list: each one gets an
+  // equal stretch of scroll, drawn over the first 75% of it and held for the rest. On
+  // desktop the whole hero is pinned meanwhile; on phones the globe sticks.
+  const updateFromScroll = useCallback((): void => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const range = Math.max(1, r.height - window.innerHeight);
+    const p = Math.min(1, Math.max(0, -r.top / range));
+    const routes = routesRef.current;
+    if (routes.length === 0) {
+      routeProgressRef.current = p;
+      return;
+    }
+    const pos = p * routes.length;
+    const idx = Math.min(routes.length - 1, Math.floor(pos));
+    routeProgressRef.current = Math.min(1, (pos - idx) / 0.75);
+    if (idx !== autoIdxRef.current) {
+      autoIdxRef.current = idx;
+      setSelectedRoute(routes[idx]);
+    }
   }, []);
+
+  useEffect(() => {
+    updateFromScroll();
+    window.addEventListener("scroll", updateFromScroll, { passive: true });
+    window.addEventListener("resize", updateFromScroll);
+    return () => {
+      window.removeEventListener("scroll", updateFromScroll);
+      window.removeEventListener("resize", updateFromScroll);
+    };
+  }, [updateFromScroll]);
 
   // Drag interaction
   const pointerDown = useRef(false);
@@ -661,12 +679,11 @@ export function LiveHero() {
         setRoutesRole(res.role || "student_analyst");
         setIsLoadingRoutes(false);
 
-        // Rank 1 selected by default
-        if (res.data.routes && res.data.routes.length > 0) {
-          setSelectedRoute(res.data.routes[0]);
-        } else {
-          setSelectedRoute(null);
-        }
+        // The scroll position decides which route is shown.
+        routesRef.current = res.data.routes ?? [];
+        autoIdxRef.current = -1;
+        if (routesRef.current.length === 0) setSelectedRoute(null);
+        else updateFromScroll();
       })
       .catch((err) => {
         if (reqIdRef.current !== reqId) return;
@@ -675,10 +692,11 @@ export function LiveHero() {
           sqlstate: err?.sqlstate,
         });
         setRoutesData(null);
+        routesRef.current = [];
         setSelectedRoute(null);
         setIsLoadingRoutes(false);
       });
-  }, []);
+  }, [updateFromScroll]);
 
   // On mount: load network and initial routes for SS-1
   useEffect(() => {
@@ -713,8 +731,29 @@ export function LiveHero() {
   };
 
   const handleSelectRoute = (route: PublicRoute) => {
-    setSelectedRoute(route);
+    const routes = routesRef.current;
+    const i = routes.findIndex((r) => r.destination === route.destination);
+    const el = sectionRef.current;
+    if (el && i >= 0 && window.matchMedia("(min-width: 1024px)").matches) {
+      const range = el.offsetHeight - window.innerHeight;
+      const top = el.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({ top: top + range * ((i + 0.85) / routes.length), behavior: "instant" });
+    } else {
+      autoIdxRef.current = i;
+      routeProgressRef.current = 1;
+      setSelectedRoute(route);
+    }
   };
+
+  // Keep the selected row in view inside the (scrollable) route list.
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || !selectedRoute) return;
+    const row = list.querySelector<HTMLElement>(`[data-dest="${selectedRoute.destination}"]`);
+    if (!row) return;
+    // Centre it (its caption grows once the route is drawn).
+    list.scrollTo({ top: row.offsetTop - list.clientHeight / 2 + 40, behavior: "smooth" });
+  }, [selectedRoute]);
 
   const activeSatellites = useMemo(() => {
     if (!network?.satellites) return [];
@@ -759,13 +798,19 @@ export function LiveHero() {
     <section
       id="network"
       ref={sectionRef}
-      className="relative bg-black text-white lg:h-[calc(100svh+140vh)]"
+      className="relative bg-black text-white lg:h-[var(--hero-h)]"
+      style={
+        {
+          "--hero-h": `calc(100svh + ${Math.max(1, routesData?.routes.length ?? 1) * 55}vh)`,
+          "--hero-mh": `calc(100svh + ${Math.max(1, routesData?.routes.length ?? 1) * 30}vh)`,
+        } as React.CSSProperties
+      }
     >
       {/* Desktop: the whole hero is pinned while scrolling draws the route, then the page
           moves on. Phones: only the globe sticks while the text scrolls beside it. */}
       <div className="pt-16 lg:sticky lg:top-0 lg:flex lg:h-[100svh] lg:items-center lg:overflow-hidden">
       <div className="mx-auto max-w-[1200px] w-full px-4 md:px-8 pb-8 lg:pb-0">
-        <div className="flex min-h-[calc(100svh+70vh)] flex-col lg:min-h-0 lg:grid lg:grid-cols-12 lg:gap-8 lg:items-center">
+        <div className="flex min-h-[var(--hero-mh)] flex-col lg:min-h-0 lg:grid lg:grid-cols-12 lg:gap-8 lg:items-center">
           {/* Earth Canvas: Phones on top (order-1, ~52svh), Desktop on right (order-2, col-span-7, bleed-off) */}
           <div
             className="order-1 lg:order-2 lg:col-span-7 w-full h-[46svh] lg:h-[calc(100svh-96px)] sticky top-16 lg:relative lg:top-auto z-10 bg-black lg:bg-transparent lg:-mr-16 xl:-mr-32 overflow-visible select-none cursor-grab active:cursor-grabbing"
@@ -792,7 +837,7 @@ export function LiveHero() {
                 replayCaptionRef={replayCaptionRef}
                 satLabelRefs={satLabelRefs}
                 destLabelRef={destLabelRef}
-                scrollProgress={scrollProgressRef}
+                scrollProgress={routeProgressRef}
                 userDragDelta={userDragDelta}
                 isVisible={isVisible}
               />
@@ -897,7 +942,7 @@ export function LiveHero() {
                 </div>
               </div>
             ) : (
-              <div className="sx-group lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+              <div ref={listRef} className="sx-group relative lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
                 {routesData.routes.map((route) => {
                   const isSelected = selectedRoute?.destination === route.destination;
                   const st = stationsMap.get(route.destination);
@@ -906,6 +951,7 @@ export function LiveHero() {
                   return (
                     <div
                       key={route.destination}
+                      data-dest={route.destination}
                       className={isSelected ? "bg-[var(--sx-surface-2)]" : ""}
                     >
                       <div
@@ -949,7 +995,7 @@ export function LiveHero() {
                         <div className="px-[18px] pb-3 -mt-1">
                           <span
                             ref={replayCaptionRef}
-                            className="sx-caption text-[var(--sx-text-2)] block"
+                            className="sx-caption text-[var(--sx-text-2)] block min-h-[4.5em]"
                           >
                             Scroll to send the packet.
                           </span>
