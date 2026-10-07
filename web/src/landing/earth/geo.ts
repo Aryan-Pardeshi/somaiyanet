@@ -5,6 +5,9 @@ import { EARTH_R } from "./Earth";
 
 const DEG_TO_RAD = Math.PI / 180;
 
+/** Satellites are drawn at their true altitude (about 525 km, 8% of the radius). */
+export const ALT_SCALE = 1;
+
 /**
  * 3D position on or above the Earth sphere.
  * Three.js SphereGeometry UV mapping convention:
@@ -31,7 +34,7 @@ export function latLngToVector3(
 
 /**
  * Get 3D position of a satellite at whenMs using its SatRec.
- * r = EARTH_R * (1 + alt * 1.5)
+ * r = EARTH_R * (1 + alt * ALT_SCALE)
  */
 export function getSatVector3(
   rec: satellite.SatRec,
@@ -40,7 +43,7 @@ export function getSatVector3(
 ): THREE.Vector3 | null {
   const p = propagateSat(rec, whenMs);
   if (!p) return null;
-  const r = EARTH_R * (1 + p.alt * 1.5);
+  const r = EARTH_R * (1 + p.alt * ALT_SCALE);
   return latLngToVector3(p.lat, p.lng, r, out);
 }
 

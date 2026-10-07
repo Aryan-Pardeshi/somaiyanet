@@ -3,8 +3,8 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import * as THREE from "three";
 import * as satellite from "satellite.js";
-import { Line2 } from "three/examples/jsm/lines/Line2.js";
-import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
+import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import {
   getNetwork,
@@ -26,6 +26,7 @@ import {
   getStationVector3,
   interpolatePacketPos,
   latLngToVector3,
+  ALT_SCALE,
 } from "./earth/geo";
 
 interface HopTimeline {
@@ -80,7 +81,7 @@ function computePacketState(
   stationsMap: Map<string, PublicStation>,
   originSatId: string,
   destStationId: string
-): { pos: THREE.Vector3; caption: string } {
+): { pos: THREE.Vector3; caption: string; moving?: boolean } {
   if (missingContactId !== null && hops.length === 0) {
     const rec = satrecs.get(originSatId);
     const pos = (rec && getSatVector3(rec, timeMs)) || new THREE.Vector3(0, 0, 0);
@@ -148,7 +149,7 @@ function computePacketState(
 
       const isDownlink = hop.kind === "DOWNLINK" || stationsMap.has(hop.toNode);
       const pos = interpolatePacketPos(posFrom, posTo, p, isDownlink);
-      return { pos, caption: `Packet moving ${hop.fromNode} to ${hop.toNode}` };
+      return { pos, caption: `Packet moving ${hop.fromNode} to ${hop.toNode}`, moving: true };
     }
 
     // Between this hop and next hop
@@ -220,40 +221,73 @@ function HeroScene({
   const packetGeo = useMemo(() => new THREE.SphereGeometry(0.02 * EARTH_R, 16, 16), []);
   const packetMat = useMemo(() => new THREE.MeshBasicMaterial({ color: "#ff453a" }), []);
 
-  // 2px red trail line
+  // The packet's trail, split in two: faint where a satellite carries it on board,
+  // bright where it crosses a radio link. LineSegments2 gives real pixel widths
+  // (WebGL ignores linewidth on THREE.Line).
   const MAX_TRAIL = 1200;
   const trailPositions = useMemo(() => new Float32Array(MAX_TRAIL * 3), []);
-  // Line2 so the trail is a real 2 px line (WebGL ignores linewidth on THREE.Line).
-  const trailGeometry = useMemo(() => new LineGeometry(), []);
-  const trailMaterial = useMemo(
-    () => new LineMaterial({ color: 0xff453a, linewidth: 2, worldUnits: false }),
+  /** 1 where the packet was on a radio link at that trail point. */
+  const trailOnLink = useMemo(() => new Uint8Array(MAX_TRAIL), []);
+  const trailGeometry = useMemo(() => new LineSegmentsGeometry(), []);
+  const linkMaterial = useMemo(
+    () => new LineMaterial({ color: 0xff453a, linewidth: 3, worldUnits: false }),
+    []
+  );
+  const carryMaterial = useMemo(
+    () =>
+      new LineMaterial({
+        color: 0xff453a,
+        linewidth: 1.5,
+        worldUnits: false,
+        transparent: true,
+        opacity: 0.4,
+      }),
     []
   );
   const trailLine = useMemo(() => {
-    const line = new Line2(trailGeometry, trailMaterial);
+    const line = new LineSegments2(trailGeometry, linkMaterial);
     line.frustumCulled = false;
     line.visible = false;
     return line;
-  }, [trailGeometry, trailMaterial]);
+  }, [trailGeometry, linkMaterial]);
+  const carryLine = useMemo(() => {
+    const line = new LineSegments2(new LineSegmentsGeometry(), carryMaterial);
+    line.frustumCulled = false;
+    line.visible = false;
+    return line;
+  }, [carryMaterial]);
   const { size } = useThree();
   useEffect(() => {
-    trailMaterial.resolution.set(size.width, size.height);
-  }, [size, trailMaterial]);
+    linkMaterial.resolution.set(size.width, size.height);
+    carryMaterial.resolution.set(size.width, size.height);
+  }, [size, linkMaterial, carryMaterial]);
   const syncTrail = useCallback(
     (count: number) => {
-      if (count < 2) {
-        trailLine.visible = false;
-        return;
+      const link: number[] = [];
+      const carry: number[] = [];
+      const tp = trailPositions;
+      for (let i = 1; i < count; i++) {
+        const seg = trailOnLink[i - 1] || trailOnLink[i] ? link : carry;
+        seg.push(tp[i * 3 - 3], tp[i * 3 - 2], tp[i * 3 - 1], tp[i * 3], tp[i * 3 + 1], tp[i * 3 + 2]);
       }
-      // A fresh geometry per update: re-filling a rendered LineGeometry does not redraw.
-      const next = new LineGeometry();
-      next.setPositions(trailPositions.subarray(0, count * 3));
-      const prev = trailLine.geometry;
-      trailLine.geometry = next;
-      if (prev !== trailGeometry) prev.dispose();
-      trailLine.visible = true;
+      // A fresh geometry per update: re-filling a rendered geometry does not redraw.
+      for (const [line, pts] of [
+        [trailLine, link],
+        [carryLine, carry],
+      ] as const) {
+        if (pts.length === 0) {
+          line.visible = false;
+          continue;
+        }
+        const next = new LineSegmentsGeometry();
+        next.setPositions(pts);
+        const prev = line.geometry;
+        line.geometry = next;
+        if (prev !== trailGeometry) prev.dispose();
+        line.visible = true;
+      }
     },
-    [trailGeometry, trailLine, trailPositions]
+    [trailGeometry, trailLine, carryLine, trailPositions, trailOnLink]
   );
 
   useEffect(() => {
@@ -266,8 +300,10 @@ function HeroScene({
       packetGeo.dispose();
       packetMat.dispose();
       if (trailLine.geometry !== trailGeometry) trailLine.geometry.dispose();
+      carryLine.geometry.dispose();
       trailGeometry.dispose();
-      trailMaterial.dispose();
+      linkMaterial.dispose();
+      carryMaterial.dispose();
     };
   }, [
     satDotGeo,
@@ -278,8 +314,10 @@ function HeroScene({
     packetGeo,
     packetMat,
     trailGeometry,
-    trailMaterial,
+    linkMaterial,
+    carryMaterial,
     trailLine,
+    carryLine,
   ]);
 
   // Replay control state inside refs
@@ -382,9 +420,11 @@ function HeroScene({
         earthGroup.current.rotation.y = targetRotY;
         earthGroup.current.rotation.x = targetRotX;
       }
-      // Sample 240 points for trail
+      // Sample 240 points on the replay clock, so short radio hops still get points.
+      const reducedKf = replayKeyframes(t0, hops);
+      const reducedTotal = reducedKf.anim[reducedKf.anim.length - 1] || 1;
       for (let i = 0; i < 240; i++) {
-        const t = t0 + (i / 239) * (lastArrive - t0);
+        const t = animToReal((i / 239) * reducedTotal, reducedKf);
         const st = computePacketState(
           t,
           t0,
@@ -398,6 +438,7 @@ function HeroScene({
         trailPositions[i * 3] = st.pos.x;
         trailPositions[i * 3 + 1] = st.pos.y;
         trailPositions[i * 3 + 2] = st.pos.z;
+        trailOnLink[i] = st.moving ? 1 : 0;
       }
       syncTrail(240);
 
@@ -498,6 +539,7 @@ function HeroScene({
     let currentPktPos: THREE.Vector3 | null = null;
     let currentCaption = "";
     let finishReplay = false;
+    let currentOnLink = false;
 
     if (selectedRoute) {
       if (s.isReplayActive) {
@@ -519,6 +561,7 @@ function HeroScene({
         );
         currentPktPos = st.pos;
         currentCaption = st.caption;
+        currentOnLink = st.moving === true;
 
         finishReplay = animProgress >= 1;
       } else {
@@ -544,7 +587,7 @@ function HeroScene({
       if (!mesh) continue;
       const p = propagateSat(rec, displayMs);
       if (p) {
-        const r = EARTH_R * (1 + p.alt * 1.5);
+        const r = EARTH_R * (1 + p.alt * ALT_SCALE);
         latLngToVector3(p.lat, p.lng, r, mesh.position);
         mesh.visible = true;
       } else {
@@ -568,6 +611,7 @@ function HeroScene({
           trailPositions[s.trailCount * 3] = currentPktPos.x;
           trailPositions[s.trailCount * 3 + 1] = currentPktPos.y;
           trailPositions[s.trailCount * 3 + 2] = currentPktPos.z;
+          trailOnLink[s.trailCount] = currentOnLink ? 1 : 0;
           s.trailCount++;
               syncTrail(s.trailCount);
         }
@@ -681,6 +725,7 @@ function HeroScene({
         <mesh ref={packetMeshRef} geometry={packetGeo} material={packetMat} visible={false} />
 
         {/* Packet Trail: 2px red line */}
+        <primitive object={carryLine} />
         <primitive object={trailLine} />
       </group>
     </>
@@ -1027,6 +1072,25 @@ export function LiveHero() {
                   );
                 })}
               </div>
+            )}
+
+            {(routesData?.routes.length ?? 0) > 0 && (
+              <p className="sx-caption mt-3 flex flex-wrap items-center gap-x-5 gap-y-1">
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="inline-block h-[2px] w-5 rounded-full bg-[var(--sx-red)] opacity-40"
+                  />
+                  Carried on board
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="inline-block h-[3px] w-5 rounded-full bg-[var(--sx-red)]"
+                  />
+                  Sent by radio
+                </span>
+              </p>
             )}
 
             {/* SQL Execution Block */}
