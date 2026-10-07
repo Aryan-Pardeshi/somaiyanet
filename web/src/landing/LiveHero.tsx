@@ -85,7 +85,6 @@ function routeStory(
   return sentences.join(" ");
 }
 
-const HOP_ANIM_MS = 1100;
 const TURN_MS = 900;
 const ARC_SAMPLES = 64;
 
@@ -137,6 +136,8 @@ interface HeroSceneProps {
   /** Plain DOM labels over the canvas, placed by projecting each satellite every frame. */
   satLabelRefs: React.RefObject<Map<string, HTMLSpanElement>>;
   destLabelRef: React.RefObject<HTMLSpanElement | null>;
+  /** 0..1, how far the page has scrolled through the hero; it draws the route. */
+  scrollProgress: React.RefObject<number>;
   userDragDelta: React.MutableRefObject<{ x: number; y: number }>;
   isVisible: boolean;
 }
@@ -151,6 +152,7 @@ function HeroScene({
   replayCaptionRef,
   satLabelRefs,
   destLabelRef,
+  scrollProgress,
   userDragDelta,
   isVisible,
 }: HeroSceneProps) {
@@ -262,8 +264,10 @@ function HeroScene({
     startCamZ: 5,
     targetCamZ: 5,
     turning: false,
-    drawStart: 0,
-    done: true,
+    /** How much of the route is drawn (0..1); eases towards the scroll progress. */
+    shown: 0,
+    lastDrawn: -1,
+    reduced: false,
     lastCaption: "",
   });
 
@@ -371,8 +375,9 @@ function HeroScene({
       targetRotY,
       targetRotX,
       turning: !reduced,
-      drawStart: now + TURN_MS,
-      done: reduced,
+      shown: reduced ? 1 : 0,
+      lastDrawn: -1,
+      reduced,
     };
     if (reduced) {
       if (g) {
@@ -380,20 +385,13 @@ function HeroScene({
         g.rotation.x = targetRotX;
       }
       camera.position.z = targetCamZ;
-      drawRoute(plan, hops.length, 0);
-      if (packetMeshRef.current) {
-        packetMeshRef.current.position.copy(nodes[nodes.length - 1].pos);
-        packetMeshRef.current.visible = true;
-      }
-      setCaption(story);
-    } else {
-      drawRoute(plan, 0, 0);
-      if (packetMeshRef.current) {
-        packetMeshRef.current.position.copy(nodes[0].pos);
-        packetMeshRef.current.visible = true;
-      }
-      setCaption(hops.length > 0 ? `Hop 1 of ${hops.length}` : story);
     }
+    drawRoute(plan, 0, 0);
+    if (packetMeshRef.current) {
+      packetMeshRef.current.position.copy(nodes[0].pos);
+      packetMeshRef.current.visible = true;
+    }
+    if (hops.length === 0) setCaption(story);
   }, [selectedRoute, selectedSatId, contactsMap, stationsMap, satrecs, drawRoute, setCaption, camera]);
 
   useFrame((state, dt) => {
@@ -421,26 +419,35 @@ function HeroScene({
       g.rotation.y += dt * 0.02;
     }
 
-    // 2. Draw the route hop by hop, the packet riding the head of the line.
-    if (plan && !a.done && plan.hops.length > 0) {
-      const elapsed = Math.max(0, now - a.drawStart);
-      const total = plan.hops.length * HOP_ANIM_MS;
-      if (elapsed >= total) {
-        drawRoute(plan, plan.hops.length, 0);
-        packetMeshRef.current?.position.copy(plan.nodes[plan.nodes.length - 1].pos);
-        setCaption(plan.story);
-        a.done = true;
-      } else {
-        const k = Math.floor(elapsed / HOP_ANIM_MS);
-        const t = (elapsed - k * HOP_ANIM_MS) / HOP_ANIM_MS;
-        const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-        const head = drawRoute(plan, k, eased);
-        if (head) packetMeshRef.current?.position.copy(head);
-        const h = plan.hops[k];
-        const to = stationsMap.get(h.toNode);
-        setCaption(
-          `Hop ${k + 1} of ${plan.hops.length}: ${h.fromNode} to ${to ? to.city || to.name : h.toNode}`
-        );
+    // 2. Scrolling draws the route hop by hop (scrolling back rewinds it), the packet
+    //    riding the head of the line. The drawn amount eases towards the scroll position,
+    //    so a newly picked route also catches up smoothly.
+    if (plan && plan.hops.length > 0) {
+      const target = a.reduced ? 1 : THREE.MathUtils.clamp(scrollProgress.current ?? 0, 0, 1);
+      a.shown += (target - a.shown) * (1 - Math.exp(-dt * 6));
+      if (Math.abs(target - a.shown) < 0.002) a.shown = target;
+      if (a.shown !== a.lastDrawn) {
+        a.lastDrawn = a.shown;
+        const n = plan.hops.length;
+        if (a.shown >= 0.998) {
+          drawRoute(plan, n, 0);
+          packetMeshRef.current?.position.copy(plan.nodes[plan.nodes.length - 1].pos);
+          setCaption(plan.story);
+        } else {
+          const total = a.shown * n;
+          const k = Math.min(n - 1, Math.floor(total));
+          const head = drawRoute(plan, k, total - k);
+          packetMeshRef.current?.position.copy(head ?? plan.nodes[0].pos);
+          if (a.shown < 0.01) {
+            setCaption("Scroll to send the packet.");
+          } else {
+            const h = plan.hops[k];
+            const to = stationsMap.get(h.toNode);
+            setCaption(
+              `Hop ${k + 1} of ${n}: ${h.fromNode} to ${to ? to.city || to.name : h.toNode}`
+            );
+          }
+        }
       }
     }
 
@@ -575,6 +582,26 @@ export function LiveHero() {
   const replayCaptionRef = useRef<HTMLSpanElement>(null);
   const satLabelRefs = useRef(new Map<string, HTMLSpanElement>());
   const destLabelRef = useRef<HTMLSpanElement>(null);
+  const scrollProgressRef = useRef(0);
+
+  // How far the page has scrolled through this section, 0..1. The globe is sticky, so
+  // this is the stretch where it stays on screen while the text scrolls past.
+  useEffect(() => {
+    const update = (): void => {
+      const el = sectionRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const range = Math.max(1, r.height - window.innerHeight);
+      scrollProgressRef.current = Math.min(1, Math.max(0, -r.top / range));
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
 
   // Drag interaction
   const pointerDown = useRef(false);
@@ -731,13 +758,13 @@ export function LiveHero() {
     <section
       id="network"
       ref={sectionRef}
-      className="relative min-h-[100svh] bg-black text-white pt-16 lg:pt-20 overflow-x-clip flex flex-col justify-center"
+      className="relative bg-black text-white pt-16 lg:pt-20"
     >
-      <div className="mx-auto max-w-[1200px] w-full px-4 md:px-8 py-8 lg:py-12 flex-1 flex flex-col justify-center">
-        <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-8 lg:items-center">
+      <div className="mx-auto max-w-[1200px] w-full px-4 md:px-8 pb-8 lg:pb-12">
+        <div className="flex min-h-[calc(100svh+70vh)] flex-col lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
           {/* Earth Canvas: Phones on top (order-1, ~52svh), Desktop on right (order-2, col-span-7, bleed-off) */}
           <div
-            className="order-1 lg:order-2 lg:col-span-7 w-full h-[52svh] lg:h-[680px] xl:h-[760px] relative lg:-mr-16 xl:-mr-32 overflow-visible select-none cursor-grab active:cursor-grabbing"
+            className="order-1 lg:order-2 lg:col-span-7 w-full h-[46svh] lg:h-[calc(100svh-80px)] sticky top-16 lg:top-20 z-10 bg-black lg:bg-transparent lg:-mr-16 xl:-mr-32 overflow-visible select-none cursor-grab active:cursor-grabbing"
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -761,6 +788,7 @@ export function LiveHero() {
                 replayCaptionRef={replayCaptionRef}
                 satLabelRefs={satLabelRefs}
                 destLabelRef={destLabelRef}
+                scrollProgress={scrollProgressRef}
                 userDragDelta={userDragDelta}
                 isVisible={isVisible}
               />
@@ -794,7 +822,7 @@ export function LiveHero() {
           </div>
 
           {/* Left Column: Copy & Route Finder */}
-          <div className="order-2 lg:order-1 lg:col-span-5 z-10 mt-6 lg:mt-0">
+          <div className="order-2 lg:order-1 lg:col-span-5 mt-6 lg:mt-16">
             <h1 className="sx-display">Satellites That Route Themselves</h1>
             <p className="sx-lead mt-5 mb-8">
               Pick a satellite. PostgreSQL works out the earliest way to get its data to every ground
