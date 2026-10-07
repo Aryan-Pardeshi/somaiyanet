@@ -90,6 +90,7 @@
   }
 
   html {
+    scroll-behavior: smooth;
     background: var(--space);
     background-image: none;
     background-attachment: fixed;
@@ -116,8 +117,6 @@
     line-height: 1.1;
   }
 
-  /* Lenis owns the scroll; html.lenis-stopped is used while pinned. */
-  html.lenis-stopped,
   body.no-scroll {
     overflow: hidden;
   }

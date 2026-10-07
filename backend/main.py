@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import db as dbmod
 from . import sqlbook
-from .routers import ai, console, deploy, labs_index, labs_norm, labs_schema, labs_security, labs_tx, mission, profiles, routing, stream, telecommand
+from .routers import ai, console, deploy, labs_index, labs_norm, labs_schema, labs_security, labs_tx, mission, profiles, public, routing, stream, telecommand
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -78,6 +78,7 @@ async def unhandled(request: Request, exc: Exception):
 
 
 app.include_router(profiles.router)
+app.include_router(public.router)
 app.include_router(mission.router)
 app.include_router(routing.router)
 app.include_router(ai.router)

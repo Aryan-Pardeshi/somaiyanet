@@ -433,7 +433,6 @@ export default function Ops() {
       config: { cornerRadius: 16, zRadius: 20 },
       children: (
         <div
-          data-lenis-prevent
           className={`h-full overflow-y-auto overscroll-contain px-3 pt-3 pb-8 ${scrollFade}`}
           style={scrollStyle}
         >
@@ -447,7 +446,6 @@ export default function Ops() {
       config: { cornerRadius: 16, zRadius: 20 },
       children: (
         <div
-          data-lenis-prevent
           className={`h-full overflow-y-auto overscroll-contain px-3 pt-3 pb-8 ${scrollFade}`}
           style={scrollStyle}
         >
@@ -501,7 +499,6 @@ export default function Ops() {
           <aside className="p-4 lg:p-0 lg:absolute lg:left-4 lg:top-14 lg:bottom-4 lg:w-[320px] lg:z-20 pointer-events-auto flex flex-col min-h-0">
             <div className="relative flex-1 min-h-0 flex flex-col">
               <div
-                data-lenis-prevent
                 className="h-auto lg:h-full min-h-0 lg:overflow-y-auto lg:overscroll-contain pr-1 pb-8 lg:pb-8 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] lg:[mask-image:linear-gradient(to_bottom,black_92%,transparent)]"
                 style={scrollStyle}
               >
@@ -514,7 +511,6 @@ export default function Ops() {
           <aside className="p-4 lg:p-0 lg:absolute lg:right-4 lg:top-14 lg:bottom-4 lg:w-[340px] lg:z-20 pointer-events-auto flex flex-col min-h-0">
             <div className="relative flex-1 min-h-0 flex flex-col">
               <div
-                data-lenis-prevent
                 className="h-auto lg:h-full min-h-0 lg:overflow-y-auto lg:overscroll-contain pr-1 pb-8 lg:pb-8 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.2)_transparent] lg:[mask-image:linear-gradient(to_bottom,black_92%,transparent)]"
                 style={scrollStyle}
               >

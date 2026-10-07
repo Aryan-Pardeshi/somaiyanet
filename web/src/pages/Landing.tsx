@@ -1,29 +1,28 @@
+import { useEffect } from "react";
 import { SiteHeader } from "@/landing/SiteHeader";
-import { CinematicHero } from "@/landing/hero/CinematicHero";
-import { Mission } from "@/landing/Mission";
-import { Constraints } from "@/landing/Constraints";
-import { PacketStepper } from "@/landing/PacketStepper";
-import { Spacecraft } from "@/landing/Spacecraft";
-import { GroundNetwork } from "@/landing/GroundNetwork";
-import { DatabaseRows } from "@/landing/DatabaseRows";
+import { LiveHero } from "@/landing/LiveHero";
+import { SchemaMap } from "@/landing/SchemaMap";
+import { RoleLens } from "@/landing/RoleLens";
+import { PageIndex } from "@/landing/PageIndex";
 import { Footer } from "@/landing/Footer";
 
 /**
- * Landing: scroll-scrubbed 3D hero, then full-width SpaceX-style bands on
- * pure black (docs/design/DESIGN.md).
+ * Landing: hands-on tool. Header, live route finder hero,
+ * schema map, role lens, page index, footer. Pure black.
  */
 export default function Landing() {
+  useEffect(() => {
+    document.title = "SomaiyaNet";
+  }, []);
+
   return (
-    <div className="min-h-screen overflow-x-clip" style={{ background: "#000", color: "#ffffff" }}>
+    <div className="min-h-screen" style={{ background: "#000", color: "#ffffff" }}>
       <SiteHeader />
       <main>
-        <CinematicHero />
-        <Mission />
-        <Constraints />
-        <PacketStepper />
-        <Spacecraft />
-        <GroundNetwork />
-        <DatabaseRows />
+        <LiveHero />
+        <SchemaMap />
+        <RoleLens />
+        <PageIndex />
       </main>
       <Footer />
     </div>
