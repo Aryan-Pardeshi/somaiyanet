@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Html } from "@react-three/drei";
 import * as THREE from "three";
 import * as satellite from "satellite.js";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
@@ -24,7 +23,6 @@ import {
   formatPlanEndDate,
   getSatVector3,
   getStationVector3,
-  interpolatePacketPos,
   latLngToVector3,
   ALT_SCALE,
 } from "./earth/geo";
@@ -87,136 +85,45 @@ function routeStory(
   return sentences.join(" ");
 }
 
-const TRANSFER_ANIM_MS = 900;
+const HOP_ANIM_MS = 1100;
+const TURN_MS = 900;
+const ARC_SAMPLES = 64;
 
 /**
- * Replay clock. Real time t0..lastArrive is mapped piecewise onto screen time: every
- * transfer (34 s in reality) gets a fixed 0.9 s, and the waits, while a satellite carries the
- * packet, share the rest in proportion to their real length. Returns matching breakpoints.
+ * A "flight route" arc from a to b: it follows the great circle between the two points and
+ * rises above them by an amount that grows with the length of the hop.
  */
-function replayKeyframes(t0: number, hops: HopTimeline[]): { anim: number[]; real: number[] } {
-  const real = [t0];
-  for (const h of hops) real.push(h.departMs, h.arriveMs);
-  let rideTotal = 0;
-  for (let k = 0; k < hops.length; k++) rideTotal += Math.max(0, real[2 * k + 1] - real[2 * k]);
-  const rideAnimTotal = Math.max(2000, 6500 - hops.length * TRANSFER_ANIM_MS);
-  const anim = [0];
-  for (let k = 0; k < hops.length; k++) {
-    const ride = Math.max(0, real[2 * k + 1] - real[2 * k]);
-    anim.push(anim[anim.length - 1] + (rideTotal > 0 ? (rideAnimTotal * ride) / rideTotal : 0));
-    anim.push(anim[anim.length - 1] + TRANSFER_ANIM_MS);
+function arcPoints(a: THREE.Vector3, b: THREE.Vector3): THREE.Vector3[] {
+  const ra = a.length();
+  const rb = b.length();
+  const ua = a.clone().normalize();
+  const ub = b.clone().normalize();
+  const angle = ua.angleTo(ub);
+  const lift = EARTH_R * Math.min(0.18, 0.03 + angle * 0.12);
+  const out: THREE.Vector3[] = [];
+  for (let i = 0; i <= ARC_SAMPLES; i++) {
+    const t = i / ARC_SAMPLES;
+    const dir =
+      angle < 1e-6
+        ? ua.clone()
+        : ua
+            .clone()
+            .multiplyScalar(Math.sin((1 - t) * angle) / Math.sin(angle))
+            .add(ub.clone().multiplyScalar(Math.sin(t * angle) / Math.sin(angle)));
+    const r = ra + (rb - ra) * t + lift * Math.sin(Math.PI * t);
+    out.push(dir.normalize().multiplyScalar(r));
   }
-  return { anim, real };
+  return out;
 }
 
-function animToReal(animMs: number, kf: { anim: number[]; real: number[] }): number {
-  const { anim, real } = kf;
-  for (let i = 0; i < anim.length - 1; i++) {
-    if (animMs < anim[i + 1] && anim[i + 1] > anim[i]) {
-      const f = Math.max(0, (animMs - anim[i]) / (anim[i + 1] - anim[i]));
-      return real[i] + (real[i + 1] - real[i]) * f;
-    }
-  }
-  return real[real.length - 1];
-}
-
-function computePacketState(
-  timeMs: number,
-  t0: number,
-  hops: HopTimeline[],
-  missingContactId: number | null,
-  satrecs: Map<string, satellite.SatRec>,
-  stationsMap: Map<string, PublicStation>,
-  originSatId: string,
-  destStationId: string
-): { pos: THREE.Vector3; caption: string; moving?: boolean } {
-  if (missingContactId !== null && hops.length === 0) {
-    const rec = satrecs.get(originSatId);
-    const pos = (rec && getSatVector3(rec, timeMs)) || new THREE.Vector3(0, 0, 0);
-    return { pos, caption: `Contact ${missingContactId} missing from the response` };
-  }
-
-  if (hops.length === 0) {
-    const st = stationsMap.get(destStationId);
-    const pos = st ? getStationVector3(st.lat, st.lng) : new THREE.Vector3(0, 0, 0);
-    return { pos, caption: "" };
-  }
-
-  const lastHop = hops[hops.length - 1];
-
-  // Before first departure
-  if (timeMs < hops[0].departMs) {
-    const rec = satrecs.get(hops[0].fromNode);
-    const pos = (rec && getSatVector3(rec, timeMs)) || new THREE.Vector3(0, 0, 0);
-    const tMin = Math.max(0, Math.round((timeMs - t0) / 60000));
-    return { pos, caption: `Packet on ${hops[0].fromNode}, T+${tMin} min` };
-  }
-
-  // After last arrival
-  if (timeMs >= lastHop.arriveMs) {
-    const st = stationsMap.get(lastHop.toNode);
-    let pos: THREE.Vector3;
-    if (st) {
-      pos = getStationVector3(st.lat, st.lng);
-    } else {
-      const rec = satrecs.get(lastHop.toNode);
-      pos = (rec && getSatVector3(rec, lastHop.arriveMs)) || new THREE.Vector3(0, 0, 0);
-    }
-    const destName = st?.city || st?.name || destStationId;
-    return {
-      pos,
-      caption: `Delivered to ${destName} at ${formatLocalTime(lastHop.arriveMs)}`,
-    };
-  }
-
-  // Inside hops or waiting between hops
-  for (let i = 0; i < hops.length; i++) {
-    const hop = hops[i];
-    // During hop transfer
-    if (timeMs >= hop.departMs && timeMs < hop.arriveMs) {
-      const p = (timeMs - hop.departMs) / (hop.arriveMs - hop.departMs);
-      const posFrom = new THREE.Vector3();
-      const recFrom = satrecs.get(hop.fromNode);
-      if (recFrom) {
-        const v = getSatVector3(recFrom, timeMs);
-        if (v) posFrom.copy(v);
-      } else {
-        const stFrom = stationsMap.get(hop.fromNode);
-        if (stFrom) posFrom.copy(getStationVector3(stFrom.lat, stFrom.lng));
-      }
-
-      const posTo = new THREE.Vector3();
-      const recTo = satrecs.get(hop.toNode);
-      if (recTo) {
-        const v = getSatVector3(recTo, timeMs);
-        if (v) posTo.copy(v);
-      } else {
-        const stTo = stationsMap.get(hop.toNode);
-        if (stTo) posTo.copy(getStationVector3(stTo.lat, stTo.lng));
-      }
-
-      const isDownlink = hop.kind === "DOWNLINK" || stationsMap.has(hop.toNode);
-      const pos = interpolatePacketPos(posFrom, posTo, p, isDownlink);
-      return { pos, caption: `Packet moving ${hop.fromNode} to ${hop.toNode}`, moving: true };
-    }
-
-    // Between this hop and next hop
-    if (i < hops.length - 1 && timeMs >= hop.arriveMs && timeMs < hops[i + 1].departMs) {
-      let pos = new THREE.Vector3();
-      const rec = satrecs.get(hop.toNode);
-      if (rec) {
-        const v = getSatVector3(rec, timeMs);
-        if (v) pos = v;
-      } else {
-        const st = stationsMap.get(hop.toNode);
-        if (st) pos = getStationVector3(st.lat, st.lng);
-      }
-      const tMin = Math.max(0, Math.round((timeMs - t0) / 60000));
-      return { pos, caption: `Packet on ${hop.toNode}, T+${tMin} min` };
-    }
-  }
-
-  return { pos: new THREE.Vector3(0, 0, 0), caption: "" };
+/** The selected route, laid out once: where each node is drawn and the arc of each hop. */
+interface RoutePlan {
+  /** path nodes in order; a satellite sits where it hands the packet on. */
+  nodes: Array<{ id: string; pos: THREE.Vector3 }>;
+  arcs: THREE.Vector3[][];
+  hops: HopTimeline[];
+  story: string;
+  missingContactId: number | null;
 }
 
 interface HeroSceneProps {
@@ -229,6 +136,7 @@ interface HeroSceneProps {
   replayCaptionRef: React.RefObject<HTMLSpanElement | null>;
   /** Plain DOM labels over the canvas, placed by projecting each satellite every frame. */
   satLabelRefs: React.RefObject<Map<string, HTMLSpanElement>>;
+  destLabelRef: React.RefObject<HTMLSpanElement | null>;
   userDragDelta: React.MutableRefObject<{ x: number; y: number }>;
   isVisible: boolean;
 }
@@ -242,6 +150,7 @@ function HeroScene({
   satrecs,
   replayCaptionRef,
   satLabelRefs,
+  destLabelRef,
   userDragDelta,
   isVisible,
 }: HeroSceneProps) {
@@ -265,80 +174,57 @@ function HeroScene({
   const satDotGeo = useMemo(() => new THREE.SphereGeometry(0.016 * EARTH_R, 12, 12), []);
   const satDotWhiteMat = useMemo(() => new THREE.MeshBasicMaterial({ color: "#ffffff" }), []);
   const satDotBlueMat = useMemo(() => new THREE.MeshBasicMaterial({ color: "#0a84ff" }), []);
-
   const stationDotGeo = useMemo(() => new THREE.SphereGeometry(0.012 * EARTH_R, 12, 12), []);
   const stationDotMat = useMemo(() => new THREE.MeshBasicMaterial({ color: "#ffffff" }), []);
-
-  const packetGeo = useMemo(() => new THREE.SphereGeometry(0.02 * EARTH_R, 16, 16), []);
+  const packetGeo = useMemo(() => new THREE.SphereGeometry(0.018 * EARTH_R, 16, 16), []);
   const packetMat = useMemo(() => new THREE.MeshBasicMaterial({ color: "#ff453a" }), []);
 
-  // The packet's trail, split in two: faint where a satellite carries it on board,
-  // bright where it crosses a radio link. LineSegments2 gives real pixel widths
-  // (WebGL ignores linewidth on THREE.Line).
-  const MAX_TRAIL = 1200;
-  const trailPositions = useMemo(() => new Float32Array(MAX_TRAIL * 3), []);
-  /** 1 where the packet was on a radio link at that trail point. */
-  const trailOnLink = useMemo(() => new Uint8Array(MAX_TRAIL), []);
-  const trailGeometry = useMemo(() => new LineSegmentsGeometry(), []);
-  const linkMaterial = useMemo(
-    () => new LineMaterial({ color: 0xff453a, linewidth: 3, worldUnits: false }),
+  // The route: one red 2.5 px line made of segments (LineSegments2 gives real pixel widths;
+  // WebGL ignores linewidth on THREE.Line).
+  const routeMaterial = useMemo(
+    () => new LineMaterial({ color: 0xff453a, linewidth: 2.5, worldUnits: false }),
     []
   );
-  const carryMaterial = useMemo(
-    () =>
-      new LineMaterial({
-        color: 0xff453a,
-        linewidth: 1.5,
-        worldUnits: false,
-        transparent: true,
-        opacity: 0.4,
-      }),
-    []
-  );
-  const trailLine = useMemo(() => {
-    const line = new LineSegments2(trailGeometry, linkMaterial);
+  const routeLine = useMemo(() => {
+    const line = new LineSegments2(new LineSegmentsGeometry(), routeMaterial);
     line.frustumCulled = false;
     line.visible = false;
     return line;
-  }, [trailGeometry, linkMaterial]);
-  const carryLine = useMemo(() => {
-    const line = new LineSegments2(new LineSegmentsGeometry(), carryMaterial);
-    line.frustumCulled = false;
-    line.visible = false;
-    return line;
-  }, [carryMaterial]);
-  const { size } = useThree();
+  }, [routeMaterial]);
+  const { size, camera } = useThree();
   useEffect(() => {
-    linkMaterial.resolution.set(size.width, size.height);
-    carryMaterial.resolution.set(size.width, size.height);
-  }, [size, linkMaterial, carryMaterial]);
-  const syncTrail = useCallback(
-    (count: number) => {
-      const link: number[] = [];
-      const carry: number[] = [];
-      const tp = trailPositions;
-      for (let i = 1; i < count; i++) {
-        const seg = trailOnLink[i - 1] || trailOnLink[i] ? link : carry;
-        seg.push(tp[i * 3 - 3], tp[i * 3 - 2], tp[i * 3 - 1], tp[i * 3], tp[i * 3 + 1], tp[i * 3 + 2]);
-      }
-      // A fresh geometry per update: re-filling a rendered geometry does not redraw.
-      for (const [line, pts] of [
-        [trailLine, link],
-        [carryLine, carry],
-      ] as const) {
-        if (pts.length === 0) {
-          line.visible = false;
-          continue;
+    routeMaterial.resolution.set(size.width, size.height);
+  }, [size, routeMaterial]);
+
+  /** Draw the arcs up to `hopsDone` whole hops plus `frac` of the next. Returns the head. */
+  const drawRoute = useCallback(
+    (plan: RoutePlan, hopsDone: number, frac: number): THREE.Vector3 | null => {
+      const pts: number[] = [];
+      let head: THREE.Vector3 | null = null;
+      plan.arcs.forEach((arc, k) => {
+        if (k > hopsDone) return;
+        const last = k < hopsDone ? arc.length - 1 : Math.floor(frac * (arc.length - 1));
+        for (let i = 1; i <= last; i++) {
+          const a = arc[i - 1];
+          const b = arc[i];
+          pts.push(a.x, a.y, a.z, b.x, b.y, b.z);
         }
+        head = arc[Math.max(0, last)];
+      });
+      // A fresh geometry per update: re-filling a rendered geometry does not redraw.
+      const prev = routeLine.geometry;
+      if (pts.length === 0) {
+        routeLine.visible = false;
+      } else {
         const next = new LineSegmentsGeometry();
         next.setPositions(pts);
-        const prev = line.geometry;
-        line.geometry = next;
-        if (prev !== trailGeometry) prev.dispose();
-        line.visible = true;
+        routeLine.geometry = next;
+        routeLine.visible = true;
       }
+      if (routeLine.geometry !== prev) prev.dispose();
+      return head;
     },
-    [trailGeometry, trailLine, carryLine, trailPositions, trailOnLink]
+    [routeLine]
   );
 
   useEffect(() => {
@@ -350,11 +236,8 @@ function HeroScene({
       stationDotMat.dispose();
       packetGeo.dispose();
       packetMat.dispose();
-      if (trailLine.geometry !== trailGeometry) trailLine.geometry.dispose();
-      carryLine.geometry.dispose();
-      trailGeometry.dispose();
-      linkMaterial.dispose();
-      carryMaterial.dispose();
+      routeLine.geometry.dispose();
+      routeMaterial.dispose();
     };
   }, [
     satDotGeo,
@@ -364,44 +247,42 @@ function HeroScene({
     stationDotMat,
     packetGeo,
     packetMat,
-    trailGeometry,
-    linkMaterial,
-    carryMaterial,
-    trailLine,
-    carryLine,
+    routeLine,
+    routeMaterial,
   ]);
 
-  // Replay control state inside refs
-  const followRef = useRef(false);
   const tmpWorld = useMemo(() => new THREE.Vector3(), []);
-  const replayState = useRef({
-    t0: 0,
-    lastArrive: 0,
-    durationMs: 4000,
-    hops: [] as HopTimeline[],
-    missingContactId: null as number | null,
-    isReplayActive: false,
-    replayStartTime: 0,
-    trailCount: 0,
-    isTurning: false,
-    turnStartTime: 0,
+  const planRef = useRef<RoutePlan | null>(null);
+  const anim = useRef({
+    turnStart: 0,
     startRotY: 0,
     startRotX: 0,
     targetRotY: 0,
     targetRotX: 0,
+    startCamZ: 5,
+    targetCamZ: 5,
+    turning: false,
+    drawStart: 0,
+    done: true,
     lastCaption: "",
-    story: "",
   });
 
-  // Track selection changes to re-trigger replay
+  const setCaption = useCallback(
+    (text: string) => {
+      if (anim.current.lastCaption === text) return;
+      anim.current.lastCaption = text;
+      if (replayCaptionRef.current) replayCaptionRef.current.textContent = text;
+    },
+    [replayCaptionRef]
+  );
+
+  // Lay out the selected route and start drawing it.
   useEffect(() => {
     if (!selectedRoute) {
-      replayState.current.isReplayActive = false;
-      replayState.current.isTurning = false;
-      replayState.current.trailCount = 0;
-      syncTrail(0);
+      planRef.current = null;
+      drawRoute({ nodes: [], arcs: [], hops: [], story: "", missingContactId: null }, 0, 0);
       if (packetMeshRef.current) packetMeshRef.current.visible = false;
-      if (replayCaptionRef.current) replayCaptionRef.current.textContent = "";
+      setCaption("");
       return;
     }
 
@@ -409,7 +290,6 @@ function HeroScene({
     const hops: HopTimeline[] = [];
     let prevArrive = t0;
     let missingContactId: number | null = null;
-
     for (let i = 0; i < selectedRoute.path_contacts.length; i++) {
       const cId = selectedRoute.path_contacts[i];
       const contact = contactsMap.get(cId);
@@ -419,9 +299,7 @@ function HeroScene({
       }
       const cStart = new Date(contact.start_ts).getTime();
       const depart = Math.max(prevArrive, Number.isFinite(cStart) ? cStart : prevArrive);
-      // The ~34 s radio transfer is drawn as an instant: satellites hold still while the
-      // packet crosses (the replay clock still gives each send 0.9 s on screen).
-      const arrive = depart + 1;
+      const arrive = depart + 34_000; // 41216 bytes at 9600 bit/s
       hops.push({
         hopIndex: i,
         fromNode: selectedRoute.path_nodes[i] ?? contact.from_node,
@@ -434,225 +312,156 @@ function HeroScene({
       prevArrive = arrive;
     }
 
-    const lastArrive = hops.length > 0 ? hops[hops.length - 1].arriveMs : t0;
-    const story = missingContactId === null
-      ? routeStory(t0, hops, satrecs, stationsMap, selectedRoute.arrival_ts)
-      : "";
-    const numHops = Math.max(1, hops.length);
-    const durationMs = Math.min(8000, Math.max(4000, numHops * 1500));
+    // Each satellite is drawn where it hands the packet on; the station where it is.
+    const where = (id: string, ms: number): THREE.Vector3 => {
+      const rec = satrecs.get(id);
+      if (rec) return getSatVector3(rec, ms) ?? new THREE.Vector3(EARTH_R, 0, 0);
+      const st = stationsMap.get(id);
+      return st ? getStationVector3(st.lat, st.lng) : new THREE.Vector3(EARTH_R, 0, 0);
+    };
+    const nodes: RoutePlan["nodes"] = hops.map((h) => ({ id: h.fromNode, pos: where(h.fromNode, h.departMs) }));
+    if (hops.length > 0) {
+      const last = hops[hops.length - 1];
+      nodes.push({ id: last.toNode, pos: where(last.toNode, last.departMs) });
+    } else {
+      nodes.push({ id: selectedSatId, pos: where(selectedSatId, t0) });
+    }
+    const arcs = hops.map((_, k) => arcPoints(nodes[k].pos, nodes[k + 1].pos));
+    const story =
+      missingContactId === null
+        ? routeStory(t0, hops, satrecs, stationsMap, selectedRoute.arrival_ts)
+        : `Contact ${missingContactId} missing from the response`;
+    const plan: RoutePlan = { nodes, arcs, hops, story, missingContactId };
+    planRef.current = plan;
 
-    // Midpoint orientation
-    const recOrigin = satrecs.get(selectedSatId);
-    const posOrigin = recOrigin ? getSatVector3(recOrigin, t0) : new THREE.Vector3(1, 0, 0);
-    const destStation = stationsMap.get(selectedRoute.destination);
-    const posDest = destStation
-      ? getStationVector3(destStation.lat, destStation.lng)
-      : new THREE.Vector3(1, 0, 0);
+    // Face the middle of the route.
+    const mid = new THREE.Vector3();
+    for (const n of nodes) mid.add(n.pos.clone().normalize());
+    if (mid.lengthSq() < 1e-6) mid.copy(nodes[0].pos);
+    mid.normalize();
+    const g = earthGroup.current;
+    const curY = g ? g.rotation.y : 0;
+    const curX = g ? g.rotation.x : 0;
+    let dy = (-Math.atan2(mid.x, mid.z) - curY) % (2 * Math.PI);
+    if (dy > Math.PI) dy -= 2 * Math.PI;
+    if (dy < -Math.PI) dy += 2 * Math.PI;
+    const targetRotY = curY + dy;
+    const targetRotX = THREE.MathUtils.clamp(
+      Math.atan2(mid.y, Math.hypot(mid.x, mid.z)) * 0.85,
+      -1.0,
+      1.0
+    );
+
+    // Pull the camera back when the route spans a wide part of the globe.
+    let span = 0;
+    for (const p of nodes) for (const q of nodes) span = Math.max(span, p.pos.angleTo(q.pos));
+    const targetCamZ = 5 + THREE.MathUtils.clamp((span - Math.PI / 3) / (Math.PI / 2), 0, 1) * 2.4;
 
     const reduced =
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    // Animated: start facing the origin, then the Earth follows the packet.
-    // Reduced motion: face the destination, where the packet ends.
-    const mid = (reduced ? posDest : posOrigin ?? posDest).clone().normalize();
-
-    const currentRotY = earthGroup.current ? earthGroup.current.rotation.y : 0;
-    const currentRotX = earthGroup.current ? earthGroup.current.rotation.x : 0;
-
-    const targetRotYRaw = -Math.atan2(mid.x, mid.z);
-    const targetRotXRaw = THREE.MathUtils.clamp(
-      Math.atan2(mid.y, Math.sqrt(mid.x * mid.x + mid.z * mid.z)) * 0.4,
-      -0.4,
-      0.4
-    );
-
-    let diffY = (targetRotYRaw - currentRotY) % (2 * Math.PI);
-    if (diffY > Math.PI) diffY -= 2 * Math.PI;
-    if (diffY < -Math.PI) diffY += 2 * Math.PI;
-    const targetRotY = currentRotY + diffY;
-    const targetRotX = targetRotXRaw;
-
+    const now = performance.now();
+    anim.current = {
+      ...anim.current,
+      startCamZ: camera.position.z,
+      targetCamZ,
+      turnStart: now,
+      startRotY: curY,
+      startRotX: curX,
+      targetRotY,
+      targetRotX,
+      turning: !reduced,
+      drawStart: now + TURN_MS,
+      done: reduced,
+    };
     if (reduced) {
-      if (earthGroup.current) {
-        earthGroup.current.rotation.y = targetRotY;
-        earthGroup.current.rotation.x = targetRotX;
+      if (g) {
+        g.rotation.y = targetRotY;
+        g.rotation.x = targetRotX;
       }
-      // Sample 240 points on the replay clock, so short radio hops still get points.
-      const reducedKf = replayKeyframes(t0, hops);
-      const reducedTotal = reducedKf.anim[reducedKf.anim.length - 1] || 1;
-      for (let i = 0; i < 240; i++) {
-        const t = animToReal((i / 239) * reducedTotal, reducedKf);
-        const st = computePacketState(
-          t,
-          t0,
-          hops,
-          missingContactId,
-          satrecs,
-          stationsMap,
-          selectedSatId,
-          selectedRoute.destination
-        );
-        trailPositions[i * 3] = st.pos.x;
-        trailPositions[i * 3 + 1] = st.pos.y;
-        trailPositions[i * 3 + 2] = st.pos.z;
-        trailOnLink[i] = st.moving ? 1 : 0;
-      }
-      syncTrail(240);
-
+      camera.position.z = targetCamZ;
+      drawRoute(plan, hops.length, 0);
       if (packetMeshRef.current) {
-        packetMeshRef.current.position.copy(posDest);
+        packetMeshRef.current.position.copy(nodes[nodes.length - 1].pos);
         packetMeshRef.current.visible = true;
       }
-
-      const finalCap = story;
-      if (replayCaptionRef.current) replayCaptionRef.current.textContent = finalCap;
-
-      replayState.current = {
-        t0,
-        lastArrive,
-        durationMs,
-        hops,
-        missingContactId,
-        isReplayActive: false,
-        replayStartTime: 0,
-        trailCount: 240,
-        isTurning: false,
-        turnStartTime: 0,
-        startRotY: targetRotY,
-        startRotX: targetRotX,
-        targetRotY,
-        targetRotX,
-        lastCaption: finalCap,
-        story,
-      };
+      setCaption(story);
     } else {
-      // Animated replay
-      followRef.current = true;
-      replayState.current = {
-        t0,
-        lastArrive,
-        durationMs,
-        hops,
-        missingContactId,
-        isReplayActive: true,
-        replayStartTime: performance.now() + 900,
-        trailCount: 0,
-        isTurning: true,
-        turnStartTime: performance.now(),
-        startRotY: currentRotY,
-        startRotX: currentRotX,
-        targetRotY,
-        targetRotX,
-        lastCaption: `Packet on ${selectedSatId}, T+0 min`,
-        story,
-      };
-      syncTrail(0);
-      if (replayCaptionRef.current) {
-        replayCaptionRef.current.textContent = `Packet on ${selectedSatId}, T+0 min`;
+      drawRoute(plan, 0, 0);
+      if (packetMeshRef.current) {
+        packetMeshRef.current.position.copy(nodes[0].pos);
+        packetMeshRef.current.visible = true;
       }
+      setCaption(hops.length > 0 ? `Hop 1 of ${hops.length}` : story);
     }
-  }, [
-    selectedRoute,
-    selectedSatId,
-    contactsMap,
-    stationsMap,
-    satrecs,
-    syncTrail,
-    trailPositions,
-    replayCaptionRef,
-  ]);
+  }, [selectedRoute, selectedSatId, contactsMap, stationsMap, satrecs, drawRoute, setCaption, camera]);
 
   useFrame((state, dt) => {
     if (!isVisible || !earthGroup.current) return;
     const now = performance.now();
-    const s = replayState.current;
+    const a = anim.current;
+    const plan = planRef.current;
+    const g = earthGroup.current;
 
-    // 1. Earth rotation
+    // 1. Earth rotation: drag, the turn towards a new route, or a slow idle spin.
     if (userDragDelta.current.x !== 0 || userDragDelta.current.y !== 0) {
-      followRef.current = false;
-      earthGroup.current.rotation.y += userDragDelta.current.x;
-      earthGroup.current.rotation.x = THREE.MathUtils.clamp(
-        earthGroup.current.rotation.x + userDragDelta.current.y,
-        -0.6,
-        0.6
-      );
+      a.turning = false;
+      g.rotation.y += userDragDelta.current.x;
+      g.rotation.x = THREE.MathUtils.clamp(g.rotation.x + userDragDelta.current.y, -1.0, 1.0);
       userDragDelta.current.x = 0;
       userDragDelta.current.y = 0;
-    } else if (selectedRoute && s.isTurning) {
-      const elapsedTurn = now - s.turnStartTime;
-      const tTurn = Math.min(1, elapsedTurn / 900);
-      const ease = 1 - Math.pow(1 - tTurn, 3);
-      earthGroup.current.rotation.y = THREE.MathUtils.lerp(s.startRotY, s.targetRotY, ease);
-      earthGroup.current.rotation.x = THREE.MathUtils.lerp(s.startRotX, s.targetRotX, ease);
-      if (tTurn >= 1) {
-        s.isTurning = false;
-      }
-    } else if (!selectedRoute) {
-      // Idle slow turn: about 0.02 rad/s
-      earthGroup.current.rotation.y += dt * 0.02;
+    } else if (plan && a.turning) {
+      const t = Math.min(1, (now - a.turnStart) / TURN_MS);
+      const ease = 1 - Math.pow(1 - t, 3);
+      g.rotation.y = THREE.MathUtils.lerp(a.startRotY, a.targetRotY, ease);
+      g.rotation.x = THREE.MathUtils.lerp(a.startRotX, a.targetRotX, ease);
+      state.camera.position.z = THREE.MathUtils.lerp(a.startCamZ, a.targetCamZ, ease);
+      if (t >= 1) a.turning = false;
+    } else if (!plan) {
+      g.rotation.y += dt * 0.02;
     }
 
-    // 2. Simulation display time & packet state
-    let displayMs = Date.now();
-    let currentPktPos: THREE.Vector3 | null = null;
-    let currentCaption = "";
-    let finishReplay = false;
-    let currentOnLink = false;
-
-    if (selectedRoute) {
-      if (s.isReplayActive) {
-        const kf = replayKeyframes(s.t0, s.hops);
-        const total = kf.anim[kf.anim.length - 1] || 1;
-        const animElapsed = Math.max(0, now - s.replayStartTime);
-        const animProgress = Math.min(1, animElapsed / total);
-        displayMs = animToReal(Math.min(animElapsed, total), kf);
-
-        const st = computePacketState(
-          displayMs,
-          s.t0,
-          s.hops,
-          s.missingContactId,
-          satrecs,
-          stationsMap,
-          selectedSatId,
-          selectedRoute.destination
-        );
-        currentPktPos = st.pos;
-        currentCaption = st.caption;
-        currentOnLink = st.moving === true;
-
-        finishReplay = animProgress >= 1;
+    // 2. Draw the route hop by hop, the packet riding the head of the line.
+    if (plan && !a.done && plan.hops.length > 0) {
+      const elapsed = Math.max(0, now - a.drawStart);
+      const total = plan.hops.length * HOP_ANIM_MS;
+      if (elapsed >= total) {
+        drawRoute(plan, plan.hops.length, 0);
+        packetMeshRef.current?.position.copy(plan.nodes[plan.nodes.length - 1].pos);
+        setCaption(plan.story);
+        a.done = true;
       } else {
-        displayMs = s.lastArrive;
-        const st = computePacketState(
-          s.lastArrive,
-          s.t0,
-          s.hops,
-          s.missingContactId,
-          satrecs,
-          stationsMap,
-          selectedSatId,
-          selectedRoute.destination
+        const k = Math.floor(elapsed / HOP_ANIM_MS);
+        const t = (elapsed - k * HOP_ANIM_MS) / HOP_ANIM_MS;
+        const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        const head = drawRoute(plan, k, eased);
+        if (head) packetMeshRef.current?.position.copy(head);
+        const h = plan.hops[k];
+        const to = stationsMap.get(h.toNode);
+        setCaption(
+          `Hop ${k + 1} of ${plan.hops.length}: ${h.fromNode} to ${to ? to.city || to.name : h.toNode}`
         );
-        currentPktPos = st.pos;
-        currentCaption = s.story || st.caption;
       }
     }
 
-    // 3. Propagate satellites once per frame
+    // 3. Satellites: live positions when idle; with a route, only the route's satellites,
+    //    each where it handed the packet on.
+    const routeSats = new Map<string, THREE.Vector3>();
+    if (plan) for (const n of plan.nodes) if (satrecs.has(n.id)) routeSats.set(n.id, n.pos);
+    const nowMs = Date.now();
     for (const [satId, rec] of satrecs.entries()) {
       const mesh = satMeshesRef.current.get(satId);
       if (!mesh) continue;
-      const p = propagateSat(rec, displayMs);
-      if (p) {
-        const r = EARTH_R * (1 + p.alt * ALT_SCALE);
-        latLngToVector3(p.lat, p.lng, r, mesh.position);
-        mesh.visible = true;
+      if (plan) {
+        const pos = routeSats.get(satId);
+        mesh.visible = pos !== undefined;
+        if (pos) mesh.position.copy(pos);
       } else {
-        mesh.visible = false;
+        const p = propagateSat(rec, nowMs);
+        mesh.visible = p !== null;
+        if (p) latLngToVector3(p.lat, p.lng, EARTH_R * (1 + p.alt * ALT_SCALE), mesh.position);
       }
-      // Hide the label while the satellite is behind the Earth.
+      // Label next to the dot; hidden while the satellite is behind the Earth.
       const label = satLabelRefs.current.get(satId);
       if (label) {
         mesh.getWorldPosition(tmpWorld);
@@ -665,53 +474,20 @@ function HeroScene({
       }
     }
 
-    // 4. Update packet mesh & append to trail
-    if (currentPktPos && packetMeshRef.current) {
-      packetMeshRef.current.position.copy(currentPktPos);
-      packetMeshRef.current.visible = true;
-
-      if (s.isReplayActive && s.trailCount < MAX_TRAIL) {
-        const lastX = s.trailCount > 0 ? trailPositions[(s.trailCount - 1) * 3] : Infinity;
-        const lastY = s.trailCount > 0 ? trailPositions[(s.trailCount - 1) * 3 + 1] : Infinity;
-        const lastZ = s.trailCount > 0 ? trailPositions[(s.trailCount - 1) * 3 + 2] : Infinity;
-        const dx = currentPktPos.x - lastX;
-        const dy = currentPktPos.y - lastY;
-        const dz = currentPktPos.z - lastZ;
-        if (dx * dx + dy * dy + dz * dz > 0.0001 || s.trailCount === 0) {
-          trailPositions[s.trailCount * 3] = currentPktPos.x;
-          trailPositions[s.trailCount * 3 + 1] = currentPktPos.y;
-          trailPositions[s.trailCount * 3 + 2] = currentPktPos.z;
-          trailOnLink[s.trailCount] = currentOnLink ? 1 : 0;
-          s.trailCount++;
-              syncTrail(s.trailCount);
-        }
-      }
-    } else if (packetMeshRef.current) {
-      packetMeshRef.current.visible = false;
-    }
-    if (finishReplay) s.isReplayActive = false;
-
-    // 5. Keep the packet on the visible face: the Earth turns under it while it travels,
-    //    then settles with the destination facing the viewer.
-    if (selectedRoute && currentPktPos && followRef.current && !s.isTurning) {
-      const p = currentPktPos;
-      const g = earthGroup.current;
-      const ty = -Math.atan2(p.x, p.z);
-      const tx = THREE.MathUtils.clamp(Math.atan2(p.y, Math.hypot(p.x, p.z)) * 0.6, -0.5, 0.5);
-      let dy = (ty - g.rotation.y) % (2 * Math.PI);
-      if (dy > Math.PI) dy -= 2 * Math.PI;
-      if (dy < -Math.PI) dy += 2 * Math.PI;
-      const k = 1 - Math.exp(-dt * 2.5);
-      g.rotation.y += dy * k;
-      g.rotation.x += (tx - g.rotation.x) * k;
-      if (!s.isReplayActive && Math.abs(dy) < 0.002) followRef.current = false;
-    }
-
-    // 6. Update caption without React state changes
-    if (currentCaption && currentCaption !== s.lastCaption) {
-      s.lastCaption = currentCaption;
-      if (replayCaptionRef.current) {
-        replayCaptionRef.current.textContent = currentCaption;
+    // Destination station label.
+    const dest = destLabelRef.current;
+    if (dest) {
+      const end = plan?.nodes[plan.nodes.length - 1];
+      if (end && !satrecs.has(end.id)) {
+        tmpWorld.copy(end.pos).applyMatrix4(g.matrixWorld);
+        const inFront = tmpWorld.dot(state.camera.position) > EARTH_R * EARTH_R;
+        tmpWorld.project(state.camera);
+        const x = ((tmpWorld.x + 1) / 2) * state.size.width;
+        const y = ((1 - tmpWorld.y) / 2) * state.size.height;
+        dest.style.transform = `translate(${Math.round(x + 9)}px, ${Math.round(y + 2)}px)`;
+        dest.style.opacity = inFront ? "1" : "0";
+      } else {
+        dest.style.opacity = "0";
       }
     }
   });
@@ -745,35 +521,17 @@ function HeroScene({
         />
       </points>
 
-      {/* Earth group carrying rotation, stations, satellites, and packet */}
+      {/* Earth group carrying rotation, stations, satellites, route and packet */}
       <group ref={earthGroup}>
         {maps && <Earth maps={maps} />}
         <Atmosphere />
 
         {/* Stations */}
         {stationList.map((st) => {
-          const isDest = selectedRoute?.destination === st.id;
           const pos = getStationVector3(st.lat, st.lng);
           return (
             <group key={st.id} position={pos}>
               <mesh geometry={stationDotGeo} material={stationDotMat} />
-              {isDest && (
-                <Html
-                  position={[0, 0, 0]}
-                  style={{ pointerEvents: "none", userSelect: "none" }}
-                  center={false}
-                >
-                  <span
-                    className="text-[12px] text-white whitespace-nowrap pl-2 block font-sans"
-                    style={{
-                      fontFamily: "var(--font-sans)",
-                      textShadow: "0 1px 4px rgba(0,0,0,0.9)",
-                    }}
-                  >
-                    {st.name}
-                  </span>
-                </Html>
-              )}
             </group>
           );
         })}
@@ -791,12 +549,9 @@ function HeroScene({
           />
         ))}
 
-        {/* Packet: 8px-ish solid red dot */}
+        {/* The route and the packet */}
+        <primitive object={routeLine} />
         <mesh ref={packetMeshRef} geometry={packetGeo} material={packetMat} visible={false} />
-
-        {/* Packet Trail: 2px red line */}
-        <primitive object={carryLine} />
-        <primitive object={trailLine} />
       </group>
     </>
   );
@@ -819,6 +574,7 @@ export function LiveHero() {
   // Ref for caption update without React state changes
   const replayCaptionRef = useRef<HTMLSpanElement>(null);
   const satLabelRefs = useRef(new Map<string, HTMLSpanElement>());
+  const destLabelRef = useRef<HTMLSpanElement>(null);
 
   // Drag interaction
   const pointerDown = useRef(false);
@@ -1004,6 +760,7 @@ export function LiveHero() {
                 satrecs={satrecs}
                 replayCaptionRef={replayCaptionRef}
                 satLabelRefs={satLabelRefs}
+                destLabelRef={destLabelRef}
                 userDragDelta={userDragDelta}
                 isVisible={isVisible}
               />
@@ -1024,6 +781,15 @@ export function LiveHero() {
                     {sat.id}
                   </span>
                 ))}
+              <span
+                ref={destLabelRef}
+                className="absolute left-0 top-0 whitespace-nowrap text-[12px] text-white"
+                style={{ opacity: 0, fontFamily: "var(--font-sans)" }}
+              >
+                {selectedRoute
+                  ? network?.stations.find((st) => st.id === selectedRoute.destination)?.name ?? ""
+                  : ""}
+              </span>
             </div>
           </div>
 
@@ -1161,25 +927,6 @@ export function LiveHero() {
                   );
                 })}
               </div>
-            )}
-
-            {(routesData?.routes.length ?? 0) > 0 && (
-              <p className="sx-caption mt-3 flex flex-wrap items-center gap-x-5 gap-y-1">
-                <span className="inline-flex items-center gap-2">
-                  <span
-                    aria-hidden="true"
-                    className="inline-block h-[2px] w-5 rounded-full bg-[var(--sx-red)] opacity-40"
-                  />
-                  Carried on board
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <span
-                    aria-hidden="true"
-                    className="inline-block h-[3px] w-5 rounded-full bg-[var(--sx-red)]"
-                  />
-                  Sent by radio
-                </span>
-              </p>
             )}
 
             {/* SQL Execution Block */}
