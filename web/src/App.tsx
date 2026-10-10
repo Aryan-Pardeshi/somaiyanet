@@ -8,6 +8,7 @@ import Deploy from "@/pages/Deploy"
 import { Placeholder } from "@/pages/Placeholder"
 import Lab from "@/pages/Lab"
 import { AppShell } from "@/app/AppShell"
+import { AnimationLoader } from "@/components/AnimationLoader"
 
 function Shelled({ children }: { children: React.ReactNode }) {
   return <AppShell>{children}</AppShell>
@@ -16,6 +17,7 @@ function Shelled({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <AnimationLoader />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/console" element={<Console />} />

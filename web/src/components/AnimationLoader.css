@@ -1,0 +1,290 @@
+/* ==========================================================================
+   Animation Loader (Framer preloading component - Dark Mode)
+   Source module: https://framer.com/m/Animation-loader-eHagKV.js@ijRh61gfd3rmanud1uxr
+   Replication with full dark mode aesthetics, cubic-bezier easing & morphing mask.
+   ========================================================================== */
+
+:root {
+  --loader-bg: #000000;
+  --loader-text: #ffffff;
+  --loader-line: #ffffff;
+  --loader-ease-bar: cubic-bezier(0.12, 0.23, 0.5, 1);
+  --loader-ease-exit: cubic-bezier(0.77, 0.02, 0.24, 1.02);
+  --loader-ease-container: cubic-bezier(0.83, 0.05, 0.25, 0.98);
+}
+
+/* Outer fullscreen overlay wrapper */
+.fl-root {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  overflow: hidden;
+  pointer-events: auto;
+  user-select: none;
+  background: transparent;
+  font-family: "Inter", "Geist Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* When finished, hide completely */
+.fl-root.fl-finished {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Container wrap - flex column, fills height */
+.fl-container-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex: 1 0 0px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+  transition: height 0.65s var(--loader-ease-container);
+}
+
+/* The curved curtain mask (framer-12lsdtj) */
+.fl-container-mask {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120%;
+  height: 100vh;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--loader-bg);
+  overflow: hidden;
+  z-index: 4;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  transition:
+    transform 0.7s var(--loader-ease-exit),
+    border-radius 0.7s var(--loader-ease-exit),
+    height 0.7s var(--loader-ease-exit),
+    opacity 0.6s ease;
+  will-change: transform, border-radius;
+}
+
+/* Exit state: Variant 3 (DOvEkyNkH) - morphs into rounded pill/dome and lifts up */
+.fl-root.fl-variant-3 .fl-container-mask {
+  border-top-left-radius: 50%;
+  border-top-right-radius: 50%;
+  border-bottom-left-radius: 50%;
+  border-bottom-right-radius: 50%;
+  transform: translateX(-50%) translateY(-105%);
+}
+
+.fl-root.fl-variant-3 .fl-container-wrap {
+  height: 2px;
+}
+
+/* Content container inside the mask */
+.fl-content-container {
+  position: relative;
+  width: 100%;
+  max-width: 1400px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3rem 4rem;
+  box-sizing: border-box;
+  z-index: 2;
+  transition: opacity 0.5s ease, transform 0.6s var(--loader-ease-exit);
+}
+
+@media (max-width: 768px) {
+  .fl-content-container {
+    padding: 2rem 1.5rem;
+  }
+}
+
+.fl-root.fl-variant-3 .fl-content-container {
+  opacity: 0;
+  transform: translateY(-40px);
+}
+
+/* Top Section: Brand name */
+.fl-top-block-wrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.fl-brand-name {
+  font-size: clamp(1.25rem, 2.2vw, 1.75rem);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--loader-text);
+  margin: 0;
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: nowrap;
+}
+
+/* Letter character blur-in effect on appearance */
+.fl-char {
+  display: inline-block;
+  opacity: 0.001;
+  filter: blur(10px);
+  transform: translateY(10px);
+  transition:
+    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, filter, transform;
+}
+
+.fl-root.fl-animate-chars .fl-char {
+  opacity: 1;
+  filter: blur(0px);
+  transform: translateY(0);
+}
+
+/* Middle Section: Progress bar line */
+.fl-middle {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: hidden;
+  padding: 1.5rem 0;
+}
+
+.fl-bar-mask {
+  position: relative;
+  width: 1px;
+  height: 3px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: hidden;
+  transition: width 3s var(--loader-ease-bar);
+  will-change: width;
+}
+
+.fl-root.fl-variant-2 .fl-bar-mask,
+.fl-root.fl-variant-3 .fl-bar-mask {
+  width: 100%;
+}
+
+.fl-bar-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--loader-line);
+  box-shadow:
+    0 0 14px rgba(255, 255, 255, 0.5),
+    0 0 28px rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+/* Bottom Section: Counter */
+.fl-counter-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.fl-counter-display {
+  display: inline-flex;
+  align-items: baseline;
+  color: var(--loader-text);
+  font-size: clamp(5rem, 18vw, 19rem);
+  font-weight: 300;
+  line-height: 0.8;
+  letter-spacing: -0.06em;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.fl-counter-percent {
+  font-size: 0.4em;
+  font-weight: 300;
+  letter-spacing: -0.06em;
+  line-height: 0.8;
+  margin-left: 0.15em;
+  color: var(--loader-text);
+}
+
+/* Skip hint & mission label */
+.fl-bottom-meta {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 4rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+  transition: opacity 0.4s ease;
+}
+
+@media (max-width: 768px) {
+  .fl-bottom-meta {
+    left: 1.5rem;
+    bottom: 1rem;
+    font-size: 0.68rem;
+  }
+}
+
+.fl-skip-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.6);
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fl-skip-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+/* Subtle dark mode ambient glow behind the counter */
+.fl-glow-ambient {
+  position: absolute;
+  right: -5%;
+  bottom: -5%;
+  width: 50vw;
+  height: 50vw;
+  max-width: 600px;
+  max-height: 600px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.04) 0%, rgba(0, 0, 0, 0) 70%);
+  pointer-events: none;
+  z-index: 1;
+}

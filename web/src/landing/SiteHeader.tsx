@@ -63,7 +63,16 @@ export function SiteHeader() {
             </a>
           ))}
         </nav>
-        <div className="flex shrink-0 items-center">
+        <div className="flex shrink-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("somaiyanet:replay-loader"))}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono text-white/60 hover:text-white hover:bg-white/10 border border-white/15 transition-all cursor-pointer"
+            title="Replay intro animation loader"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Replay Intro
+          </button>
           <Link to="/console" className="sx-btn lx-btn lx-btn--sm">
             Open Console
           </Link>
