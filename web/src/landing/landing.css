@@ -1,0 +1,547 @@
+/*
+ * Brief 31c: the landing page wears the reference's design language.
+ *
+ * It overrides the colour and type rules in 31-common.md and docs/design/DESIGN.md for this
+ * page only (the console keeps its own system). Four transparent full-height sections sit over
+ * the fixed Earth canvas; each owns just the space its text block occupies, positioned with the
+ * fractions the scene uses (docs/briefs/31-common.md), so the copy never lands on the Earth.
+ *
+ * Flat DOM: no glows, no shadows, no gradients on type or buttons. The two gradients here are
+ * the soft dark wash that keeps the copy readable over the Earth on narrow screens, and the
+ * fading top of the downlink beam.
+ */
+
+.lx-root {
+  /* Deep navy-black space, and the colour the 3D scene clears to. */
+  --lx-space: #05080f;
+  /* Lime. The one accent: orbit arc, downlink beam, hero sub line, section labels, active nav. */
+  --lx-accent: #9be15d;
+  --lx-text: #ffffff;
+  --lx-text-2: rgba(226, 232, 240, 0.72);
+  --lx-text-3: rgba(226, 232, 240, 0.46);
+  --lx-line: rgba(255, 255, 255, 0.16);
+
+  --lx-condensed: "Barlow Condensed", "Barlow", "Arial Narrow", Arial, sans-serif;
+  --lx-sans: "Lexend", var(--font-sans);
+
+  background: var(--lx-space);
+  color: var(--lx-text);
+}
+
+/* ---------- sections ---------- */
+
+.lx-section {
+  position: relative;
+  min-height: 100svh;
+  padding-top: var(--lx-pad-top, 56svh);
+  padding-bottom: 5svh;
+  background: transparent;
+}
+
+.lx-section--network {
+  --lx-pad-top: 14svh;
+}
+
+/* The last section has room to breathe below its copy, so the scene settles on its
+   final keyframe before the footer arrives. */
+.lx-section--database {
+  min-height: 115svh;
+}
+
+/* ---------- the text block ---------- */
+
+/*
+ * Narrow: the block sits in the flow between the section's top and bottom padding, so a long
+ * copy grows the section instead of spilling over the one below it.
+ */
+.lx-block {
+  position: relative;
+  margin-inline: 16px;
+}
+
+/* Narrow: a soft dark wash under the copy, transparent at its top, no visible edges. */
+.lx-block::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: calc(-1 * var(--lx-wash-top, 6vh)) -16px -40vh;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(5, 8, 15, 0) 0,
+    rgba(5, 8, 15, 0.72) var(--lx-wash-in, 6vh),
+    rgba(5, 8, 15, 0.72) calc(100% - 40vh),
+    rgba(5, 8, 15, 0) 100%
+  );
+}
+
+/* Downlink carries the beam above its label, so its wash has to reach that far up. */
+.lx-section--downlink .lx-block {
+  --lx-wash-top: 30vh;
+  --lx-wash-in: 26vh;
+}
+
+/* ---------- headlines ---------- */
+
+.lx-display,
+.lx-h2 {
+  font-family: var(--lx-condensed);
+  font-weight: 300;
+  text-transform: none; /* Title Case exactly as written, never ALL CAPS */
+  letter-spacing: 0.005em;
+  color: var(--lx-text);
+  margin: 0;
+  overflow-wrap: break-word; /* a long word never pushes a 375 px screen sideways */
+}
+
+/*
+ * The hero headline runs on one line across a wide screen, as in the reference, so it is set
+ * smaller and off the viewport (90% wide) rather than off a 66% column: 36 characters of
+ * Barlow Condensed at 6.2vw would need almost the whole width.
+ */
+.lx-display {
+  font-size: clamp(40px, 5.4vw, 78px);
+  line-height: 1.06;
+}
+
+.lx-h2 {
+  font-size: clamp(34px, 3.6vw, 54px);
+  line-height: 1.06;
+}
+
+/* ---------- small labels: nav, rail, section labels ---------- */
+
+.lx-label {
+  display: block;
+  font-family: var(--lx-condensed);
+  font-weight: 500;
+  font-size: clamp(11px, 0.8vw, 12px);
+  line-height: 1.4;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--lx-accent);
+  margin: 0 0 clamp(14px, 2vh, 22px);
+}
+
+/* The header nav: the same small tracked capitals, quiet until hovered, lime when current. */
+.lx-nav-link {
+  font-family: var(--lx-condensed);
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  color: var(--lx-text-2);
+  transition: color 200ms var(--sx-ease);
+}
+
+.lx-nav-link:hover {
+  color: var(--lx-text);
+}
+
+.lx-nav-link[aria-current="true"] {
+  color: var(--lx-accent);
+}
+
+/* ---------- body copy ---------- */
+
+/* Centred under the headline: the max-width box has to be centred too, or the line drifts
+   left of the headline above it. */
+.lx-sub {
+  font-family: var(--lx-sans);
+  font-weight: 300;
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--lx-accent);
+  max-width: 60ch;
+  margin: clamp(16px, 2.4vh, 24px) auto 0;
+}
+
+@media (max-width: 767px) {
+  .lx-sub {
+    font-size: 17px;
+  }
+}
+
+.lx-body {
+  font-family: var(--lx-sans);
+  font-weight: 300;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--lx-text-2);
+  max-width: 34ch;
+  margin: 18px 0 0;
+}
+
+.lx-body--route {
+  max-width: 40ch;
+}
+
+.lx-body--wide {
+  max-width: 52ch;
+}
+
+.lx-meta {
+  font-family: var(--lx-sans);
+  font-weight: 300;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--lx-text-3);
+  max-width: 46ch;
+  margin: 20px 0 0;
+}
+
+/* ---------- inside a block ---------- */
+
+.lx-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: clamp(22px, 3vh, 36px);
+}
+
+.lx-cols {
+  display: grid;
+  gap: 14px;
+}
+
+.lx-status-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lx-status-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 9px;
+  font-family: var(--lx-sans);
+  font-weight: 300;
+  font-size: 14px;
+  color: var(--lx-text);
+}
+
+.lx-sat-id {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- buttons ---------- */
+
+/*
+ * Ghost pills, sized and typed like the reference. They keep the .sx-btn class for its hover,
+ * focus and disabled behaviour; .lx-btn re-types and re-sizes it for this page. Being unlayered
+ * it wins over .sx-btn inside @layer components.
+ */
+.lx-btn {
+  font-family: var(--lx-sans);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  text-decoration: none;
+  min-height: 44px;
+  padding: 0 28px;
+  border-width: 1.5px;
+  border-color: var(--lx-text);
+}
+
+/* The header pill: shorter and hairline, like the reference's top-right button. */
+.lx-btn--sm {
+  font-size: 13px;
+  min-height: 40px;
+  padding: 0 22px;
+  border-width: 1px;
+}
+
+/* ---------- centred blocks ---------- */
+
+.lx-section--network .lx-block,
+.lx-section--database .lx-block {
+  text-align: center;
+}
+
+.lx-section--network .lx-cta,
+.lx-section--database .lx-cta,
+.lx-section--database .lx-body {
+  margin-inline: auto;
+}
+
+.lx-section--network .lx-cta,
+.lx-section--database .lx-cta {
+  justify-content: center;
+}
+
+/* ---------- wide: text beside the Earth ---------- */
+
+@media (min-width: 1024px) and (min-aspect-ratio: 6/5) {
+  .lx-section {
+    min-height: 100svh;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .lx-block {
+    position: absolute;
+    left: var(--lx-left, 50%);
+    top: var(--lx-top, 16%);
+    width: var(--lx-width, 66%);
+    margin-inline: 0;
+    transform: translateX(var(--lx-shift, -50%));
+  }
+
+  /* No Earth behind the copy on wide screens, so no wash. */
+  .lx-block::before {
+    content: none;
+  }
+
+  .lx-cols {
+    grid-template-columns: 1fr 1fr;
+    gap: 0 clamp(24px, 2.6vw, 44px);
+  }
+
+  .lx-section--network {
+    --lx-left: 50%;
+    --lx-top: 16%;
+    --lx-width: 90%;
+    --lx-shift: -50%;
+  }
+  .lx-section--satellites {
+    --lx-left: 54%;
+    --lx-top: 48%;
+    --lx-width: 38%;
+    --lx-shift: 0%;
+  }
+  .lx-section--downlink {
+    --lx-left: 7%;
+    --lx-top: 36%;
+    --lx-width: 37%;
+    --lx-shift: 0%;
+  }
+  .lx-section--database {
+    min-height: 112svh;
+    --lx-left: 50%;
+    --lx-top: 54%;
+    --lx-width: 62%;
+    --lx-shift: -50%;
+  }
+}
+
+/* ---------- section rail (desktop only) ---------- */
+
+.lx-rail {
+  position: fixed;
+  top: 50%;
+  right: 28px;
+  z-index: 20;
+  transform: translateY(-50%);
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .lx-rail {
+    display: block;
+  }
+}
+
+.lx-rail-dots {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  height: max(38vh, 240px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The 1 px hairline the dots sit on. */
+.lx-rail-dots::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-0.5px);
+  background: var(--lx-line);
+}
+
+.lx-rail-dot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.lx-rail-dot:focus-visible {
+  outline: 2px solid var(--lx-accent);
+  outline-offset: -2px;
+}
+
+.lx-rail-mark {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+  background: transparent;
+  transition: background-color 250ms var(--sx-ease-out), border-color 250ms var(--sx-ease-out),
+    transform 250ms var(--sx-ease-out);
+}
+
+.lx-rail-dot[aria-current="true"] .lx-rail-mark {
+  background: var(--lx-text);
+  border-color: var(--lx-text);
+  transform: scale(1.2);
+}
+
+/* The label sits above its dot, centred on the line, as in the reference. */
+.lx-rail-label {
+  position: absolute;
+  bottom: calc(50% + 15px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--lx-condensed);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--lx-text-2);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms var(--sx-ease-out), color 250ms var(--sx-ease-out);
+}
+
+.lx-rail-dot[aria-current="true"] .lx-rail-label,
+.lx-rail-dot:hover .lx-rail-label,
+.lx-rail-dot:focus-visible .lx-rail-label {
+  opacity: 1;
+}
+
+.lx-rail-dot[aria-current="true"] .lx-rail-label {
+  color: var(--lx-text);
+}
+
+/* ---------- reveal ---------- */
+
+.lx-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 900ms var(--sx-ease-out), transform 900ms var(--sx-ease-out);
+  transition-delay: var(--lx-reveal-delay, 0ms);
+}
+
+.lx-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Headings: the lines move, not the block. */
+.lx-reveal--lines {
+  opacity: 1;
+  transform: none;
+}
+
+.lx-line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+.lx-line-inner {
+  display: block;
+  transform: translateY(100%);
+  transition: transform 900ms var(--sx-ease-out);
+  transition-delay: var(--lx-reveal-delay, 0ms);
+}
+
+.lx-reveal--lines.is-in .lx-line-inner {
+  transform: translateY(0);
+}
+
+/* ---------- downlink beam ---------- */
+
+/* The beam draws itself, so it opts out of the block rise-and-fade and drives its own parts. */
+.lx-reveal.lx-beam {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+.lx-beam {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/*
+ * The beam hangs above the text block rather than sitting in it, as in the reference, so the
+ * copy keeps the vertical band the scene reserves for it (36% to 80% of the screen on wide,
+ * 56% to 95% on narrow) and the beam lands on the Earth above that band.
+ */
+.lx-section--downlink .lx-beam {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: clamp(16px, 2.2vh, 30px);
+}
+
+.lx-beam-line {
+  width: 2px;
+  height: clamp(120px, 26vh, 240px);
+  background: linear-gradient(to bottom, rgba(155, 225, 93, 0) 0%, var(--lx-accent) 100%);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 900ms var(--sx-ease-out);
+}
+
+.lx-beam-dot {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  /* The ring sits on the line rather than beside it: up 1px to cap it, left 6px to centre it. */
+  margin: -1px 0 0 -6px;
+  border: 2px solid var(--lx-text);
+  border-radius: 999px;
+  background: var(--lx-space); /* a dark centre, not a hole through the page */
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity 300ms var(--sx-ease-out) 700ms, transform 400ms var(--sx-ease-out) 700ms;
+}
+
+.lx-beam.is-in .lx-beam-line {
+  transform: scaleY(1);
+}
+
+.lx-beam.is-in .lx-beam-dot {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lx-reveal,
+  .lx-reveal.is-in,
+  .lx-reveal--lines,
+  .lx-reveal.lx-beam,
+  .lx-line-inner,
+  .lx-beam-line,
+  .lx-beam-dot {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
