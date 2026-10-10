@@ -416,7 +416,7 @@ export default function Ops() {
     {
       key: "tabs",
       className: "inset-x-0 mx-auto top-3 h-11 w-[470px] rounded-full",
-      config: { cornerRadius: 22, zRadius: 16, brightness: -0.2, blurAmount: 0.2 },
+      config: { cornerRadius: 22, zRadius: 16, brightness: -0.04, blurAmount: 0.08 },
       clip: false,
       children: (
         <nav

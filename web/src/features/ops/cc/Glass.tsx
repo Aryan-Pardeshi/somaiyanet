@@ -24,10 +24,18 @@ export function Glass({
 
   return (
     <div
-      className={`sx-material relative rounded-[16px] transition-colors duration-200 ${
-        selected ? "bg-[var(--sx-surface-2)]" : ""
-      } ${noPadding ? "" : "p-4"} ${className}`}
-      style={style}
+      className={`relative rounded-[16px] transition-colors duration-200 ${noPadding ? "" : "p-4"} ${className}`}
+      style={{
+        // Liquid-glass card: mostly clear, a faint white veil, a bright top rim, light blur.
+        background: selected
+          ? "linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06))"
+          : "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.025))",
+        border: "1px solid rgba(255,255,255,0.14)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(255,255,255,0.04)",
+        backdropFilter: "blur(14px) saturate(170%)",
+        WebkitBackdropFilter: "blur(14px) saturate(170%)",
+        ...style,
+      }}
       {...rest}
     >
       {children}

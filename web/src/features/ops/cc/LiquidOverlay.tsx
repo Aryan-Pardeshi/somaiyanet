@@ -80,7 +80,7 @@ export function LiquidOverlay({ globeRef, slabs, onFail }: LiquidOverlayProps) {
         const lg = await LiquidGlass.init({
           root,
           glassElements: shapes,
-          defaults: { brightness: -0.3, blurAmount: 0.25 },
+          defaults: { brightness: -0.06, blurAmount: 0.1 },
         });
         if (cancelled) {
           lg.destroy();
