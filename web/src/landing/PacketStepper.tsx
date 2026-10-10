@@ -163,6 +163,55 @@ function Dish({
   );
 }
 
+/** The packet: a dot that travels along `path` every `dur` seconds, forever. */
+function TravelDot({ path, dur, fill }: { path: string; dur: number; fill: string }) {
+  const track = useRef<SVGPathElement>(null);
+  const dot = useRef<SVGCircleElement>(null);
+  useEffect(() => {
+    const t = track.current;
+    const d = dot.current;
+    if (!t || !d) return;
+    const length = t.getTotalLength();
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number): void => {
+      const f = (((now - start) / (dur * 1000)) % 1 + 1) % 1;
+      const pt = t.getPointAtLength(f * length);
+      d.setAttribute("cx", String(pt.x));
+      d.setAttribute("cy", String(pt.y));
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [path, dur]);
+  return (
+    <>
+      <path ref={track} d={path} fill="none" stroke="none" />
+      <circle ref={dot} r={3.5} fill={fill} />
+    </>
+  );
+}
+
+/** A ring that grows out of (cx, cy) and fades, every `dur` seconds: the moment of capture. */
+function PulseRing({ cx, cy, dur, stroke }: { cx: number; cy: number; dur: number; stroke: string }) {
+  const ring = useRef<SVGCircleElement>(null);
+  useEffect(() => {
+    const el = ring.current;
+    if (!el) return;
+    const start = performance.now();
+    let raf = 0;
+    const tick = (now: number): void => {
+      const f = ((now - start) / (dur * 1000)) % 1;
+      el.setAttribute("r", String(3.5 + f * 12));
+      el.setAttribute("opacity", String(0.9 * (1 - f)));
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [dur]);
+  return <circle ref={ring} cx={cx} cy={cy} r={3.5} fill="none" stroke={stroke} strokeWidth={1.2} />;
+}
+
 /** White line art; strokes draw themselves in when the box becomes active. */
 function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" | "sm" }) {
   const reducedMotion = usePrefersReducedMotion();
@@ -234,7 +283,8 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
             </text>
           )}
 
-          {/* Static red packet dot at sat */}
+          {/* The packet on the satellite, pulsing as the frame is captured */}
+          {canAnimate && <PulseRing cx={42} cy={36} dur={1.6} stroke={red} />}
           <circle cx={42} cy={36} r={size === "lg" ? 3.5 : 4.5} fill={red} />
         </g>
       )}
@@ -379,13 +429,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
 
           {/* Red dot travels root to leaf */}
           {canAnimate ? (
-            <circle r={3.5} fill={red}>
-              <animateMotion
-                dur="2.2s"
-                repeatCount="indefinite"
-                path="M 100 26 L 100 35 L 150 69 L 150 87 L 133 125 L 133 134"
-              />
-            </circle>
+            <TravelDot path="M 100 26 L 100 35 L 150 69 L 150 87 L 133 125 L 133 134" dur={2.2} fill={red} />
           ) : (
             <circle cx={133} cy={134} r={size === "lg" ? 3.5 : 4} fill={red} />
           )}
@@ -412,11 +456,9 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
           {/* Ground station dish on Earth limb */}
           <Dish x={152} y={160} stroke={s} strokeWidth={strokeWidth} />
 
-          {/* Red dot: animateMotion along sat1 -> sat2 -> sat3 -> dish (lg only), static at sat2 in thumbnails */}
+          {/* Packet dot: sat1 -> sat2 -> sat3 -> dish (lg only), static at sat2 in thumbnails */}
           {canAnimate ? (
-            <circle r={3.5} fill={red}>
-              <animateMotion dur="2.8s" repeatCount="indefinite" path="M 36 52 L 95 38 L 154 54 L 137 127" />
-            </circle>
+            <TravelDot path="M 36 52 L 95 38 L 154 54 L 137 127" dur={2.8} fill={red} />
           ) : (
             <circle cx={95} cy={38} r={size === "lg" ? 3.5 : 4} fill={red} />
           )}
@@ -476,9 +518,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
 
           {/* Red dot moving down centre line (lg only) */}
           {canAnimate ? (
-            <circle r={3.5} fill={red}>
-              <animateMotion dur="1.8s" repeatCount="indefinite" path="M 44 44 L 137 127" />
-            </circle>
+            <TravelDot path="M 44 44 L 137 127" dur={1.8} fill={red} />
           ) : (
             <circle cx={137} cy={127} r={size === "lg" ? 3.5 : 4} fill={red} />
           )}
