@@ -9,7 +9,7 @@ export function Footer() {
   return (
     <footer
       className="w-full bg-black text-white"
-      style={{ borderTop: "1px solid var(--sx-hairline)", background: "#000000" }}
+      style={{ borderTop: "1px solid var(--sx-hairline)", background: "var(--lx-space, #000000)" }}
     >
       <div className="mx-auto max-w-[1200px] px-4 py-10 md:px-8">
         <div className="flex flex-col gap-6">

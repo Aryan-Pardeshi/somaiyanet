@@ -451,7 +451,7 @@ export function RouteDiagram({
         row1Ref.current.style.transform = `translateY(${(1 - pRow1) * 10}px)`;
         if (t >= 6.0 && t <= 10.0) {
           const hl = 1 - (t - 6.0) / 4.0;
-          row1Ref.current.style.backgroundColor = `rgba(28, 28, 30, ${hl})`;
+          row1Ref.current.style.backgroundColor = `rgba(18, 26, 41, ${hl})`;
         } else {
           row1Ref.current.style.backgroundColor = "transparent";
         }
@@ -464,7 +464,7 @@ export function RouteDiagram({
         row2Ref.current.style.transform = `translateY(${(1 - pRow2) * 10}px)`;
         if (t >= 20.0 && t <= 24.0) {
           const hl = 1 - (t - 20.0) / 4.0;
-          row2Ref.current.style.backgroundColor = `rgba(28, 28, 30, ${hl})`;
+          row2Ref.current.style.backgroundColor = `rgba(18, 26, 41, ${hl})`;
         } else {
           row2Ref.current.style.backgroundColor = "transparent";
         }
@@ -477,7 +477,7 @@ export function RouteDiagram({
         row3Ref.current.style.transform = `translateY(${(1 - pRow3) * 10}px)`;
         if (t >= 36.0 && t <= 40.0) {
           const hl = 1 - (t - 36.0) / 4.0;
-          row3Ref.current.style.backgroundColor = `rgba(28, 28, 30, ${hl})`;
+          row3Ref.current.style.backgroundColor = `rgba(18, 26, 41, ${hl})`;
         } else {
           row3Ref.current.style.backgroundColor = "transparent";
         }
@@ -772,7 +772,7 @@ export function RouteDiagram({
                   y1="141"
                   x2={reduced ? "360" : "170"}
                   y2={reduced ? "120" : "141"}
-                  stroke="#ff453a"
+                  stroke="#9be15d"
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   style={{ opacity: reduced ? 1 : 0 }}
@@ -783,7 +783,7 @@ export function RouteDiagram({
                   y1="120"
                   x2={reduced ? "540" : "360"}
                   y2={reduced ? "139" : "120"}
-                  stroke="#ff453a"
+                  stroke="#9be15d"
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   style={{ opacity: reduced ? 1 : 0 }}
@@ -794,7 +794,7 @@ export function RouteDiagram({
                   y1="139"
                   x2={reduced ? "520" : "540"}
                   y2={reduced ? "340" : "139"}
-                  stroke="#ff453a"
+                  stroke="#9be15d"
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   style={{ opacity: reduced ? 1 : 0 }}
@@ -822,7 +822,7 @@ export function RouteDiagram({
                       letterSpacing: "0.08em",
                       textTransform: "capitalize",
                       paintOrder: "stroke",
-                      stroke: "#000000",
+                      stroke: "#05080f",
                       strokeWidth: 3,
                       strokeLinejoin: "round",
                     }}
@@ -849,7 +849,7 @@ export function RouteDiagram({
                       letterSpacing: "0.08em",
                       textTransform: "capitalize",
                       paintOrder: "stroke",
-                      stroke: "#000000",
+                      stroke: "#05080f",
                       strokeWidth: 3,
                       strokeLinejoin: "round",
                     }}
@@ -876,7 +876,7 @@ export function RouteDiagram({
                       letterSpacing: "0.08em",
                       textTransform: "capitalize",
                       paintOrder: "stroke",
-                      stroke: "#000000",
+                      stroke: "#05080f",
                       strokeWidth: 3,
                       strokeLinejoin: "round",
                     }}
@@ -903,7 +903,7 @@ export function RouteDiagram({
                       letterSpacing: "0.06em",
                       textTransform: "capitalize",
                       paintOrder: "stroke",
-                      stroke: "#000000",
+                      stroke: "#05080f",
                       strokeWidth: 3,
                       strokeLinejoin: "round",
                     }}
@@ -967,7 +967,7 @@ export function RouteDiagram({
 
                   {/* Status: 5px dot + plain words */}
                   <g transform="translate(0, 32)">
-                    <circle cx="-23" cy="-3.5" r="2.5" fill="#30d158" />
+                    <circle cx="-23" cy="-3.5" r="2.5" fill="#9be15d" />
                     <text
                       x="-16"
                       y="0"
@@ -1123,7 +1123,7 @@ export function RouteDiagram({
                 cx="0"
                 cy="0"
                 r="2"
-                fill="#ff453a"
+                fill="#9be15d"
                 style={{ opacity: 0 }}
               />
               <circle
@@ -1131,7 +1131,7 @@ export function RouteDiagram({
                 cx="0"
                 cy="0"
                 r="2.8"
-                fill="#ff453a"
+                fill="#9be15d"
                 style={{ opacity: 0 }}
               />
 
@@ -1142,7 +1142,7 @@ export function RouteDiagram({
                   reduced ? "translate(520, 340)" : "translate(170, 141)"
                 }
               >
-                <circle r="3.5" fill="#ff453a" />
+                <circle r="3.5" fill="#9be15d" />
               </g>
             </svg>
           </div>
@@ -1154,7 +1154,7 @@ export function RouteDiagram({
             }`}
           >
             {/* Apple inset-grouped Card */}
-            <div className="flex flex-col rounded-[14px] bg-[#111113] p-4 sm:p-5">
+            <div className="flex flex-col rounded-[14px] bg-[#0b111c] p-4 sm:p-5">
               {/* Card Header: title + postgres eyebrow */}
               <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
                 <span className="font-mono text-[13px] font-medium text-white">
@@ -1267,7 +1267,7 @@ export function RouteDiagram({
             {/* SQL Query typing chip */}
             <div
               ref={queryChipRef}
-              className="rounded-[10px] bg-[#0a0a0a] px-4 py-2.5 font-mono text-[13px] text-[#f0f0fa]"
+              className="rounded-[10px] bg-[#070b13] px-4 py-2.5 font-mono text-[13px] text-[#f0f0fa]"
               style={{ opacity: reduced ? 1 : 0 }}
             >
               <div className="flex min-w-0 items-start gap-2">

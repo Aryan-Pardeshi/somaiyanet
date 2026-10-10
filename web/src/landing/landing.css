@@ -20,6 +20,22 @@
   --lx-text-2: rgba(226, 232, 240, 0.72);
   --lx-text-3: rgba(226, 232, 240, 0.46);
   --lx-line: rgba(255, 255, 255, 0.16);
+  /* Panels on the navy: a lifted navy, never neutral grey. */
+  --lx-surface: #0b111c;
+  --lx-surface-2: #121a29;
+  --lx-surface-deep: #070b13;
+
+  /*
+   * The restored sections (packet stepper, route diagram, spacecraft) and the shared sx classes
+   * read these tokens. Inside the landing they follow the landing palette: lime is the one accent
+   * (the route, the packet, "healthy"), panels are navy.
+   */
+  --sx-night: var(--lx-surface-deep);
+  --sx-surface: var(--lx-surface);
+  --sx-surface-2: var(--lx-surface-2);
+  --sx-red: var(--lx-accent);
+  --sx-green: var(--lx-accent);
+  --brand-accent: var(--lx-accent);
 
   --lx-condensed: "Barlow Condensed", "Barlow", "Arial Narrow", Arial, sans-serif;
   --lx-sans: "Lexend", var(--font-sans);
@@ -544,4 +560,16 @@
     transform: none;
     transition: none;
   }
+}
+/* Row keys in the restored spec list: the landing's body face, not the console's. */
+.lx-row-key {
+  font-family: var(--lx-sans);
+  font-weight: 300;
+  font-size: 15px;
+  color: var(--lx-text-2);
+}
+
+/* Step titles come from data in sentence case; show them in Title Case like every heading. */
+.lx-h2--title {
+  text-transform: capitalize;
 }

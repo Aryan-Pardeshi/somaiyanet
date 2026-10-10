@@ -100,20 +100,20 @@ function Sat({
   return (
     <g transform={transform}>
       {/* Central square bus */}
-      <rect x={-7} y={-7} width={14} height={14} stroke={stroke} strokeWidth={strokeWidth} fill="#000" />
+      <rect x={-7} y={-7} width={14} height={14} stroke={stroke} strokeWidth={strokeWidth} fill="#0b111c" />
       {/* Inner detail line */}
       <line x1={-7} y1={0} x2={7} y2={0} stroke={stroke} strokeWidth={strokeWidth * 0.8} />
 
       {/* Left solar wing with boom & 3 cell dividers */}
       <line x1={-11} y1={0} x2={-7} y2={0} stroke={stroke} strokeWidth={strokeWidth} />
-      <rect x={-27} y={-6} width={16} height={12} stroke={stroke} strokeWidth={strokeWidth} fill="#000" />
+      <rect x={-27} y={-6} width={16} height={12} stroke={stroke} strokeWidth={strokeWidth} fill="#0b111c" />
       <line x1={-23} y1={-6} x2={-23} y2={6} stroke={stroke} strokeWidth={strokeWidth * 0.8} />
       <line x1={-19} y1={-6} x2={-19} y2={6} stroke={stroke} strokeWidth={strokeWidth * 0.8} />
       <line x1={-15} y1={-6} x2={-15} y2={6} stroke={stroke} strokeWidth={strokeWidth * 0.8} />
 
       {/* Right solar wing with boom & 3 cell dividers */}
       <line x1={7} y1={0} x2={11} y2={0} stroke={stroke} strokeWidth={strokeWidth} />
-      <rect x={11} y={-6} width={16} height={12} stroke={stroke} strokeWidth={strokeWidth} fill="#000" />
+      <rect x={11} y={-6} width={16} height={12} stroke={stroke} strokeWidth={strokeWidth} fill="#0b111c" />
       <line x1={15} y1={-6} x2={15} y2={6} stroke={stroke} strokeWidth={strokeWidth * 0.8} />
       <line x1={19} y1={-6} x2={19} y2={6} stroke={stroke} strokeWidth={strokeWidth * 0.8} />
       <line x1={23} y1={-6} x2={23} y2={6} stroke={stroke} strokeWidth={strokeWidth * 0.8} />
@@ -168,7 +168,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
   const reducedMotion = usePrefersReducedMotion();
   const s = active ? "#ffffff" : "rgba(255,255,255,0.45)";
   const accent = "#ffffff";
-  const red = "#ff453a";
+  const red = "#9be15d";
   const strokeWidth = size === "lg" ? 1.3 : 2.4;
   const draw = active && size === "lg" ? "draw-in" : "";
   const canAnimate = active && size === "lg" && !reducedMotion;
@@ -307,7 +307,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
           />
 
           {/* Root node: battery_v */}
-          <rect x={72} y={17} width={56} height={18} rx={3} stroke={accent} strokeWidth={strokeWidth} fill="#000" />
+          <rect x={72} y={17} width={56} height={18} rx={3} stroke={accent} strokeWidth={strokeWidth} fill="#0b111c" />
           {size === "lg" && (
             <text x={100} y={29} textAnchor="middle" fill="#fff" fontFamily="monospace" fontSize={6.5}>
               battery_v
@@ -315,7 +315,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
           )}
 
           {/* Level 1: link_score */}
-          <rect x={22} y={69} width={56} height={18} rx={3} stroke={s} strokeWidth={strokeWidth} fill="#000" />
+          <rect x={22} y={69} width={56} height={18} rx={3} stroke={s} strokeWidth={strokeWidth} fill="#0b111c" />
           {size === "lg" && (
             <text x={50} y={81} textAnchor="middle" fill="rgba(255,255,255,0.75)" fontFamily="monospace" fontSize={6.5}>
               link_score
@@ -323,7 +323,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
           )}
 
           {/* Level 1: contact_s (on path) */}
-          <rect x={123} y={69} width={54} height={18} rx={3} stroke={accent} strokeWidth={strokeWidth} fill="#000" />
+          <rect x={123} y={69} width={54} height={18} rx={3} stroke={accent} strokeWidth={strokeWidth} fill="#0b111c" />
           {size === "lg" && (
             <text x={150} y={81} textAnchor="middle" fill="#fff" fontFamily="monospace" fontSize={6.5}>
               contact_s
@@ -331,7 +331,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
           )}
 
           {/* Leaf: HOLD */}
-          <rect x={8} y={125} width={34} height={18} rx={3} stroke={s} strokeWidth={strokeWidth} fill="#000" />
+          <rect x={8} y={125} width={34} height={18} rx={3} stroke={s} strokeWidth={strokeWidth} fill="#0b111c" />
           {size === "lg" && (
             <text x={25} y={137} textAnchor="middle" fill="rgba(255,255,255,0.75)" fontFamily="monospace" fontSize={6.5}>
               HOLD
@@ -339,7 +339,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
           )}
 
           {/* Leaf: TTC_VOICE */}
-          <rect x={48} y={125} width={52} height={18} rx={3} stroke={s} strokeWidth={strokeWidth} fill="#000" />
+          <rect x={48} y={125} width={52} height={18} rx={3} stroke={s} strokeWidth={strokeWidth} fill="#0b111c" />
           {size === "lg" && (
             <text x={74} y={137} textAnchor="middle" fill="rgba(255,255,255,0.75)" fontFamily="monospace" fontSize={6}>
               TTC_VOICE
@@ -347,7 +347,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
           )}
 
           {/* Leaf: RELAY_VIA_ISL (chosen leaf with accent outline) */}
-          <rect x={104} y={125} width={58} height={18} rx={3} stroke={accent} strokeWidth={strokeWidth} fill="#000" />
+          <rect x={104} y={125} width={58} height={18} rx={3} stroke={accent} strokeWidth={strokeWidth} fill="#0b111c" />
           {size === "lg" && (
             <text x={133} y={137} textAnchor="middle" fill="#fff" fontFamily="monospace" fontSize={5.5}>
               RELAY_VIA_ISL
@@ -355,7 +355,7 @@ function Art({ kind, active, size }: { kind: Kind; active: boolean; size: "lg" |
           )}
 
           {/* Leaf: FULL */}
-          <rect x={164} y={125} width={30} height={18} rx={3} stroke={s} strokeWidth={strokeWidth} fill="#000" />
+          <rect x={164} y={125} width={30} height={18} rx={3} stroke={s} strokeWidth={strokeWidth} fill="#0b111c" />
           {size === "lg" && (
             <text x={179} y={137} textAnchor="middle" fill="rgba(255,255,255,0.75)" fontFamily="monospace" fontSize={6.5}>
               FULL
@@ -613,7 +613,7 @@ export function PacketStepper() {
         className="mx-auto flex h-screen max-w-[1200px] flex-col justify-center overflow-hidden px-6 py-4 md:py-6"
       >
         <div className="flex items-center justify-between gap-4">
-          <span className="sx-eyebrow">Life of a packet</span>
+          <span className="lx-label">Life of a packet</span>
           <span className="sx-num text-[13px] text-white">
             {String(active + 1).padStart(2, "0")} / {String(STEPS.length).padStart(2, "0")}
           </span>
@@ -639,10 +639,10 @@ export function PacketStepper() {
             </div>
           </div>
           <div key={`t${active}`} className="fade-step min-w-0 max-w-[520px]">
-            <h3 className="sx-h2">
+            <h3 className="lx-h2 lx-h2--title">
               {step.title}
             </h3>
-            <p className="sx-lead mt-4">{step.body}</p>
+            <p className="lx-body lx-body--wide mt-4">{step.body}</p>
             <pre className="sx-code mt-4 max-w-full whitespace-pre-wrap break-words">
               {step.sql}
             </pre>

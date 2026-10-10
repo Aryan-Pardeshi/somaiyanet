@@ -9,7 +9,7 @@ const SPECS: Array<[string, string]> = [
   ["Fleet size", "4 PocketQubes (3 flying, 1 in deployer)"],
   ["Deployer mechanism", "SomaiyaPod orbital deployer"],
   ["Target orbit", "525 km sun-synchronous orbit (Plane A)"],
-  ["Payload communication", "Digital Voice (M17, Codec2) · SSTV Imagery · TT&C"],
+  ["Payload communication", "Digital Voice (M17, Codec2), SSTV imagery, TT&C"],
   ["Inter-satellite range", "Up to 2,000 km line-of-sight"],
   ["Autonomous routing engine", "93-node decision tree in PostgreSQL"],
 ];
@@ -22,10 +22,11 @@ export function Spacecraft() {
   return (
     <section id="spacecraft" className="sx-section" style={{ background: "var(--lx-space)" }}>
       <div className="mx-auto max-w-[1200px] px-6">
-        <h2 className="sx-h1 max-w-[16ch]">
-          Small enough to fit in your hand.
+        <p className="lx-label">The Hardware</p>
+        <h2 className="lx-h2 mt-4 max-w-[16ch]">
+          Small Enough To Fit In Your Hand
         </h2>
-        <p className="sx-lead mt-6">
+        <p className="lx-body lx-body--wide mt-6">
           A PocketQube that makes its own routing decisions and records every one of them.
         </p>
 
@@ -44,14 +45,14 @@ export function Spacecraft() {
               <Blueprint />
             </Canvas>
             <div className="sx-eyebrow pointer-events-none absolute bottom-3 left-4">
-              SomaiyaSat · Not to scale
+              SomaiyaSat, not to scale
             </div>
           </div>
 
           <dl className="sx-group">
             {SPECS.map(([k, v]) => (
               <div key={k} className="sx-row">
-                <dt className="sx-body">{k}</dt>
+                <dt className="lx-row-key">{k}</dt>
                 <dd className="sx-num text-right text-[13px] text-white">{v}</dd>
               </div>
             ))}

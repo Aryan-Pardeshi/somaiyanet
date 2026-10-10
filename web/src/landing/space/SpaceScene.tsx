@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import type { PublicNetwork } from "@/landing/publicApi";
 import { Atmosphere, Earth, EARTH_R, SUN_DIR, useEarthMaps } from "@/landing/earth/Earth";
-import { isWideViewport, scenePosition } from "./scroll";
+import { isWideViewport, SCENES, scenePosition } from "./scroll";
 import {
   getEarthScale,
   getSatelliteWorldSpan,
@@ -82,20 +82,25 @@ function CameraParallax({ reducedMotion }: { reducedMotion: boolean }) {
     };
   }, [reducedMotion]);
 
+  const parallax = useRef({ x: 0, y: 0 });
+
   useFrame((_, delta) => {
+    // Past the last scene the page keeps scrolling (to the footer): slide the view so the Earth
+    // leaves with the text instead of staying pinned behind it.
+    const last = document.getElementById(SCENES[SCENES.length - 1].id);
+    const overflowPx = last ? Math.max(0, -last.getBoundingClientRect().top) : 0;
+    const scrollY = (overflowPx * getVisibleFrustumHeight(35, 10)) / (window.innerHeight || 1);
+
+    const par = parallax.current;
     if (reducedMotion) {
-      camera.position.x = 0;
-      camera.position.y = 0;
-      camera.position.z = 10;
-      camera.lookAt(0, 0, 0);
-      return;
+      par.x = 0;
+      par.y = 0;
+    } else {
+      par.x = THREE.MathUtils.damp(par.x, pointerRef.current.x * 0.12, 3.5, delta);
+      par.y = THREE.MathUtils.damp(par.y, pointerRef.current.y * 0.12, 3.5, delta);
     }
-    const targetX = pointerRef.current.x * 0.12;
-    const targetY = pointerRef.current.y * 0.12;
-    camera.position.x = THREE.MathUtils.damp(camera.position.x, targetX, 3.5, delta);
-    camera.position.y = THREE.MathUtils.damp(camera.position.y, targetY, 3.5, delta);
-    camera.position.z = 10;
-    camera.lookAt(0, 0, 0);
+    camera.position.set(par.x, par.y - scrollY, 10);
+    camera.lookAt(0, -scrollY, 0);
   });
 
   return null;

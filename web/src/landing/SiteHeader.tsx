@@ -29,7 +29,7 @@ export function SiteHeader() {
       className="fixed inset-x-0 top-0 z-40"
       style={{
         height: 64,
-        background: scrolled ? "rgba(0, 0, 0, 0.72)" : "transparent",
+        background: scrolled ? "rgba(5, 8, 15, 0.72)" : "transparent",
         backdropFilter: scrolled ? "blur(24px) saturate(160%)" : "none",
         WebkitBackdropFilter: scrolled ? "blur(24px) saturate(160%)" : "none",
         borderBottom: scrolled ? "1px solid var(--sx-hairline)" : "1px solid transparent",
