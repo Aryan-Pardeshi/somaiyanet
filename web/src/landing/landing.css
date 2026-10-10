@@ -573,3 +573,22 @@
 .lx-h2--title {
   text-transform: capitalize;
 }
+
+/* Header: off screen on the first screen, slides in once the page scrolls (see SiteHeader). */
+.lx-header {
+  transition:
+    transform 400ms var(--sx-ease-out),
+    opacity 300ms var(--sx-ease);
+}
+
+.lx-header[data-shown="false"]:not(:focus-within) {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lx-header {
+    transition: none;
+  }
+}

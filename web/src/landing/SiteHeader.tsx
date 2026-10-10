@@ -4,35 +4,40 @@ import { Brand } from "@/components/story/Brand";
 import { RAIL, SCENES, useActiveSection } from "@/landing/space/scroll";
 
 /**
- * SiteHeader: always visible fixed top bar, 64 px.
- * Transparent at the top; black at 72% with blur and a bottom
- * hairline once scrolled more than 8 px.
+ * SiteHeader: fixed top bar, 64 px. Hidden on the first screen so the hero stands alone; it
+ * slides in (navy at 72% with blur and a bottom hairline) once the page has scrolled a third of
+ * a screen, and also whenever something inside it has keyboard focus.
  *
  * Brief 31c: brand left, nav centred as uppercase tracked labels with the current section in
  * lime, a ghost "Open Console" pill on the right.
  */
 export function SiteHeader() {
-  const [scrolled, setScrolled] = useState(false);
+  const [shown, setShown] = useState(false);
   const activeId = RAIL[useActiveSection()].id;
 
   useEffect(() => {
     const onScroll = (): void => {
-      setScrolled(window.scrollY > 8);
+      setShown(window.scrollY > window.innerHeight * 0.33);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, []);
 
   return (
     <header
-      className="fixed inset-x-0 top-0 z-40"
+      className="lx-header fixed inset-x-0 top-0 z-40"
+      data-shown={shown ? "true" : "false"}
       style={{
         height: 64,
-        background: scrolled ? "rgba(5, 8, 15, 0.72)" : "transparent",
-        backdropFilter: scrolled ? "blur(24px) saturate(160%)" : "none",
-        WebkitBackdropFilter: scrolled ? "blur(24px) saturate(160%)" : "none",
-        borderBottom: scrolled ? "1px solid var(--sx-hairline)" : "1px solid transparent",
+        background: "rgba(5, 8, 15, 0.72)",
+        backdropFilter: "blur(24px) saturate(160%)",
+        WebkitBackdropFilter: "blur(24px) saturate(160%)",
+        borderBottom: "1px solid var(--sx-hairline)",
       }}
     >
       <div className="mx-auto flex h-full max-w-[1200px] items-center justify-between gap-4 px-4 md:px-8">
