@@ -1,0 +1,79 @@
+name: Uptime Monitor
+
+on:
+  schedule:
+    # Runs every 10 minutes to keep free-tier instances (e.g., Render 15-min idle spin-down) awake
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Target URL to ping (overrides secret/variable if provided)'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  ping:
+    name: Ping & Check Health
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Service
+        env:
+          INPUT_URL: ${{ github.event.inputs.url }}
+          SECRET_URL: ${{ secrets.UPTIME_URL || secrets.APP_URL || vars.UPTIME_URL || vars.APP_URL }}
+        run: |
+          TARGET="${INPUT_URL:-$SECRET_URL}"
+
+          if [ -z "$TARGET" ]; then
+            echo "::warning ::No target URL specified! Please set UPTIME_URL or APP_URL in Repository Secrets / Variables (Settings > Secrets and variables > Actions)."
+            echo "### ⚠️ Uptime Monitor: Configuration Required" >> $GITHUB_STEP_SUMMARY
+            echo "No target URL was found. Please add **UPTIME_URL** or **APP_URL** to your repository secrets or variables." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
+          # Strip trailing slashes
+          TARGET="${TARGET%/}"
+
+          # If the URL doesn't already point to /api/health or another endpoint, ping /api/health
+          if [[ "$TARGET" =~ /api/health$ ]]; then
+            HEALTH_URL="$TARGET"
+          else
+            HEALTH_URL="$TARGET/api/health"
+          fi
+
+          echo "Target URL: $TARGET"
+          echo "Health Endpoint: $HEALTH_URL"
+          echo "Pinging at $(date -u)..."
+
+          # Perform curl request with timeout and retries
+          HTTP_RESPONSE=$(curl -sSL -w "\nHTTP_STATUS:%{http_code}\nTIME_TOTAL:%{time_total}s\n" \
+            --max-time 30 \
+            --retry 2 \
+            --retry-delay 5 \
+            "$HEALTH_URL" 2>&1)
+
+          STATUS_CODE=$(echo "$HTTP_RESPONSE" | grep "HTTP_STATUS:" | cut -d':' -f2)
+          TIME_TOTAL=$(echo "$HTTP_RESPONSE" | grep "TIME_TOTAL:" | cut -d':' -f2)
+          BODY=$(echo "$HTTP_RESPONSE" | sed -e '/HTTP_STATUS:/d' -e '/TIME_TOTAL:/d')
+
+          echo "Status: $STATUS_CODE"
+          echo "Response time: $TIME_TOTAL"
+          echo "Response body: $BODY"
+
+          # Write summary to GitHub Actions UI
+          echo "### 📡 Uptime Check Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Target** | \`$HEALTH_URL\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **HTTP Status** | \`$STATUS_CODE\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Latency** | \`$TIME_TOTAL\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Timestamp** | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$STATUS_CODE" -ge 200 ] && [ "$STATUS_CODE" -lt 400 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Service is UP and healthy**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Service returned error status $STATUS_CODE**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
