@@ -227,30 +227,30 @@ export function AnimationLoader({
               </div>
             </div>
 
-            {/* Bottom: Giant typographic counter */}
-            <div className="fl-counter-wrapper">
-              <div className="fl-counter-display">
-                <span>{count}</span>
-                <span className="fl-counter-percent">%</span>
+            {/* Bottom Row: Meta label on left, Giant typographic counter on right */}
+            <div className="fl-bottom-row">
+              <div className="fl-bottom-meta">
+                <span>{metaLabel}</span>
+                {allowSkip && (
+                  <button
+                    type="button"
+                    className="fl-skip-btn"
+                    onClick={handleSkip}
+                    title="Press Esc or click to skip intro"
+                  >
+                    Skip [Esc]
+                  </button>
+                )}
+              </div>
+              <div className="fl-counter-wrapper">
+                <div className="fl-counter-display">
+                  <span>{count}</span>
+                  <span className="fl-counter-percent">%</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Meta info & skip control in dark mode */}
-      <div className="fl-bottom-meta">
-        <span>{metaLabel}</span>
-        {allowSkip && (
-          <button
-            type="button"
-            className="fl-skip-btn"
-            onClick={handleSkip}
-            title="Press Esc or click to skip intro"
-          >
-            Skip [Esc]
-          </button>
-        )}
       </div>
     </aside>
   );
