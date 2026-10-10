@@ -24,6 +24,9 @@ import {
   type StarfieldHandle,
 } from "./effects";
 
+/** How fast the satellite travels along its orbit arc, in radians per second. */
+const ORBIT_SPEED = 0.07;
+
 /** Deep navy-black space, as in the reference. Matches --lx-space in landing.css. */
 const SPACE_COLOR = "#05080f";
 
@@ -107,13 +110,7 @@ function CameraParallax({ reducedMotion }: { reducedMotion: boolean }) {
 }
 
 /** The SomaiyaSat model, measured once so the scene can size it in screen pixels. */
-function HeroSatellite({
-  tumbleRef,
-  spanRef,
-}: {
-  tumbleRef: React.RefObject<THREE.Group | null>;
-  spanRef: React.MutableRefObject<number>;
-}) {
+function HeroSatellite({ spanRef }: { spanRef: React.MutableRefObject<number> }) {
   const inner = useRef<THREE.Group>(null);
   useLayoutEffect(() => {
     if (!inner.current) return;
@@ -121,10 +118,8 @@ function HeroSatellite({
     spanRef.current = Math.max(size.x, size.y, size.z) || 1;
   }, [spanRef]);
   return (
-    <group ref={tumbleRef}>
-      <group ref={inner}>
-        <Satellite />
-      </group>
+    <group ref={inner}>
+      <Satellite />
     </group>
   );
 }
@@ -147,7 +142,6 @@ function SceneContent({ network, reducedMotion }: SceneContentProps) {
   const orbitArcRef = useRef<OrbitArcHandle>(null);
   const orbitShellsRef = useRef<OrbitShellsHandle>(null);
   const fleetOrbitsRef = useRef<FleetOrbitsHandle>(null);
-  const tumbleGroupRef = useRef<THREE.Group>(null);
   const satSpanRef = useRef(1);
 
   // Scratch vectors to avoid allocations inside useFrame
@@ -163,6 +157,7 @@ function SceneContent({ network, reducedMotion }: SceneContentProps) {
     basis: new THREE.Matrix4(),
     quat: new THREE.Quaternion(),
     spin: new THREE.Quaternion(),
+    roll: new THREE.Quaternion(),
     zAxis: new THREE.Vector3(0, 0, 1),
   });
   const ss1WorldPos = useRef(new THREE.Vector3());
@@ -171,7 +166,8 @@ function SceneContent({ network, reducedMotion }: SceneContentProps) {
   // Time & Intro tracking
   const timeRef = useRef(0);
   const spinRef = useRef(0);
-  const tumbleRef = useRef(0);
+  // Seconds of orbit travel (the satellite revolves along the arc in the first scene).
+  const orbitTimeRef = useRef(0);
   const introRef = useRef(reducedMotion ? 1.0 : 0.0);
 
   // Damped render state values
@@ -200,7 +196,7 @@ function SceneContent({ network, reducedMotion }: SceneContentProps) {
     if (!reducedMotion) {
       timeRef.current += dt;
       spinRef.current += dt * 0.025;
-      tumbleRef.current += dt * 0.15;
+      orbitTimeRef.current += dt;
     }
 
     const p = scenePosition();
@@ -287,7 +283,14 @@ function SceneContent({ network, reducedMotion }: SceneContentProps) {
     const satAt0 = screenToWorld(satSx, satSy, aspect, 35, 10);
     const sdx = satAt0.x - earthWorld.x;
     const sdy = satAt0.y - earthFinalY;
-    const arcHead = Math.atan2(sdx * a.v.x + sdy * a.v.y, sdx * a.u.x + sdy * a.u.y);
+    const baseHead = Math.atan2(sdx * a.v.x + sdy * a.v.y, sdx * a.u.x + sdy * a.u.y);
+    const loopFrom = 0.15;
+    const loopSpan = Math.PI - 0.3;
+    const travelled =
+      (((baseHead - loopFrom + orbitTimeRef.current * ORBIT_SPEED) % loopSpan) + loopSpan) % loopSpan;
+    const orbitHead = loopFrom + travelled;
+    // Blend from the keyframe direction to the moving one as the arc scene takes over.
+    const arcHead = baseHead + (orbitHead - baseHead) * r.orbitArc;
     a.point
       .copy(a.centre)
       .addScaledVector(a.u, Math.cos(arcHead) * arcR)
@@ -308,6 +311,8 @@ function SceneContent({ network, reducedMotion }: SceneContentProps) {
     if (satelliteGroupRef.current) {
       satelliteGroupRef.current.position.copy(scratchSatPos.current);
       satelliteGroupRef.current.rotation.set(r.satRotation[0], r.satRotation[1], r.satRotation[2]);
+      a.roll.setFromAxisAngle(a.n, arcHead - baseHead);
+      satelliteGroupRef.current.quaternion.premultiply(a.roll);
       satelliteGroupRef.current.scale.setScalar(satModelScale);
       satelliteGroupRef.current.visible = satModelScale > 0.00001;
     }
@@ -323,7 +328,6 @@ function SceneContent({ network, reducedMotion }: SceneContentProps) {
       hasSs1.current = true;
     }
 
-    if (tumbleGroupRef.current) tumbleGroupRef.current.rotation.y = tumbleRef.current;
   });
 
   return (
@@ -394,7 +398,7 @@ function SceneContent({ network, reducedMotion }: SceneContentProps) {
 
       {/* Hero 3D PocketQube Satellite */}
       <group ref={satelliteGroupRef}>
-        <HeroSatellite tumbleRef={tumbleGroupRef} spanRef={satSpanRef} />
+        <HeroSatellite spanRef={satSpanRef} />
       </group>
 
     </>
