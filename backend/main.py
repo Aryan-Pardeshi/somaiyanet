@@ -44,6 +44,21 @@ async def _contact_refresher() -> None:
         await asyncio.sleep(3 * 3600)
 
 
+async def _keep_awake(base_url: str) -> None:
+    """Render's free plan sleeps a service after 15 minutes without inbound requests.
+    A request to our own public URL every 10 minutes counts as one."""
+    import httpx  # noqa: PLC0415
+
+    url = base_url.rstrip("/") + "/api/health"
+    async with httpx.AsyncClient(timeout=30) as client:
+        while True:
+            await asyncio.sleep(10 * 60)
+            try:
+                await client.get(url)
+            except Exception as exc:  # noqa: BLE001
+                print(f"keep-awake ping failed: {exc}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     task = None
@@ -53,6 +68,13 @@ async def lifespan(app: FastAPI):
     # Off by default: a local database is refreshed by hand (scripts/compute_contacts.py).
     refresher = (
         asyncio.create_task(_contact_refresher()) if os.environ.get("CONTACT_REFRESH") == "1" else None
+    )
+    # Render sets RENDER_EXTERNAL_URL on web services; KEEP_AWAKE=0 lets the site sleep again.
+    public_url = os.environ.get("RENDER_EXTERNAL_URL")
+    pinger = (
+        asyncio.create_task(_keep_awake(public_url))
+        if public_url and os.environ.get("KEEP_AWAKE", "1") != "0"
+        else None
     )
     if os.environ.get("SIMULATOR", "1") != "0":
         from . import simulator
@@ -67,6 +89,8 @@ async def lifespan(app: FastAPI):
     yield
     if refresher is not None:
         refresher.cancel()
+    if pinger is not None:
+        pinger.cancel()
     if task is not None:
         task.cancel()
         try:
