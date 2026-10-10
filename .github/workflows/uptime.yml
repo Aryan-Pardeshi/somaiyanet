@@ -45,9 +45,9 @@ jobs:
           echo "Health Endpoint: $HEALTH_URL"
           echo "Pinging at $(date -u)..."
 
-          # Perform curl request with timeout and retries
+          # Perform curl request with timeout and retries (60s to accommodate Render cold starts)
           HTTP_RESPONSE=$(curl -sSL -w "\nHTTP_STATUS:%{http_code}\nTIME_TOTAL:%{time_total}s\n" \
-            --max-time 30 \
+            --max-time 60 \
             --retry 2 \
             --retry-delay 5 \
             "$HEALTH_URL" 2>&1)
