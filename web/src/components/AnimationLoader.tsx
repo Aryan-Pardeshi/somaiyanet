@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import "./AnimationLoader.css";
 
+export const PRELOADED_SESSION_KEY = "somaiyanet_preloaded";
+
 export interface AnimationLoaderProps {
   /**
    * Brand name text displayed at the top left.
@@ -9,7 +11,7 @@ export interface AnimationLoaderProps {
   brandName?: string;
   /**
    * Total duration of the counter and progress bar in seconds.
-   * Default: 3s (from Framer component).
+   * Default: 5s (lasts at least 5 seconds).
    */
   counterDuration?: number;
   /**
@@ -32,12 +34,29 @@ export interface AnimationLoaderProps {
    */
   allowSkip?: boolean;
   /**
+   * Whether to persist preloaded state in sessionStorage so it doesn't show
+   * again once the user has already seen it in the current session.
+   * Default: true.
+   */
+  oncePerSession?: boolean;
+  /**
    * Callback fired once the curtain exit transition has fully completed.
    */
   onComplete?: () => void;
 }
 
 type LoaderVariant = "variant-1" | "variant-2" | "variant-3" | "finished";
+
+function checkIsPreloaded(): boolean {
+  try {
+    if (typeof window !== "undefined") {
+      return window.sessionStorage.getItem(PRELOADED_SESSION_KEY) === "true";
+    }
+  } catch {
+    // Graceful fallback for restricted storage / private browsing
+  }
+  return false;
+}
 
 /**
  * AnimationLoader
@@ -46,20 +65,28 @@ type LoaderVariant = "variant-1" | "variant-2" | "variant-3" | "finished";
  *
  * Variants:
  *  - Variant 1: Initial mount state (brand character blur, bar 0 width, counter 0%).
- *  - Variant 2: Progressing (3s duration tween expanding bar, spring counter 0-100%).
- *  - Variant 3: Exit transition (at 3.1s, border-radius morphs to 50% dome, curtain pulls up).
+ *  - Variant 2: Progressing (at least 5s duration tween expanding bar, spring counter 0-100%).
+ *  - Variant 3: Exit transition (at 5.25s, border-radius morphs to 50% dome, curtain pulls up).
  *  - Finished: Cleanly unmounts and hands over full pointer events to the page.
  */
 export function AnimationLoader({
   brandName = "SOMAIYANET®",
-  counterDuration = 3,
+  counterDuration = 5,
   textColor = "#ffffff",
   backgroundColor = "#000000",
   metaLabel = "KJS-SRS-01 · DBMS MISSION CONTROL",
   allowSkip = true,
+  oncePerSession = true,
   onComplete,
 }: AnimationLoaderProps) {
-  const [variant, setVariant] = useState<LoaderVariant>("variant-1");
+  // Check if session has already preloaded the website
+  const [variant, setVariant] = useState<LoaderVariant>(() => {
+    if (oncePerSession && checkIsPreloaded()) {
+      return "finished";
+    }
+    return "variant-1";
+  });
+
   const [count, setCount] = useState<number>(0);
   const [animateChars, setAnimateChars] = useState<boolean>(false);
 
@@ -68,18 +95,28 @@ export function AnimationLoader({
   const exitTimeoutRef = useRef<number | null>(null);
   const finishTimeoutRef = useRef<number | null>(null);
 
-  // Trigger exit sequence (Variant 3)
+  // Mark session as preloaded and trigger exit sequence (Variant 3)
   const triggerExit = useCallback(() => {
     setCount(100);
     setVariant("variant-3");
 
-    // Exit transition duration is ~700ms (matching Framer's transition1: 0.6s)
+    if (oncePerSession) {
+      try {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(PRELOADED_SESSION_KEY, "true");
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // Exit transition duration is ~750ms (matching Framer's transition1: 0.6s)
     if (finishTimeoutRef.current) clearTimeout(finishTimeoutRef.current);
     finishTimeoutRef.current = window.setTimeout(() => {
       setVariant("finished");
       if (onComplete) onComplete();
     }, 750);
-  }, [onComplete]);
+  }, [oncePerSession, onComplete]);
 
   // Skip loader on user action
   const handleSkip = useCallback(
@@ -131,17 +168,20 @@ export function AnimationLoader({
 
       reqIdRef.current = requestAnimationFrame(animateCounter);
 
-      // Framer schedules Variant 3 at counterDuration + 100ms (3100ms default)
+      // Schedule Variant 3 after counter reaches 100% (+ 250ms hold)
       exitTimeoutRef.current = window.setTimeout(() => {
         triggerExit();
-      }, durationMs + 100);
+      }, durationMs + 250);
     }, 30);
 
     return () => clearTimeout(appearTimer);
   }, [counterDuration, triggerExit]);
 
-  // Initial play on mount
+  // Initial play on mount (only if not already preloaded in this session)
   useEffect(() => {
+    if (oncePerSession && checkIsPreloaded()) {
+      return;
+    }
     const cleanup = startAnimation();
     return () => {
       cleanup?.();
@@ -149,9 +189,9 @@ export function AnimationLoader({
       if (exitTimeoutRef.current) clearTimeout(exitTimeoutRef.current);
       if (finishTimeoutRef.current) clearTimeout(finishTimeoutRef.current);
     };
-  }, [startAnimation]);
+  }, [oncePerSession, startAnimation]);
 
-  // Listen for global replay events
+  // Listen for global replay events (allows manual replay on demand)
   useEffect(() => {
     const handleReplay = () => {
       startAnimation();

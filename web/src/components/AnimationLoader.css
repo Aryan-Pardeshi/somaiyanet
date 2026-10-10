@@ -197,7 +197,7 @@
   align-items: center;
   justify-content: flex-start;
   overflow: hidden;
-  transition: width 3s var(--loader-ease-bar);
+  transition: width 5s var(--loader-ease-bar);
   will-change: width;
 }
 
