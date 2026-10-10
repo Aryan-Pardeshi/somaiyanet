@@ -18,9 +18,42 @@ from .routers import ai, console, deploy, labs_index, labs_norm, labs_schema, la
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def _refresh_contacts_if_stale() -> None:
+    """Recompute the contact plan (now - 6 h .. now + 30 h) when it ends within 8 hours."""
+    import _db  # scripts/ is on sys.path via backend.db
+    import compute_contacts
+
+    with _db.connect() as conn:
+        ends = conn.execute("SELECT max(end_ts) > now() + interval '8 hours' FROM contact").fetchone()
+    if ends and ends[0]:
+        return
+    compute_contacts.run(
+        lambda user=None, password=None, autocommit=False: _db.connect(
+            user=user, password=password, autocommit=autocommit
+        )
+    )
+
+
+async def _contact_refresher() -> None:
+    """Keeps a deployed site's contact plan current: checks at start-up, then every 3 hours."""
+    while True:
+        try:
+            await asyncio.to_thread(_refresh_contacts_if_stale)
+        except Exception as exc:  # noqa: BLE001
+            print(f"contact refresh failed: {exc}")
+        await asyncio.sleep(3 * 3600)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     task = None
+    import _db  # noqa: PLC0415  (scripts/ is on sys.path via backend.db)
+
+    _db.load_env()  # pick up the secret file before reading the flag below
+    # Off by default: a local database is refreshed by hand (scripts/compute_contacts.py).
+    refresher = (
+        asyncio.create_task(_contact_refresher()) if os.environ.get("CONTACT_REFRESH") == "1" else None
+    )
     if os.environ.get("SIMULATOR", "1") != "0":
         from . import simulator
 
@@ -32,6 +65,8 @@ async def lifespan(app: FastAPI):
     except RuntimeError:
         pass
     yield
+    if refresher is not None:
+        refresher.cancel()
     if task is not None:
         task.cancel()
         try:

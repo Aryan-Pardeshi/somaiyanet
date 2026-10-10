@@ -43,7 +43,7 @@ export function Brand({ className }: { className?: string }) {
           height: "0.26em",
           right: "0.08em",
           top: "0.12em",
-          background: "var(--brand-accent, #ff453a)",
+          background: "var(--brand-accent, #9be15d)",
         }}
       />
       <span className="sr-only">SomaiyaNet</span>
@@ -56,7 +56,7 @@ export function BrandMark({ size = 22, className }: { size?: number; className?:
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={cn("shrink-0", className)}>
       <path d="M 2 20 Q 15 24 21 5 L 20 4.6 Q 13.5 21.6 2 20 Z" fill="#ffffff" />
-      <circle cx="21" cy="4" r="2.1" style={{ fill: "var(--brand-accent, #ff453a)" }} />
+      <circle cx="21" cy="4" r="2.1" style={{ fill: "var(--brand-accent, #9be15d)" }} />
     </svg>
   );
 }

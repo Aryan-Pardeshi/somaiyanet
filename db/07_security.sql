@@ -231,6 +231,17 @@ USING (
                  AND g.operator_role::TEXT = current_user)
 );
 
+-- The role that runs this setup owns the tables and the SECURITY DEFINER functions, which are
+-- meant to see every row. A superuser (local setup) skips RLS anyway; on a managed host such as
+-- Render the owner is an ordinary role, and FORCE would hold it to the policies above. These
+-- owner-only policies keep the same behaviour everywhere. The five login roles are unaffected.
+DROP POLICY IF EXISTS p_setup_owner ON telecommand;
+CREATE POLICY p_setup_owner ON telecommand FOR ALL TO CURRENT_USER USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS p_setup_owner ON station_key;
+CREATE POLICY p_setup_owner ON station_key FOR ALL TO CURRENT_USER USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS p_setup_owner ON contact;
+CREATE POLICY p_setup_owner ON contact FOR ALL TO CURRENT_USER USING (true) WITH CHECK (true);
+
 -- ---------------------------------------------------------- verification ---
 -- Read aloud at viva: the five login roles and their table grants.
 SELECT grantee, table_name,

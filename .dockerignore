@@ -1,0 +1,14 @@
+.env
+.git
+.venv
+.pytest_cache
+.claude
+**/__pycache__
+**/*.pyc
+web/node_modules
+web/dist
+reference
+docs
+tests
+backend/tests
+*.log

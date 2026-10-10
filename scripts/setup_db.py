@@ -66,7 +66,8 @@ def recreate_database(target: str) -> None:
     with psycopg.connect(
         host=cfg["host"],
         port=cfg["port"],
-        dbname="postgres",
+        # Managed hosts may not let you into "postgres"; any database you can connect to works.
+        dbname=os.environ.get("PGMAINTDB", "postgres"),
         user=cfg["user"],
         password=cfg["password"],
         autocommit=True,

@@ -35,8 +35,9 @@ def repo_root() -> Path:
 
 
 def load_env() -> None:
-    """Load .env from the repo root; existing environment wins."""
+    """Load .env from the repo root (or Render's secret file); existing environment wins."""
     load_dotenv(repo_root() / ".env", override=False)
+    load_dotenv("/etc/secrets/.env", override=False)
 
 
 def settings() -> dict:
