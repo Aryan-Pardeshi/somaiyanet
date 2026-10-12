@@ -125,3 +125,29 @@ def post_reset(request: Request):
         return sqlbook.envelope({"ok": True}, role)
     except Exception as exc:
         return JSONResponse(status_code=sqlbook.status_for(exc), content={"error": sqlbook.error_payload(exc), "sql": sqlbook.get_log(), "role": role})
+
+
+@router.post("/api/deploy/illegal")
+def post_illegal(request: Request):
+    """Try to move SS-4 straight to NOMINAL so trg_satellite_state can refuse it. Always rolled back."""
+    role, err = _role_or_401(request)
+    if err is not None:
+        return err
+    import psycopg
+
+    cfg = _db.settings()
+    import os as _os
+
+    dbname = _os.environ.get("SOMAIYANET_DB") or cfg["dbname"]
+    sql = "UPDATE satellite SET state = 'NOMINAL' WHERE node_id = 'SS-4' RETURNING node_id"
+    sqlbook.get_log().append({"label": "disallowed state change (rolled back)", "sql": sql, "exp": "Exp 9 - TCL", "co": "CO4", "elapsed_ms": 0, "rowcount": 0})
+    try:
+        with psycopg.connect(host=cfg["host"], port=cfg["port"], dbname=dbname, user=role, password=_db.role_password(role), autocommit=False, application_name=f"somaiyanet:{role}") as conn:
+            with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+                cur.execute("SELECT state FROM satellite WHERE node_id = 'SS-4'")
+                before = (cur.fetchone() or {}).get("state")
+                cur.execute(sql)
+            conn.rollback()
+        return sqlbook.envelope({"allowed": True, "from_state": before}, role)
+    except Exception as exc:
+        return JSONResponse(status_code=sqlbook.status_for(exc), content={"error": sqlbook.error_payload(exc), "sql": sqlbook.get_log(), "role": role})

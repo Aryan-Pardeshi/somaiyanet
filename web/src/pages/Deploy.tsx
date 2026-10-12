@@ -307,22 +307,16 @@ export default function Deploy() {
     setIllegalMsg(null);
     setIllegalError(null);
     try {
-      await apiFetch("/api/console", {
+      // The API tries the UPDATE as this role and always rolls it back.
+      const r = await apiFetch<{ allowed: boolean; from_state?: string }>("/api/deploy/illegal", {
         method: "POST",
-        body: JSON.stringify({
-          query: "UPDATE satellite SET state = 'NOMINAL' WHERE node_id = 'SS-4'",
-        }),
       });
-      setIllegalMsg("Unexpectedly allowed — the trigger should have fired.");
+      setIllegalMsg(
+        `Allowed, because SS-4 is ${r.data.from_state ?? "no longer STOWED"} and that step to NOMINAL is legal. ` +
+          `Nothing was saved. Press Reset demo to put SS-4 back in its pod, then try again.`,
+      );
     } catch (e) {
-      if (e instanceof ApiError) {
-        setIllegalError(e);
-        setIllegalMsg(
-          `Console refused (${e.sqlstate ?? e.status}): ${e.message}. ` +
-            `The live trigger trg_satellite_state would raise ` +
-            `'illegal state transition STOWED -> NOMINAL for SS-4'.`,
-        );
-      }
+      if (e instanceof ApiError) setIllegalError(e);
     }
   };
 
