@@ -4,8 +4,6 @@ import {
   Brain,
   ChevronDown,
   Database,
-  FlaskConical,
-  Gauge,
   Menu,
   Network,
   Rocket,
@@ -31,9 +29,7 @@ const MISSION_NAV = [
 ];
 
 const LABS_NAV = [
-  { to: "/labs/transactions", label: "Transactions", Icon: FlaskConical },
   { to: "/labs/security", label: "Security", Icon: ShieldCheck },
-  { to: "/labs/indexing", label: "Indexing", Icon: Gauge },
   { to: "/labs/normalization", label: "Normalization", Icon: Network },
   { to: "/labs/schema", label: "Schema", Icon: Database },
   { to: "/labs/sql", label: "SQL", Icon: Terminal },

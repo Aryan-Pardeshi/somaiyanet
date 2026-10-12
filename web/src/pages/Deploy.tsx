@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { ApiError, apiFetch } from "@/app/api";
 import { Locked, RoleHeader } from "@/app/access";
 import { BackendOffline } from "@/app/SqlDrawer";
@@ -752,12 +751,6 @@ export default function Deploy() {
             >
               Try a disallowed change (STOWED to NOMINAL)
             </button>
-            <Link
-              to="/labs/transactions"
-              className="sx-link sx-caption"
-            >
-              Open transactions lab →
-            </Link>
           </div>
 
           {/* State-Machine Rejection Showing Red Critical Badge + Exact Postgres Error */}

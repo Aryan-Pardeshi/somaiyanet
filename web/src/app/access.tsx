@@ -25,7 +25,6 @@ export type Action =
   | "plan_route" // persist a route (plan_route), not just preview cgr_routes
   | "decide" // run decide_for_satellite (writes routing_decision)
   | "refresh_kpis" // REFRESH MATERIALIZED VIEW mv_kpis
-  | "bench_index" // create/drop benchmark indexes
   | "station_keys"; // read station_key.secret
 
 export interface RoleAccess {
@@ -63,7 +62,6 @@ export const ROLE_ACCESS: Record<Role, RoleAccess> = {
       "plan_route",
       "decide",
       "refresh_kpis",
-      "bench_index",
       "station_keys",
     ],
   },
@@ -101,7 +99,7 @@ export const ROLE_ACCESS: Record<Role, RoleAccess> = {
     who: "Student analyst: read-only.",
     can: ["read views and telemetry", "preview routes and AI decisions", "run every lab"],
     grants: ["SELECT ON views, telemetry, packets, contacts, AI tables", "no INSERT / UPDATE / DELETE anywhere"],
-    actions: ["bench_index"],
+    actions: [],
   },
   ai_router: {
     home: "/brain",

@@ -106,7 +106,7 @@ def decide(request: Request, sat: str):
     if err is not None:
         return err
     try:
-        row = sqlbook.run(role, "decide for satellite", "SELECT (decide_for_satellite(%s)).*", (sat,), many=False)
+        row = sqlbook.run(role, "decide for satellite", "SELECT * FROM decide_for_satellite(%s)", (sat,), many=False)
         return sqlbook.envelope(row, role)
     except Exception as exc:
         return JSONResponse(status_code=sqlbook.status_for(exc), content={"error": sqlbook.error_payload(exc), "sql": sqlbook.get_log(), "role": role})

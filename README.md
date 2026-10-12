@@ -22,8 +22,8 @@ audit trail all live in PostgreSQL; the web app shows each piece and the exact S
 | 5 Aggregates and set operations | `v_station_workload` (GROUP BY / HAVING), `v_low_power`, UNION / INTERSECT / EXCEPT views ("heard by Mumbai but not Helsinki"). |
 | 6 Nested queries, views, joins | Multi-join `v_constellation_status`, correlated subqueries, materialized `mv_kpis`, the recursive CTE `cgr_routes()` (Contact Graph Routing with a CYCLE clause). |
 | 7 DCL | Group and login roles, column privileges (`station_key.secret`), row-level security per station, SECURITY DEFINER functions; the app shows real `42501` denials. |
-| 8 Indexing | B-tree, composite, BRIN, GIN on JSONB, partial, covering (INCLUDE) and hash indexes with EXPLAIN ANALYZE, plus partition pruning. |
-| 9 TCL, ACID, concurrency | Deployment as one transaction with COMMIT / ROLLBACK, SAVEPOINT during a pass, and a two-session lab: lost update, non-repeatable read, write skew (`40001`), deadlock (`40P01`), SKIP LOCKED, MVCC (`xmin` / `xmax`), WAL positions. |
+| 8 Indexing | B-tree, composite, BRIN, GIN on JSONB, partial, covering (INCLUDE) and hash indexes, plus partition pruning; turn on Explain in the SQL console to see which index a query uses. |
+| 9 TCL, ACID | Deployment as one transaction with COMMIT / ROLLBACK, and SAVEPOINT during a downlink pass (Deploy page). |
 | CO3 Normalization | A flight-log sheet taken from UNF to 1NF, 2NF, 3NF and BCNF, with the anomalies and a lossless-join check. |
 
 The AI router is a scikit-learn decision tree (93 nodes, 88.7% test accuracy) stored as rows in
@@ -92,7 +92,7 @@ For development, run the API (`uvicorn backend.main:app --port 8000`) and the we
 db/        SQL files 01 to 09 (schema, seed, views, functions, AI, triggers, security, index lab, normalization)
 scripts/   setup_db.py and the data generators (constellation, contacts, telemetry, packets, router training)
 backend/   FastAPI app: one router per page or lab, a live telemetry simulator, SSE stream
-web/       React app: landing page, command center, routing, AI router, deploy, six labs
+web/       React app: landing page, command center, routing, AI router, deploy, four labs
 tests/     SQL-level tests
 docs/      plan, spec and design notes
 ```

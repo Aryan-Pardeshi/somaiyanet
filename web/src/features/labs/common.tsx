@@ -8,9 +8,7 @@ import { RoleHeader } from "@/app/access";
 export { Panel };
 
 export const LABS = [
-  { slug: "transactions", label: "Transactions" },
   { slug: "security", label: "Security" },
-  { slug: "indexing", label: "Indexing" },
   { slug: "normalization", label: "Normalization" },
   { slug: "schema", label: "Schema" },
   { slug: "sql", label: "SQL console" },
@@ -290,7 +288,7 @@ export function OfflineOrEmpty({
   );
 }
 
-/** EXPLAIN JSON → collapsible plan tree with Apple/SpaceX styling (shared by indexing + SQL console). */
+/** EXPLAIN JSON → collapsible plan tree with Apple/SpaceX styling (used by the SQL console). */
 export function PlanTree({ plan }: { plan: unknown }) {
   if (plan === null || plan === undefined)
     return <p className="sx-caption text-[var(--sx-text-3)]">No plan.</p>;

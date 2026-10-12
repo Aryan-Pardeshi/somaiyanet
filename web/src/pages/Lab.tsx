@@ -1,8 +1,6 @@
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { LABS, LabShell } from "@/features/labs/common";
-import { TxLab } from "@/features/labs/TxLab";
 import { SecurityLab } from "@/features/labs/SecurityLab";
-import { IndexLab } from "@/features/labs/IndexLab";
 import { NormLab } from "@/features/labs/NormLab";
 import { SchemaLab } from "@/features/labs/SchemaLab";
 import { SqlLab } from "@/features/labs/SqlLab";
@@ -12,40 +10,16 @@ const META: Record<
   string,
   { title: string; description: string; chips: string[]; notice: string[]; roleNote: string }
 > = {
-  transactions: {
-    title: "Transactions",
-    description:
-      "Two-session concurrency workbench — row lock contention, SERIALIZABLE write-skew (40001), deadlock aborts (40P01), and MVCC tuple versions.",
-    chips: [],
-    roleNote: "Sessions A and B connect to PostgreSQL as the role you picked; resets run as the database owner.",
-    notice: [
-      "Session B waits on Session A's row lock — the lock table and wait-for arrows prove it.",
-      "SERIALIZABLE write-skew ends in 40001; the deadlock script ends in 40P01 with one victim.",
-      "SKIP LOCKED dispatch claims disjoint packet id sets for the two router workers.",
-    ],
-  },
   security: {
     title: "Security",
     description:
-      "Role privilege matrix, column-level secrets, station-isolated row-level security (RLS), and Postgres 42501 audit verification.",
+      "Who can see and change what. Every answer on this page comes from PostgreSQL itself.",
     chips: [],
-    roleNote: "Every check below runs as the role you picked, against real GRANTs.",
+    roleNote: "Each check logs in as the person you pick and is undone afterwards, so nothing is saved.",
     notice: [
-      "The heatmap's denied cells are real has_*_privilege answers, not hard-coded.",
-      "RLS: each station operator's downlink count covers only their own to_node.",
-      "The audit log refuses non-directors with a genuine 42501 from Postgres.",
-    ],
-  },
-  indexing: {
-    title: "Indexing",
-    description:
-      "B-Tree, BRIN, GIN, Partial and Covering index benchmarks with live EXPLAIN scan node comparisons.",
-    chips: [],
-    roleNote: "Catalog reads run as the role you picked; index creation, drops, and benchmarks run as the database owner (mission_director).",
-    notice: [
-      "Before/after bars show the scan node flip: Seq Scan → Bitmap/Index Scan.",
-      "BRIN stays tiny on append-only ts; the partial index only covers QUEUED.",
-      "A low-selectivity 7-day range correctly keeps the seq scan — planner is right.",
+      "Pick a person: Yes and No are real attempts by that PostgreSQL user (GRANT and column privileges).",
+      "Row-level security: the same query shows each station only its own passes.",
+      "Only the Mission Director can read the change history.",
     ],
   },
   normalization: {
@@ -80,7 +54,7 @@ const META: Record<
     roleNote: "Your query runs as the picked role inside a read-only transaction.",
     notice: [
       "Presets cover DML, aggregates, set ops, CGR, views and LIKE in one sidebar.",
-      "EXPLAIN toggle renders the shared plan-tree visualizer used by indexing.",
+      "The EXPLAIN toggle draws the query plan as a tree.",
       "Writes fail with 25006 by design — this console is BEGIN READ ONLY.",
     ],
   },
@@ -111,7 +85,7 @@ export default function Lab() {
 
   const meta = META[lab];
   if (!meta) {
-    const fallback = visibleLabs[0]?.slug ?? "transactions";
+    const fallback = visibleLabs[0]?.slug ?? "security";
     return <Navigate to={`/labs/${fallback}`} replace />;
   }
 
@@ -156,9 +130,7 @@ export default function Lab() {
         notice={meta.notice}
         roleNote={dynamicRoleNote}
       >
-        {lab === "transactions" && <TxLab />}
         {lab === "security" && <SecurityLab />}
-        {lab === "indexing" && <IndexLab />}
         {lab === "normalization" && <NormLab />}
         {lab === "schema" && <SchemaLab initialTab={initialTab} />}
         {lab === "sql" && <SqlLab presetName={preset} />}

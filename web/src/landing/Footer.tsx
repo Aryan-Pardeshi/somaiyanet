@@ -21,7 +21,7 @@ export function Footer() {
             <Link to="/console" className="sx-link" style={{ fontSize: 14 }}>
               Console
             </Link>
-            <Link to="/labs/transactions" className="sx-link" style={{ fontSize: 14 }}>
+            <Link to="/labs/security" className="sx-link" style={{ fontSize: 14 }}>
               Labs
             </Link>
             <Link to="/routing" className="sx-link" style={{ fontSize: 14 }}>

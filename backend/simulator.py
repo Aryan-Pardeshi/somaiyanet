@@ -70,7 +70,7 @@ async def _decide_tick(state: dict) -> None:
         sqlbook.run(
             "ai_router",
             f"simulator decide {sat}",
-            "SELECT (decide_for_satellite(%s)).*",
+            "SELECT * FROM decide_for_satellite(%s)",
             (sat,),
             many=False,
         )
