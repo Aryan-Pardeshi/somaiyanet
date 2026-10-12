@@ -1,6 +1,7 @@
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { LABS, LabShell } from "@/features/labs/common";
 import { SecurityLab } from "@/features/labs/SecurityLab";
+import { NormLab } from "@/features/labs/NormLab";
 import { SchemaLab } from "@/features/labs/SchemaLab";
 import { SqlLab } from "@/features/labs/SqlLab";
 import { canVisit, homeFor, useRole } from "@/app/access";
@@ -19,6 +20,17 @@ const META: Record<
       "Pick a person: Yes and No are real attempts by that PostgreSQL user (GRANT and column privileges).",
       "Row-level security: the same query shows each station only its own passes.",
       "Only the Mission Director can read the change history.",
+    ],
+  },
+  normalization: {
+    title: "Normalization",
+    description: "One messy sheet split into clean tables, step by step, so every fact is stored only once.",
+    chips: ["UNF → BCNF"],
+    roleNote: "The tables below are read from the norm schema as the person you picked.",
+    notice: [
+      "Click through UNF, 1NF, 2NF, 3NF and BCNF, or press Next step.",
+      "Orange cells are the repeated or crammed values the next step removes.",
+      "After each step the database joins the pieces back: nothing missing, nothing extra.",
     ],
   },
   schema: {
@@ -118,6 +130,7 @@ export default function Lab() {
         roleNote={dynamicRoleNote}
       >
         {lab === "security" && <SecurityLab />}
+        {lab === "normalization" && <NormLab />}
         {lab === "schema" && <SchemaLab initialTab={initialTab} />}
         {lab === "sql" && <SqlLab presetName={preset} />}
       </LabShell>
