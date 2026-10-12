@@ -76,22 +76,6 @@ def test_security_audit_director_only():
     assert r.status_code == 403, r.text
 
 
-def test_norm_lossless_anomalies():
-    _login("student_analyst")
-    r = client.get("/api/labs/norm/lossless")
-    assert r.status_code == 200, r.text
-    for row in r.json()["data"]:
-        assert row["missing"] == 0 and row["spurious"] == 0, row
-    r = client.get("/api/labs/norm/anomalies")
-    assert r.status_code == 200, r.text
-    d = r.json()["data"]
-    assert d["update"] and d["insert"] and d["delete"]
-    r = client.get("/api/labs/norm/stages")
-    assert r.status_code == 200, r.text
-    assert r.json()["data"]["fds"]
-    assert r.json()["sql"]
-
-
 def test_schema_tags():
     _login("mission_director")
     r = client.get("/api/labs/schema")

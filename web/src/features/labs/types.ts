@@ -2,27 +2,6 @@
  * Backend is built in parallel, so every fetcher degrades to a calm
  * offline state when the route 404s or the backend is down. */
 
-export interface NormStage {
-  stage: string;
-  tables: Array<{ name: string; columns: string[]; rows: Array<Record<string, unknown>> }>;
-  fds: Array<{ fd: string; violates: string; fix: string }>;
-}
-
-export interface NormAnomaly {
-  stage: string;
-  before: string;
-  after: string;
-  explanation: string;
-}
-
-export interface LosslessRow {
-  stage: string;
-  rows_original: number;
-  rows_rejoined: number;
-  missing: number;
-  spurious: number;
-}
-
 export interface SchemaColumn {
   name: string;
   type: string;

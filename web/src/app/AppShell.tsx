@@ -5,7 +5,6 @@ import {
   ChevronDown,
   Database,
   Menu,
-  Network,
   Rocket,
   Route,
   Satellite,
@@ -30,7 +29,6 @@ const MISSION_NAV = [
 
 const LABS_NAV = [
   { to: "/labs/security", label: "Security", Icon: ShieldCheck },
-  { to: "/labs/normalization", label: "Normalization", Icon: Network },
   { to: "/labs/schema", label: "Schema", Icon: Database },
   { to: "/labs/sql", label: "SQL", Icon: Terminal },
 ];

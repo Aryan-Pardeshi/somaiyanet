@@ -24,7 +24,7 @@ audit trail all live in PostgreSQL; the web app shows each piece and the exact S
 | 7 DCL | Group and login roles, column privileges (`station_key.secret`), row-level security per station, SECURITY DEFINER functions; the app shows real `42501` denials. |
 | 8 Indexing | B-tree, composite, BRIN, GIN on JSONB, partial, covering (INCLUDE) and hash indexes, plus partition pruning; turn on Explain in the SQL console to see which index a query uses. |
 | 9 TCL, ACID | Deployment as one transaction with COMMIT / ROLLBACK, and SAVEPOINT during a downlink pass (Deploy page). |
-| CO3 Normalization | A flight-log sheet taken from UNF to 1NF, 2NF, 3NF and BCNF, with the anomalies and a lossless-join check. |
+| CO3 Normalization | `db/09_normalization.sql` takes a flight-log sheet from UNF to 1NF, 2NF, 3NF and BCNF in the `norm` schema, with the anomalies and a lossless-join check; query it from the SQL console. |
 
 The AI router is a scikit-learn decision tree (93 nodes, 88.7% test accuracy) stored as rows in
 `dt_node` and evaluated by a recursive SQL query (`ai_decide`). A watchdog (`watchdog_violation`)
@@ -92,7 +92,7 @@ For development, run the API (`uvicorn backend.main:app --port 8000`) and the we
 db/        SQL files 01 to 09 (schema, seed, views, functions, AI, triggers, security, index lab, normalization)
 scripts/   setup_db.py and the data generators (constellation, contacts, telemetry, packets, router training)
 backend/   FastAPI app: one router per page or lab, a live telemetry simulator, SSE stream
-web/       React app: landing page, command center, routing, AI router, deploy, four labs
+web/       React app: landing page, command center, routing, AI router, deploy, three labs
 tests/     SQL-level tests
 docs/      plan, spec and design notes
 ```

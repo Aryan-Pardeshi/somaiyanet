@@ -9,7 +9,6 @@ export { Panel };
 
 export const LABS = [
   { slug: "security", label: "Security" },
-  { slug: "normalization", label: "Normalization" },
   { slug: "schema", label: "Schema" },
   { slug: "sql", label: "SQL console" },
 ] as const;

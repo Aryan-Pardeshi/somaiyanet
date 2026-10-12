@@ -1,7 +1,6 @@
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { LABS, LabShell } from "@/features/labs/common";
 import { SecurityLab } from "@/features/labs/SecurityLab";
-import { NormLab } from "@/features/labs/NormLab";
 import { SchemaLab } from "@/features/labs/SchemaLab";
 import { SqlLab } from "@/features/labs/SqlLab";
 import { canVisit, homeFor, useRole } from "@/app/access";
@@ -20,18 +19,6 @@ const META: Record<
       "Pick a person: Yes and No are real attempts by that PostgreSQL user (GRANT and column privileges).",
       "Row-level security: the same query shows each station only its own passes.",
       "Only the Mission Director can read the change history.",
-    ],
-  },
-  normalization: {
-    title: "Normalization",
-    description:
-      "Lossless join decomposition from UNF to BCNF, functional dependencies, and anomaly isolation.",
-    chips: ["UNF → BCNF"],
-    roleNote: "All normalization queries and anomaly demonstrations run as the role you picked.",
-    notice: [
-      "Highlighted columns are the duplicated facts that each normal form removes.",
-      "FD arrows name the exact form they violate and the fix applied next.",
-      "Every decomposition step in the lossless proof rejoins with 0 missing/spurious.",
     ],
   },
   schema: {
@@ -131,7 +118,6 @@ export default function Lab() {
         roleNote={dynamicRoleNote}
       >
         {lab === "security" && <SecurityLab />}
-        {lab === "normalization" && <NormLab />}
         {lab === "schema" && <SchemaLab initialTab={initialTab} />}
         {lab === "sql" && <SqlLab presetName={preset} />}
       </LabShell>
